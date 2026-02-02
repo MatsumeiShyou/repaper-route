@@ -226,50 +226,60 @@ export default function DriverApp() {
             <main className="flex-grow p-4 overflow-y-auto bg-[#111827]">
                 <div className="max-w-md mx-auto relative pb-20">
 
-                    {jobs.map((job, index) => (
-                        <div key={job.id}>
-                            <JobCard
-                                job={job}
-                                isActive={activeJobId === job.id}
-                                isOtherActive={activeJobId && activeJobId !== job.id}
-                                machine={jobMachine}
-                                onAction={(action) => handleCardAction(action, job.id)}
-                                manualData={manualData}
-                                onManualDataChange={handleManualDataChange}
-                                isLast={index === jobs.length - 1}
-                            />
-                            {/* Photo Input Overlay (Only when Active and Working) */}
-                            {activeJobId === job.id && jobMachine.state === 'WORKING' && (
-                                <div className="mb-4 bg-white p-3 rounded-lg -mt-2 mx-2 border-t border-gray-100 shadow-inner">
-                                    <h4 className="font-bold text-sm text-gray-500 mb-2 flex items-center gap-2"><Camera size={16} /> 現場写真</h4>
+                    {/* Sort jobs: Active/Pending first, then Completed */
+                        {
+                            jobs.slice().sort((a, b) => {
+                                const score = (status) => {
+                                    if (status === 'WORKING' || status === 'MOVING' || status === 'ARRIVED') return 0;
+                                    if (status === 'PENDING') return 1;
+                                    return 2; // COMPLETED
+                                };
+                                return score(a.status) - score(b.status);
+                            }).map((job, index, array) => (
+                                <div key={job.id}>
+                                    <JobCard
+                                        job={job}
+                                        isActive={activeJobId === job.id}
+                                        isOtherActive={activeJobId && activeJobId !== job.id}
+                                        machine={jobMachine}
+                                        onAction={(action) => handleCardAction(action, job.id)}
+                                        manualData={manualData}
+                                        onManualDataChange={handleManualDataChange}
+                                        isLast={index === jobs.length - 1}
+                                    />
+                                    {/* Photo Input Overlay (Only when Active and Working) */}
+                                    {activeJobId === job.id && jobMachine.state === 'WORKING' && (
+                                        <div className="mb-4 bg-white p-3 rounded-lg -mt-2 mx-2 border-t border-gray-100 shadow-inner">
+                                            <h4 className="font-bold text-sm text-gray-500 mb-2 flex items-center gap-2"><Camera size={16} /> 現場写真</h4>
 
-                                    {!photoPreview ? (
-                                        <button onClick={() => fileInputRef.current?.click()}
-                                            className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
-                                            <Camera size={24} />
-                                            <span className="text-xs mt-1">タップして撮影/選択</span>
-                                        </button>
-                                    ) : (
-                                        <div className="relative">
-                                            <img src={photoPreview} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
-                                            <button onClick={() => { setManualData({ ...manualData, photo: null }); setPhotoPreview(null); }}
-                                                className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full">
-                                                <X size={16} />
-                                            </button>
+                                            {!photoPreview ? (
+                                                <button onClick={() => fileInputRef.current?.click()}
+                                                    className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
+                                                    <Camera size={24} />
+                                                    <span className="text-xs mt-1">タップして撮影/選択</span>
+                                                </button>
+                                            ) : (
+                                                <div className="relative">
+                                                    <img src={photoPreview} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
+                                                    <button onClick={() => { setManualData({ ...manualData, photo: null }); setPhotoPreview(null); }}
+                                                        className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full">
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                capture="environment"
+                                                className="hidden"
+                                                ref={fileInputRef}
+                                                onChange={handlePhotoSelect}
+                                            />
                                         </div>
                                     )}
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        capture="environment"
-                                        className="hidden"
-                                        ref={fileInputRef}
-                                        onChange={handlePhotoSelect}
-                                    />
                                 </div>
-                            )}
-                        </div>
-                    ))}
+                            ))
+                        }
 
                     {/* End of Day Button */}
                     <div className="mt-8 mb-8">
