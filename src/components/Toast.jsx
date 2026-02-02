@@ -9,7 +9,7 @@ import { CheckCircle, AlertCircle, X, Info } from 'lucide-react';
  * @param {string} message - Notification text
  * @param {function} onClose - Function to close the toast
  */
-export const Toast = ({ type = 'info', message, onClose }) => {
+export const Toast = ({ type = 'info', message, action, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onClose();
@@ -28,8 +28,11 @@ export const Toast = ({ type = 'info', message, onClose }) => {
     return (
         <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-white ${bg} border-b-4 ${border} animate-in slide-in-from-top-4 duration-300 max-w-sm w-full pointer-events-auto`}>
             <Icon size={24} className="flex-shrink-0" />
-            <p className="font-bold text-sm flex-grow">{message}</p>
-            <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full transition-colors">
+            <div className="flex-grow flex flex-col">
+                <p className="font-bold text-sm">{message}</p>
+                {action && <div className="mt-1">{action}</div>}
+            </div>
+            <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full transition-colors flex-shrink-0">
                 <X size={16} />
             </button>
         </div>
