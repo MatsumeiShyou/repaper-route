@@ -1,182 +1,177 @@
 // src/DriverApp.jsx
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Truck, CheckSquare, Send, Plus, Package, X } from 'lucide-react';
+import { CheckSquare } from 'lucide-react';
+import { useJobStateMachine } from './hooks/useJobStateMachine';
+import { EventRepository } from './lib/eventRepository';
+import { JobCard } from './components/JobCard';
 
 // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-// 【設定エリア】ここにGASのURLを貼り付けてください
+// 【設定エリア】
 const WEB_APP_URL = "https://script.google.com/macros/s/xxxxxxxxxxxxxxxxx/exec";
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
 
-const CUSTOMER_LIST = ["A商店", "B工場", "Cマート", "D建設", "坪野谷本社"];
+const DRIVER_ID = 'driver_001';
+const DRIVER_NAME = '佐藤 ドライバー';
+const VEHICLE_INFO = '車両: 1122AB';
 
 export default function DriverApp() {
-    const [viewMode, setViewMode] = useState('inspection');
+    const [viewMode, setViewMode] = useState('inspection'); // 'inspection' | 'work'
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [showManualForm, setShowManualForm] = useState(false);
 
+    // State for Inspection
+    const [inspection, setInspection] = useState([
+        { id: 'brake', text: 'ブレーキの効き', checked: false },
+        { id: 'tire', text: 'タイヤの空気圧・損傷', checked: false },
+        { id: 'oil', text: 'エンジンオイルの量', checked: false },
+        { id: 'lamp', text: 'ライト・ウインカーの点灯', checked: false }
+    ]);
+
+    // L1 State Machine
+    const [activeJobId, setActiveJobId] = useState(null);
+    const jobMachine = useJobStateMachine('PENDING', activeJobId, DRIVER_ID);
+
+    // Manual Data (Linked to Active Job)
+    // In a real app, items would come from Master Data based on Customer
     const [manualData, setManualData] = useState({
-        customer: CUSTOMER_LIST[0],
-        items: [{ name: '古紙', weight: '' }]
+        items: [{ name: '段ボール', weight: '' }, { name: '雑誌', weight: '' }]
     });
 
-    const [inspection, setInspection] = useState({
-        tire: false, oil: false, brake: false, lamp: false
-    });
+    useEffect(() => {
+        if (viewMode === 'work') {
+            fetchJobs();
+            EventRepository.syncAll();
+        }
+    }, [viewMode]);
 
-    const startWork = () => {
-        if (!Object.values(inspection).every(v => v)) {
+    const handleInspectionCheck = (id) => {
+        setInspection(inspection.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
+    };
+
+    const startWork = async () => {
+        if (!inspection.every(i => i.checked)) {
             alert("全ての点検項目を確認してください。");
             return;
         }
+        await EventRepository.log(DRIVER_ID, 'INSPECTION_COMPLETE', { inspection });
         setViewMode('work');
-        fetchJobs();
     };
 
     const fetchJobs = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('jobs')
-            .select('*')
-            .eq('status', 'pending');
-
-        if (data) setJobs(data);
+        // Fallback Data based on Prototype
+        if (jobs.length === 0) {
+            setJobs([
+                { id: 'job_1', customer_name: 'アール', address: '神奈川県座間市', status: 'PENDING', items: [{ name: '段ボール' }, { name: '雑誌' }] },
+                { id: 'job_2', customer_name: '旭運送', address: '神奈川県綾瀬市', status: 'PENDING', special_notes: '要フレコンバッグ', items: [{ name: 'ミックス' }] },
+                { id: 'job_3', customer_name: 'XYZ倉庫', address: '神奈川県海老名市', status: 'PENDING', special_notes: '12時必着', items: [{ name: '機密書類' }] },
+            ]);
+        }
         setLoading(false);
     };
 
-    const addItem = () => {
-        setManualData({ ...manualData, items: [...manualData.items, { name: '', weight: '' }] });
-    };
+    // --- Action Handlers ---
 
-    const updateItem = (index, field, value) => {
-        const newItems = [...manualData.items];
-        newItems[index][field] = value;
-        setManualData({ ...manualData, items: newItems });
-    };
-
-    const sendReport = async (isManual = false, jobData = null) => {
-        const payload = isManual ? {
-            job_type: 'manual',
-            customer: manualData.customer,
-            items: manualData.items,
-            timestamp: new Date().toISOString()
-        } : {
-            job_type: 'scheduled',
-            ...jobData,
-            timestamp: new Date().toISOString()
-        };
-
-        if (!confirm("送信しますか？")) return;
-
-        try {
-            setLoading(true);
-            await fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-
-            alert("送信完了しました！");
-            if (isManual) {
-                setShowManualForm(false);
-                setManualData({ customer: CUSTOMER_LIST[0], items: [{ name: '古紙', weight: '' }] });
-            } else {
-                fetchJobs();
+    const handleCardAction = async (action, jobId) => {
+        if (action === 'startMoving') {
+            if (activeJobId && activeJobId !== jobId) {
+                alert("他の案件が進行中です。");
+                return;
             }
-        } catch (e) {
-            alert("送信エラー: 通信環境を確認してください");
-            console.error(e);
-        } finally {
-            setLoading(false);
+            setActiveJobId(jobId);
+            await jobMachine.actions.startMoving();
+        } else if (action === 'arrive') {
+            await jobMachine.actions.arrive();
+        } else if (action === 'startWork') {
+            await jobMachine.actions.startWork();
+        } else if (action === 'completeWork') {
+            if (!confirm("完了報告を送信しますか？")) return;
+            const success = await jobMachine.actions.completeWork({
+                manualData
+            });
+            if (success) {
+                // Update local list status
+                setJobs(jobs.map(j => j.id === jobId ? { ...j, status: 'COMPLETED' } : j));
+                setActiveJobId(null);
+                // Reset form
+                setManualData({ items: [{ name: '段ボール', weight: '' }, { name: '雑誌', weight: '' }] });
+            }
         }
     };
 
+    const handleManualDataChange = (index, value) => {
+        const newItems = [...manualData.items];
+        newItems[index].weight = value;
+        setManualData({ ...manualData, items: newItems });
+    };
+
+    // --- Screens ---
+
     if (viewMode === 'inspection') {
         return (
-            <div className="p-4 max-w-md mx-auto bg-gray-50 min-h-screen">
-                <h1 className="text-xl font-bold mb-6 flex items-center gap-2">
-                    <Truck className="w-6 h-6" /> 始業前点検
-                </h1>
-                <div className="space-y-4 bg-white p-4 rounded-lg shadow">
-                    {Object.keys(inspection).map(key => (
-                        <label key={key} className="flex items-center p-3 border rounded active:bg-blue-50">
-                            <input type="checkbox" className="w-6 h-6 mr-3"
-                                checked={inspection[key]}
-                                onChange={() => setInspection({ ...inspection, [key]: !inspection[key] })}
+            <div className="bg-white min-h-screen flex flex-col">
+                <header className="bg-gray-800 text-white p-4 text-center shadow-md">
+                    <h1 className="text-xl font-bold">{new Date().toLocaleDateString('ja-JP')} 始業前点検</h1>
+                    <p className="text-sm text-gray-400">{VEHICLE_INFO}</p>
+                </header>
+                <main className="flex-grow p-4 overflow-y-auto space-y-3">
+                    {inspection.map(item => (
+                        <label key={item.id} className="flex items-center p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 cursor-pointer active:scale-[0.98] transition-transform">
+                            <input type="checkbox" className="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                checked={item.checked}
+                                onChange={() => handleInspectionCheck(item.id)}
                             />
-                            <span className="text-lg">
-                                {key === 'tire' ? 'タイヤの空気圧' : key === 'oil' ? 'エンジンオイル' : key === 'brake' ? 'ブレーキ' : 'ライト'}
-                            </span>
+                            <span className="ml-4 text-gray-800 text-lg">{item.text}</span>
                         </label>
                     ))}
-                </div>
-                <button onClick={startWork} className="w-full mt-8 bg-blue-600 text-white py-4 rounded-xl text-xl font-bold shadow-lg">
-                    業務開始
-                </button>
+                </main>
+                <footer className="p-4 border-t bg-white">
+                    <button onClick={startWork} className="w-full bg-green-600 text-white p-4 rounded-xl font-bold text-lg shadow-lg hover:bg-green-700 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                        <CheckSquare /> 点検完了・業務開始
+                    </button>
+                </footer>
             </div>
         );
     }
 
     return (
-        <div className="p-4 max-w-md mx-auto bg-gray-100 min-h-screen">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-gray-700">回収業務リスト</h2>
-                <button onClick={() => setViewMode('inspection')} className="text-sm text-gray-500 underline">
-                    点検へ戻る
-                </button>
-            </div>
-
-            {loading && <p className="text-center py-4">通信中...</p>}
-
-            {showManualForm ? (
-                <div className="bg-white p-4 rounded-xl shadow-lg border-2 border-blue-500 animate-slide-up">
-                    <div className="flex justify-between mb-4">
-                        <h3 className="font-bold text-lg">手動報告作成</h3>
-                        <button onClick={() => setShowManualForm(false)}><X /></button>
-                    </div>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm text-gray-500 mb-1">顧客選択</label>
-                            <select className="w-full p-3 border rounded-lg bg-gray-50 text-lg" value={manualData.customer} onChange={(e) => setManualData({ ...manualData, customer: e.target.value })}>
-                                {CUSTOMER_LIST.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="block text-sm text-gray-500">回収品目</label>
-                            {manualData.items.map((item, idx) => (
-                                <div key={idx} className="flex gap-2">
-                                    <input type="text" placeholder="品名" className="flex-1 p-2 border rounded" value={item.name} onChange={(e) => updateItem(idx, 'name', e.target.value)} />
-                                    <input type="number" placeholder="kg" className="w-24 p-2 border rounded text-right" value={item.weight} onChange={(e) => updateItem(idx, 'weight', e.target.value)} />
-                                </div>
-                            ))}
-                            <button onClick={addItem} className="text-blue-500 text-sm flex items-center gap-1 mt-1"><Plus size={16} /> 品目を追加</button>
-                        </div>
-                        <button onClick={() => sendReport(true)} className="w-full bg-green-600 text-white py-4 rounded-xl text-xl font-bold shadow mt-4 flex justify-center items-center gap-2">
-                            <Send /> 送信して完了
-                        </button>
+        <div className="bg-[#111827] min-h-screen flex flex-col">
+            {/* Header */}
+            <header className="bg-[#111827] text-white p-4 sticky top-0 z-20 border-b border-gray-800">
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold">本日のミッション</h1>
+                    <div className="text-right">
+                        <p className="font-semibold">{DRIVER_NAME}</p>
+                        <p className="text-xs text-gray-400">{VEHICLE_INFO}</p>
                     </div>
                 </div>
-            ) : (
-                <div className="space-y-4">
-                    {jobs.length === 0 ? (
-                        <div className="text-center py-10 text-gray-400">
-                            <Package className="w-16 h-16 mx-auto mb-2 opacity-20" />
-                            <p>予定された案件はありません</p>
-                        </div>
-                    ) : (
-                        jobs.map(job => (<div key={job.id} className="bg-white p-4 rounded-lg shadow"><h3 className="font-bold">{job.customer_name}</h3></div>))
-                    )}
-                    <button onClick={() => setShowManualForm(true)} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center items-center gap-2 mt-6">
-                        <Plus /> 手動で報告を作成
-                    </button>
+            </header>
+
+            {/* Mission List */}
+            <main className="flex-grow p-4 overflow-y-auto bg-[#111827]">
+                <div className="max-w-md mx-auto relative pb-20">
+                    {/* Timeline Line (Visual only, implemented in cards) */}
+
+                    {jobs.map((job, index) => (
+                        <JobCard
+                            key={job.id}
+                            job={job}
+                            isActive={activeJobId === job.id}
+                            isOtherActive={activeJobId && activeJobId !== job.id}
+                            machine={jobMachine}
+                            onAction={(action) => handleCardAction(action, job.id)}
+                            manualData={manualData}
+                            onManualDataChange={handleManualDataChange}
+                            isLast={index === jobs.length - 1}
+                        />
+                    ))}
                 </div>
-            )}
+            </main>
         </div>
     );
 }
