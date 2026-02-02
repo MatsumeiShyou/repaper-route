@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ドライバー向けアプリ試作品 v4.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* アプリ全体の基本スタイル */
+        html, body {
+            overscroll-behavior-y: contain; /* iOSでの過剰なスクロールを防止 */
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #app-container {
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+        /* 画面コンテナのスタイル */
+        .screen {
+            display: none; /* JSでflexに切り替え */
+            flex-direction: column;
+            min-height: 100vh;
+            position: absolute;
+            width: 100%;
+            top: 0;
+            left: 0;
+            background-color: white; /* 背景色を指定 */
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .screen.active {
+            display: flex;
+            transform: translateX(0);
+            z-index: 10;
+        }
+        .screen.inactive {
+            display: flex;
+            transform: translateX(100%);
+            z-index: 1;
+        }
+        /* ボタンのインタラクション */
+        .clickable:not(:disabled):active {
+            transform: scale(0.97);
+            transition: transform 0.1s ease;
+        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* タイムラインの縦線 */
+        .timeline-line {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            bottom: -20px;
+            width: 2px;
+            background-color: #e5e7eb;
+            z-index: 0;
+        }
+        
+        /* オーバーレイと成功アニメーション */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .checkmark {
+            width: 80px; height: 80px; border-radius: 50%; display: block;
+            stroke-width: 3; stroke: #fff; stroke-miterlimit: 10;
+            margin: auto;
+            box-shadow: inset 0px 0px 0px #4CAF50;
+            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+        }
+        .checkmark__circle {
+            stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2;
+            stroke-miterlimit: 10; stroke: #4CAF50; fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        .checkmark__check {
+            transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+        }
+        @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
+        @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 40px #4CAF50; } }
+
+        /* リストアイテムのアニメーション */
+        .mission-card {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s forwards;
+        }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app-container" class="max-w-md mx-auto bg-white shadow-lg">
+
+        <!-- 1. パスワード設定画面 -->
+        <div id="screen-password-setup" class="screen inactive p-6 justify-between">
+            <div class="flex-grow">
+                <h1 class="text-2xl font-bold text-center mb-8">パスワード設定</h1>
+                <div class="space-y-4">
+                    <div class="relative"><input type="password" id="password-input" placeholder="新しいパスワード" class="w-full p-3 border border-gray-300 rounded-lg text-lg"><span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" onclick="togglePasswordVisibility('password-input', 'password-eye-icon')"><i id="password-eye-icon" class="fa fa-eye text-gray-400"></i></span></div>
+                    <div class="relative"><input type="password" id="password-confirm-input" placeholder="新しいパスワード（確認用）" class="w-full p-3 border border-gray-300 rounded-lg text-lg"></div>
+                </div>
+            </div>
+            <button onclick="completePasswordSetup()" class="w-full bg-blue-600 text-white p-4 rounded-lg font-bold text-lg mt-8 hover:bg-blue-700 transition clickable">設定して利用を開始する</button>
+        </div>
+
+        <!-- 2. 始業前点検画面 -->
+        <div id="screen-inspection" class="screen inactive">
+            <header class="bg-gray-800 text-white p-4 text-center"><h1 id="inspection-title" class="text-xl font-bold"></h1><p id="inspection-vehicle" class="text-sm"></p></header>
+            <main id="inspection-list" class="flex-grow p-4 overflow-y-auto space-y-3"></main>
+            <footer class="p-4 border-t bg-white grid grid-cols-2 gap-4">
+                <button onclick="checkAllInspections()" class="w-full bg-gray-200 text-gray-800 p-3 rounded-lg font-semibold hover:bg-gray-300 transition clickable">全てチェック</button>
+                <button id="complete-inspection-btn" onclick="completeInspection()" class="w-full bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-700 transition clickable">点検完了・業務開始</button>
+            </footer>
+        </div>
+
+        <!-- 3. メイン画面 (ミッションリスト) -->
+        <div id="screen-mission-list" class="screen inactive bg-[#111827]">
+            <header class="bg-[#111827] text-white p-4 sticky top-0 z-10"><div class="flex justify-between items-center"><h1 class="text-2xl font-bold">本日のミッション</h1><div class="text-right"><p id="mission-driver-name" class="font-semibold"></p><p id="mission-vehicle-info" class="text-xs text-gray-400"></p></div></div></header>
+            <main id="mission-list-items" class="flex-grow p-4 overflow-y-auto"></main>
+        </div>
+
+        <!-- 4. 案件詳細画面 (訪問先用) -->
+        <div id="screen-task-detail" class="screen inactive">
+            <header class="bg-gray-800 text-white p-4 flex items-center sticky top-0 z-10">
+                <button onclick="showScreen('mission-list')" class="text-xl p-2 -ml-2 clickable"><i class="fa fa-arrow-left"></i></button>
+                <h1 id="task-customer-name" class="text-xl font-bold text-center flex-grow"></h1>
+                <div class="w-6"></div>
+            </header>
+            <main class="flex-grow p-4 overflow-y-auto space-y-4">
+                <div class="text-center"><a id="task-address" href="#" target="_blank" class="text-blue-600 hover:underline"></a></div>
+                <div id="task-special-notes-container" class="hidden"><div id="task-special-notes" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-r-lg"><p class="font-bold">【重要】</p><p id="task-special-notes-text"></p></div></div>
+                <div id="task-items" class="space-y-3"></div>
+                <div><label for="task-memo" class="block text-sm font-medium text-gray-700">メモ</label><textarea id="task-memo" rows="3" class="w-full p-2 border border-gray-300 rounded-lg mt-1"></textarea></div>
+            </main>
+            <footer id="task-footer" class="p-4 border-t bg-white sticky bottom-0"></footer>
+        </div>
+        
+        <!-- 5. 拠点作業画面 -->
+        <div id="screen-work-list" class="screen inactive">
+             <header class="bg-gray-800 text-white p-4 flex items-center sticky top-0 z-10">
+                <button onclick="showScreen('mission-list')" class="text-xl p-2 -ml-2 clickable"><i class="fa fa-arrow-left"></i></button>
+                <h1 id="work-list-header" class="text-xl font-bold text-center flex-grow"></h1>
+                <div class="w-6"></div>
+            </header>
+            <main id="work-list-items" class="flex-grow p-4 overflow-y-auto space-y-3"></main>
+        </div>
+
+    </div>
+
+    <!-- オーバーレイ要素 -->
+    <div id="success-overlay" class="overlay">
+        <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+            <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+            <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+    </div>
+
+    <script>
+        // --- アプリケーションの状態管理 ---
+        const appState = {
+            currentScreen: 'password-setup',
+            previousScreen: null,
+            driverName: "佐藤さん",
+            vehicle: "車両: 1122AB",
+            currentMissionId: null,
+            missions: [
+                { id: 1, type: 'pickup', customer: 'アール', address: '神奈川県座間市', status: '完了', special_notes: '時間厳守', items: [{ name: '段ボール', weight: 450 }] },
+                { id: 2, type: 'pickup', customer: '旭運送', address: '神奈川県綾瀬市', status: '完了', special_notes: '要フレコンバッグ', items: [{ name: '雑誌', weight: 300 }] },
+                { id: 3, type: 'depot', customer: '厚木事業所', address: '神奈川県厚木市', status: '出発済', special_notes: null, workTasks: [{ id: 101, text: '車両の清掃', completed: false }, { id: 102, text: '廃棄物の分別作業', completed: false }, { id: 103, text: '明日の資材準備', completed: false }] },
+                { id: 4, type: 'pickup', customer: 'XYZ倉庫', address: '神奈川県海老名市', status: '作業中', special_notes: null, items: [{ name: '機密書類', weight: 50 }] },
+                { id: 5, type: 'pickup', customer: '相模川クリーン', address: '神奈川県海老名市', status: '未着手', special_notes: '土嚢あり', items: [{ name: '土嚢', weight: 200 }] }
+            ],
+            inspectionItems: [
+                { id: 1, text: 'ブレーキの効き', checked: false }, { id: 2, text: 'タイヤの空気圧・損傷', checked: false }, { id: 3, text: 'エンジンオイルの量', checked: false }, { id: 4, text: 'ライト・ウインカーの点灯', checked: false },
+            ]
+        };
+
+        // --- UI定義データ ---
+        const statusConfig = {
+            '完了':       { iconColor: 'bg-green-500', badgeClasses: 'bg-green-100 text-green-800', badgeText: '完了' },
+            '帰社済':     { iconColor: 'bg-gray-500', badgeClasses: 'bg-gray-100 text-gray-800', badgeText: '帰社済' },
+            '出発済':     { iconColor: 'bg-gray-500', badgeClasses: 'bg-gray-100 text-gray-800', badgeText: '出発済' },
+            '作業中':     { iconColor: 'bg-blue-500', badgeClasses: 'bg-blue-100 text-blue-800', badgeText: '作業中' },
+            '未着手':     { iconColor: 'bg-gray-400', badgeClasses: 'bg-gray-100 text-gray-800', badgeText: '未着手' }
+        };
+        const typeConfig = {
+            'pickup': { icon: 'fa-map-marker-alt' },
+            'depot': { icon: 'fa-building' }
+        };
+
+        // --- 画面遷移の管理 ---
+        function showScreen(screenId, isBack = false) {
+            const currentActiveScreen = document.querySelector('.screen.active');
+            if (currentActiveScreen) {
+                currentActiveScreen.classList.remove('active');
+                currentActiveScreen.classList.add('inactive');
+            }
+
+            const newActiveScreen = document.getElementById(`screen-${screenId}`);
+            if (newActiveScreen) {
+                newActiveScreen.classList.remove('inactive');
+                newActiveScreen.classList.add('active');
+                if(isBack){
+                    newActiveScreen.style.transform = 'translateX(-100%)';
+                    setTimeout(() => newActiveScreen.style.transform = 'translateX(0)', 0);
+                }
+            }
+
+            if (appState.currentScreen !== screenId) {
+                appState.previousScreen = appState.currentScreen;
+            }
+            appState.currentScreen = screenId;
+            
+            if (screenInitializers[screenId]) {
+                screenInitializers[screenId]();
+            }
+        }
+        
+        const screenInitializers = {
+            'inspection': initializeInspectionScreen,
+            'mission-list': renderMissionList,
+            'task-detail': renderTaskDetail,
+            'work-list': renderWorkList,
+        };
+        
+        window.onload = () => showScreen(appState.currentScreen);
+
+        // --- ログインと点検 (変更なし) ---
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId), icon = document.getElementById(iconId);
+            if (input.type === "password") { input.type = "text"; icon.className = "fa fa-eye-slash text-gray-400"; } 
+            else { input.type = "password"; icon.className = "fa fa-eye text-gray-400"; }
+        }
+        function completePasswordSetup() { showScreen('inspection'); }
+        function initializeInspectionScreen() {
+            const date = new Date();
+            document.getElementById('inspection-title').textContent = `${date.toLocaleDateString('ja-JP')} 始業前点検`;
+            document.getElementById('inspection-vehicle').textContent = appState.vehicle.replace('車両: ', '');
+            renderInspectionList();
+        }
+        function renderInspectionList() {
+            const listEl = document.getElementById('inspection-list');
+            listEl.innerHTML = '';
+            appState.inspectionItems.forEach(item => {
+                listEl.innerHTML += `<label class="flex items-center p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 cursor-pointer"><input type="checkbox" class="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${item.checked ? 'checked' : ''} onchange="toggleInspectionItem(${item.id})"><span class="ml-4 text-gray-800 text-lg">${item.text}</span></label>`;
+            });
+        }
+        function toggleInspectionItem(itemId) { const item = appState.inspectionItems.find(i => i.id === itemId); if (item) item.checked = !item.checked; }
+        function checkAllInspections() { appState.inspectionItems.forEach(item => item.checked = true); renderInspectionList(); }
+        function completeInspection() {
+            if (appState.inspectionItems.every(item => item.checked)) { showScreen('mission-list'); } 
+            else { alert('全ての項目をチェックしてください。'); }
+        }
+
+        // --- 3. メイン画面 (ミッションリスト) ---
+        function renderMissionList() {
+            document.getElementById('mission-driver-name').textContent = appState.driverName;
+            document.getElementById('mission-vehicle-info').textContent = appState.vehicle;
+            const listEl = document.getElementById('mission-list-items');
+            listEl.innerHTML = ''; 
+
+            appState.missions.forEach((mission, index) => {
+                const config = statusConfig[mission.status] || statusConfig['未着手'];
+                const typeInfo = typeConfig[mission.type] || typeConfig['pickup'];
+                const specialNotesHtml = mission.special_notes ? `<div class="mt-2 bg-yellow-100 text-yellow-800 text-sm font-semibold px-2 py-1 rounded-md flex items-center gap-2"><i class="fa fa-exclamation-triangle"></i><span>特記事項: ${mission.special_notes}</span></div>` : '';
+                let statusBadgesHtml = `<span class="text-xs font-bold px-2 py-1 rounded-full ${config.badgeClasses}">${config.badgeText}</span>`;
+                if (mission.id === 3) {
+                    statusBadgesHtml = `<div class="flex flex-col items-end gap-1"><span class="text-xs font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-800">帰社済</span><span class="text-xs font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-800">出発済</span></div>`;
+                }
+
+                const cardWrapper = document.createElement('div');
+                cardWrapper.className = 'relative flex items-start gap-4 mb-4 mission-card';
+                cardWrapper.style.animationDelay = `${index * 100}ms`;
+                cardWrapper.onclick = () => viewMissionDetail(mission.id);
+                cardWrapper.innerHTML = `
+                    ${index < appState.missions.length - 1 ? '<div class="timeline-line"></div>' : ''}
+                    <div class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full ${config.iconColor} text-white flex items-center justify-center text-xl shadow-lg">
+                        <i class="fa ${typeInfo.icon}"></i>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 flex-grow shadow-md cursor-pointer hover:shadow-xl transition clickable">
+                        <div class="flex justify-between items-start">
+                            <div><h2 class="text-xl font-bold text-gray-900">${mission.customer}</h2><p class="text-sm text-gray-500">${mission.address}</p></div>
+                            <div class="flex-shrink-0">${statusBadgesHtml}</div>
+                        </div>
+                        ${specialNotesHtml}
+                    </div>`;
+                listEl.appendChild(cardWrapper);
+            });
+        }
+
+        // --- 4 & 5. 詳細画面遷移ロジック ---
+        function viewMissionDetail(missionId) {
+            appState.currentMissionId = missionId;
+            const mission = appState.missions.find(m => m.id === missionId);
+            if (mission.type === 'depot') {
+                showScreen('work-list');
+            } else {
+                showScreen('task-detail');
+            }
+        }
+
+        function renderTaskDetail() {
+            const mission = appState.missions.find(m => m.id === appState.currentMissionId); if (!mission) return;
+            document.getElementById('task-customer-name').textContent = mission.customer;
+            const addressLink = document.getElementById('task-address');
+            addressLink.textContent = mission.address; addressLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mission.address)}`;
+            const specialNotesContainer = document.getElementById('task-special-notes-container');
+            if(mission.special_notes){ document.getElementById('task-special-notes-text').textContent = mission.special_notes; specialNotesContainer.style.display = 'block'; } else { specialNotesContainer.style.display = 'none'; }
+            const itemsEl = document.getElementById('task-items');
+            itemsEl.innerHTML = '<h3 class="text-lg font-semibold text-gray-800 border-b pb-1">回収品目</h3>';
+            if (mission.items && mission.items.length > 0) {
+                 mission.items.forEach(item => { itemsEl.innerHTML += `<div class="p-3 bg-gray-50 rounded-lg flex justify-between items-center"><span class="text-lg font-medium text-gray-800">${item.name}</span><span class="font-bold text-xl text-center">${item.weight} kg</span></div>`; });
+            } else { itemsEl.innerHTML += `<p class="text-gray-500 p-3">回収品目はありません。</p>`; }
+            renderTaskActionButtons(mission);
+        }
+
+        function renderTaskActionButtons(mission) {
+            const footerEl = document.getElementById('task-footer');
+            if (mission.status === '未着手' || mission.status === '出発済') {
+                footerEl.innerHTML = `<button onclick="updateMissionStatus('作業中', this)" class="w-full bg-green-600 text-white p-4 rounded-lg font-bold text-lg clickable">到着しました</button>`;
+            } else if (mission.status === '作業中') {
+                footerEl.innerHTML = `<button onclick="updateMissionStatus('完了', this)" class="w-full bg-blue-600 text-white p-4 rounded-lg font-bold text-lg clickable">出発しました</button>`;
+            } else {
+                footerEl.innerHTML = `<p class="text-center text-gray-500">この作業は完了しました</p>`;
+            }
+        }
+        
+        // --- インタラクションの中心 ---
+        function showSuccessAnimation(callback) {
+            const overlay = document.getElementById('success-overlay');
+            overlay.classList.add('visible');
+            setTimeout(() => {
+                overlay.classList.remove('visible');
+                if (callback) callback();
+            }, 1500); // アニメーション時間 + 少し待つ
+        }
+
+        function updateMissionStatus(newStatus, button) {
+            button.disabled = true; // ボタンを無効化
+            const mission = appState.missions.find(m => m.id === appState.currentMissionId);
+            if (mission) {
+                showSuccessAnimation(() => {
+                    mission.status = newStatus;
+                    console.log(`${mission.customer} のステータスを ${newStatus} に更新`);
+                    showScreen('mission-list');
+                });
+            }
+        }
+        
+        function renderWorkList() {
+            const mission = appState.missions.find(m => m.id === appState.currentMissionId); if (!mission) return;
+            document.getElementById('work-list-header').textContent = `${mission.customer} 作業リスト`;
+            const listEl = document.getElementById('work-list-items');
+            listEl.innerHTML = '';
+            if (mission.workTasks && mission.workTasks.length > 0) {
+                mission.workTasks.forEach(item => {
+                    listEl.innerHTML += `<label class="flex items-center p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 cursor-pointer text-lg clickable"><input type="checkbox" class="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${item.completed ? 'checked' : ''} onchange="toggleWorkItem(${item.id})"><span class="ml-4 text-gray-800 ${item.completed ? 'line-through text-gray-400' : ''}">${item.text}</span></label>`;
+                });
+            } else { listEl.innerHTML = `<p class="text-center text-gray-500 p-4">本日の拠点作業はありません。</p>`; }
+        }
+
+        function toggleWorkItem(workTaskId) {
+            const mission = appState.missions.find(m => m.id === appState.currentMissionId);
+            const item = mission.workTasks.find(i => i.id === workTaskId);
+            if (item) { item.completed = !item.completed; renderWorkList(); }
+        }
+    </script>
+</body>
+</html>
