@@ -17,5 +17,7 @@ Asset Modification Log governing project changes.
 | AMP-20260201-05 | **Approved** | 2026-02-01 | 管理ダッシュボード実装 (SDR準拠) | 修正・承認を「上書き」ではなく「追記イベント」として扱う設計 |
 | AMP-20260202-01 | **Approved** | 2026-02-02 | Driver App 手動モード＆CI/CD環境構築 | 手動報告機能の実装、Git導入、GitHub/Netlify連携による自動デプロイ体制の確立 |
 | AMP-20260202-02 | **Approved** | 2026-02-02 | MVP Roadmap & Phase 1 Foundation Plan | SDR/L1基盤、オフライン対応を含むMVP実装計画とロードマップの策定 |
-| AMP-20260202-03 | **Approved** | 2026-02-02 | State Machine Scope Refactoring | �o�O�C��: �X�e�[�g�}�V����JobCard���Ƃ̃C���X�^���X�ɕύX���A�����Č��̏�ԊǗ��s�S������ |
-| AMP-20260202-04 | **Approved** | 2026-02-02 | Governance Update: Strict Verification Protocol (SVP) | ���@���� v1.6.1: ���؂ɂ�����u�Ď��s�[���v�u�G���[�[���v��̋`���� |
+| AMP-20260202-03 | **Approved** | 2026-02-02 | State Machine Scope Refactoring | バグ修正: ステートマシンをJobCardごとのインスタンスに変更し、独立した状態管理を行うよう修正 |
+| AMP-20260202-04 | **Approved** | 2026-02-02 | Governance Update: Strict Verification Protocol (SVP) | 憲法改定 v1.6.1: 検証における「再試行禁止」「エラーゼロ」基準の定義 |
+| AMP-20260202-AUTO | **Approved (ｙ)** | 2026-02-02 | 憲法 7.1.2 準拠対応 | DriverApp.jsx から console.log を削除し、コンソールノイズを排除 |
+| AMP-20260202-AUTO2 | **Approved (ｙ)** | 2026-02-02T14:44:47.439Z | UI更新: プレミアムModal/Toastの実装および環境変数ガードの導入 |

@@ -1,28 +1,80 @@
 // src/DriverApp.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { CheckSquare, LogOut, Camera, X } from 'lucide-react';
+import { CheckSquare, LogOut, Camera, X, AlertTriangle } from 'lucide-react';
 import { EventRepository } from './lib/eventRepository';
 import { PhotoRepository } from './lib/photoRepository';
 import { JobCard } from './components/JobCard';
+import { Modal } from './components/Modal';
+import { Toast, ToastContainer } from './components/Toast';
 
 // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
-
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
+
+// --- Safety Guard (Honesty Principle) ---
+if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase Configuration Missing");
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const DEFAULT_DRIVER_ID = 'driver_001';
 
+// Internal Error Screen Component
+const FatalErrorScreen = () => (
+    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-6 text-center text-white">
+        <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6">
+            <AlertTriangle size={40} className="text-red-500" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">システム設定エラー</h1>
+        <p className="text-gray-400 mb-8">
+            データベースへの接続情報が見つかりません。<br />
+            管理者へ連絡してください。
+        </p>
+        <div className="bg-gray-800 p-4 rounded-lg text-left text-xs font-mono text-red-300 w-full max-w-sm overflow-x-auto">
+            ERROR: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing.
+        </div>
+    </div>
+);
+
 export default function DriverApp({ initialDriverName = '佐藤 ドライバー', initialVehicle = '車両: 1122AB' }) {
+    // Early Return for Safety Check
+    if (!supabaseUrl || !supabaseKey) return <FatalErrorScreen />;
+
     const DRIVER_NAME = initialDriverName;
     const VEHICLE_INFO = initialVehicle.includes('車両') ? initialVehicle : `車両: ${initialVehicle}`;
-    const DRIVER_ID = DEFAULT_DRIVER_ID; // In real app, this would come from auth context
+    const DRIVER_ID = DEFAULT_DRIVER_ID;
 
     const [viewMode, setViewMode] = useState('inspection'); // 'inspection' | 'work' | 'end_of_day'
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    // --- UI State (Premium) ---
+    const [toasts, setToasts] = useState([]);
+    const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+
+    const addToast = (message, type = 'info') => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+    };
+
+    const removeToast = (id) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    };
+
+    const openModal = (title, message, onConfirm) => {
+        setModalConfig({
+            isOpen: true,
+            title,
+            message,
+            onConfirm: () => {
+                onConfirm();
+                setModalConfig(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
 
     // State for Inspection
     const [inspection, setInspection] = useState([
@@ -37,7 +89,6 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
 
     // L1 State Machine
     const [activeJobId, setActiveJobId] = useState(null);
-    // REMOVED: const jobMachine = useJobStateMachine('PENDING', activeJobId, DRIVER_ID);
 
     // Manual Data (Linked to Active Job)
     const [manualData, setManualData] = useState({
@@ -60,11 +111,13 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
 
     const startWork = async () => {
         if (!inspection.every(i => i.checked)) {
-            alert("全ての点検項目を確認してください。");
+            // alert("全ての点検項目を確認してください。");
+            addToast("全ての点検項目を確認してください。", "error");
             return;
         }
         await EventRepository.log(DRIVER_ID, 'INSPECTION_COMPLETE', { inspection });
         setViewMode('work');
+        addToast("業務を開始します。安全運転で！", "success");
     };
 
     const fetchJobs = async () => {
@@ -83,7 +136,7 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
 
     // New Handler: Receives state updates from child JobCards
     const handleJobUpdate = async (jobId, newStatus) => {
-        console.log(`[DriverApp] Job Update: ${jobId} -> ${newStatus}`);
+        // console.log(`[DriverApp] Job Update: ${jobId} -> ${newStatus}`);
 
         // Update Job Status
         // Update Job Status & Save Result Data if Completed
@@ -108,15 +161,12 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
             let photoUrl = null;
             if (manualData.photo) {
                 try {
-                    console.log('Uploading photo...');
+                    // console.log('Uploading photo...');
                     const result = await PhotoRepository.uploadPhoto(manualData.photo, jobId);
                     photoUrl = result.url;
                 } catch (e) {
-                    console.error('Photo upload failed but continuing job completion', e);
-                    // We might want to save to IDB queue here if strictly offline,
-                    // but PhotoRepository (Supabase) needs online. 
-                    // For MVP Phase 3 Zero-Cost, we assume online for Photo or it fails.
-                    // Ideally: separate queue.
+                    // console.error('Photo upload failed but continuing job completion', e);
+                    addToast("写真のアップロードに失敗しましたが、完了処理を続行します。", "error");
                 }
             }
 
@@ -132,6 +182,7 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
             // Reset Data Form
             setManualData({ items: [{ name: '段ボール', weight: '' }, { name: '雑誌', weight: '' }], photo: null });
             setPhotoPreview(null);
+            addToast("案件完了！お疲れ様でした。", "success");
         } else {
             // Abort or other reset
             setActiveJobId(null);
@@ -157,13 +208,17 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
     };
 
     const startEndOfDay = () => {
-        if (!confirm("全ての業務を終了し、帰社報告を行いますか？")) return;
-        setViewMode('end_of_day');
+        // if (!confirm("全ての業務を終了し、帰社報告を行いますか？")) return;
+        openModal(
+            "業務終了確認",
+            "全ての業務を終了し、帰社報告を行いますか？",
+            () => setViewMode('end_of_day')
+        );
     };
 
     const submitEndOfDay = async () => {
         if (!eodWeight) {
-            alert("総重量を入力してください");
+            addToast("総重量を入力してください", "error");
             return;
         }
 
@@ -179,7 +234,7 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
         const actualTotal = parseFloat(eodWeight);
         const ratio = totalEstimate > 0 ? actualTotal / totalEstimate : 1;
 
-        console.log(`[AutoSplit] Estimate: ${totalEstimate}kg, Actual: ${actualTotal}kg, Ratio: ${ratio.toFixed(4)}`);
+        // console.log(`[AutoSplit] Estimate: ${totalEstimate}kg, Actual: ${actualTotal}kg, Ratio: ${ratio.toFixed(4)}`);
 
         // 2. Apply Ratio to get Final Weights
         const finalBreakdown = jobResults.map(j => ({
@@ -208,9 +263,16 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
         // Trigger Batch Sync to GAS (Cold Storage)
         await EventRepository.syncAll();
 
-        alert(`業務終了報告が完了しました。\n総重量: ${actualTotal}kg\n(按分比率: ${(ratio * 100).toFixed(1)}%)`);
-        setEodWeight('');
-        setViewMode('inspection');
+        // alert(`業務終了報告が完了しました。\n総重量: ${actualTotal}kg\n(按分比率: ${(ratio * 100).toFixed(1)}%)`);
+
+        openModal(
+            "報告完了",
+            `業務終了報告が完了しました。\n総重量: ${actualTotal}kg\n(按分比率: ${(ratio * 100).toFixed(1)}%)`,
+            () => {
+                setEodWeight('');
+                setViewMode('inspection');
+            }
+        );
     };
 
     // --- Screens ---
@@ -218,6 +280,7 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
     if (viewMode === 'inspection') {
         return (
             <div className="bg-white min-h-screen flex flex-col">
+                <ToastContainer toasts={toasts} removeToast={removeToast} />
                 <header className="bg-gray-800 text-white p-4 text-center shadow-md">
                     <h1 className="text-xl font-bold">{new Date().toLocaleDateString('ja-JP')} 始業前点検</h1>
                     <p className="text-sm text-gray-400">{VEHICLE_INFO}</p>
@@ -245,6 +308,7 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
     if (viewMode === 'end_of_day') {
         return (
             <div className="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+                <ToastContainer toasts={toasts} removeToast={removeToast} />
                 <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md text-center space-y-6">
                     <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto">
                         <CheckSquare size={32} />
@@ -270,12 +334,23 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
                         戻る
                     </button>
                 </div>
+                <Modal
+                    isOpen={modalConfig.isOpen}
+                    onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+                    title={modalConfig.title}
+                    footer={
+                        <button onClick={modalConfig.onConfirm} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700">OK</button>
+                    }
+                >
+                    <p className="text-gray-600 whitespace-pre-wrap text-left">{modalConfig.message}</p>
+                </Modal>
             </div>
         );
     }
 
     return (
         <div className="bg-[#111827] min-h-screen flex flex-col">
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
             <header className="bg-[#111827] text-white p-4 sticky top-0 z-20 border-b border-gray-800">
                 <div className="flex justify-between items-center">
                     <h1 className="text-2xl font-bold">本日のミッション</h1>
@@ -314,6 +389,10 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
                                 manualData={manualData}
                                 onManualDataChange={handleManualDataChange}
                                 isLast={index === jobs.length - 1}
+
+                                // Pass UI helpers
+                                addToast={addToast}
+                                openConfirmModal={openModal}
                             />
                             {/* Photo Input Overlay (Only when Active and Working) */}
                             {activeJobId === job.id && job.status === 'WORKING' && (
@@ -363,6 +442,20 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
 
                 </div>
             </main>
+
+            <Modal
+                isOpen={modalConfig.isOpen}
+                onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+                title={modalConfig.title}
+                footer={
+                    <>
+                        <button onClick={() => setModalConfig(prev => ({ ...prev, isOpen: false }))} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold">キャンセル</button>
+                        <button onClick={modalConfig.onConfirm} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700">OK</button>
+                    </>
+                }
+            >
+                <p className="text-gray-600 whitespace-pre-wrap">{modalConfig.message}</p>
+            </Modal>
         </div>
     );
 }

@@ -6,7 +6,7 @@ import { useJobStateMachine } from '../hooks/useJobStateMachine';
  * JobCard Component
  * Owns its own State Machine instance to prevent state leakage between jobs.
  */
-export const JobCard = ({ job, isActive, isOtherActive, onJobUpdate, driverId, manualData, onManualDataChange, isLast }) => {
+export const JobCard = ({ job, isActive, isOtherActive, onJobUpdate, driverId, manualData, onManualDataChange, isLast, addToast, openConfirmModal }) => {
     // 1. Internal State Machine (Scoped to this Job ID)
     // Initialize with current prop status to survive remounts (sorting)
     const machine = useJobStateMachine(job.status || 'PENDING', job.id, driverId);
@@ -29,7 +29,8 @@ export const JobCard = ({ job, isActive, isOtherActive, onJobUpdate, driverId, m
     // --- Action Wrappers ---
     const handleStartMoving = async () => {
         if (isOtherActive) {
-            alert("他の案件が進行中です。");
+            // alert("他の案件が進行中です。");
+            if (addToast) addToast("他の案件が進行中です。先に現在の案件を完了させてください。", "error");
             return;
         }
         const success = await machine.actions.startMoving();
@@ -47,30 +48,43 @@ export const JobCard = ({ job, isActive, isOtherActive, onJobUpdate, driverId, m
     };
 
     const handleCompleteWork = async () => {
-        const confirmed = confirm("完了報告を送信しますか？");
-        console.log(`[Debug] Confirmation result: ${confirmed}`);
-        if (!confirmed) return;
+        const executeComplete = async () => {
+            // Payload constructed by parent? Or passed here?
+            // Current design: Parent manages 'manualData' state. 
+            const success = await machine.actions.completeWork({ manualData });
 
-        // Payload constructed by parent? Or passed here?
-        // Current design: Parent manages 'manualData' state. 
-        // ideally JobCard should manage it if it's "Active Job" data, but let's stick to props for data input to minimize change.
-        const success = await machine.actions.completeWork({ manualData });
+            if (success) {
+                // console.log('[Debug] Machine transition success, notifying parent');
+                onJobUpdate(job.id, 'COMPLETED');
+            }
+        };
 
-        if (success) {
-            console.log('[Debug] Machine transition success, notifying parent');
-            onJobUpdate(job.id, 'COMPLETED');
+        if (openConfirmModal) {
+            openConfirmModal(
+                "完了報告",
+                "この案件の完了報告を送信しますか？",
+                executeComplete
+            );
+        } else {
+            // Fallback if no modal provided (should not happen in updated app)
+            if (confirm("完了報告を送信しますか？")) executeComplete();
         }
     };
 
     // A. Inactive / Locked State
     if (isOtherActive) {
         return (
-            <div className="relative flex items-start gap-4 mb-4 opacity-40 pointer-events-none grayscale">
+            <div
+                onClick={() => {
+                    if (addToast) addToast("現在、他の案件が進行中です。完了してから開始してください。", "error");
+                }}
+                className="relative flex items-start gap-4 mb-4 opacity-50 grayscale transition-opacity hover:opacity-75 cursor-not-allowed"
+            >
                 {!isLast && <div className="absolute left-[20px] top-[40px] bottom-[-20px] w-0.5 bg-gray-200 z-0"></div>}
                 <div className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-gray-300 text-white flex items-center justify-center shadow-lg`}>
                     <Icon size={18} />
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4 flex-grow shadow-sm">
+                <div className="bg-gray-50 rounded-lg p-4 flex-grow shadow-sm border border-gray-100">
                     <div className="flex justify-between items-start">
                         <div>
                             <h2 className="text-xl font-bold text-gray-500">{job.customer_name}</h2>
@@ -96,18 +110,23 @@ export const JobCard = ({ job, isActive, isOtherActive, onJobUpdate, driverId, m
 
                 {/* Header */}
                 <div className="flex justify-between items-start mb-2">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">{job.customer_name}</h2>
+                    <div className="w-full">
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-xl font-bold text-gray-900">{job.customer_name}</h2>
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${config.badgeClasses} flex-shrink-0`}>
+                                {config.badgeText}
+                            </span>
+                        </div>
+
                         <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`}
                             target="_blank" rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-sm text-blue-600 hover:underlin flex items-center gap-1">
-                            {job.address} <MapPin size={12} />
+                            className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-100 transition-colors w-max border border-blue-100">
+                            <MapPin size={16} />
+                            {job.address}
+                            <span className="text-xs opacity-70 ml-1">→ ナビ起動</span>
                         </a>
                     </div>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${config.badgeClasses} flex-shrink-0`}>
-                        {config.badgeText}
-                    </span>
                 </div>
 
                 {job.special_notes && (
