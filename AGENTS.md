@@ -132,3 +132,28 @@ Last Updated: 2026-02-01
 
 ## 6. 思考待機プロトコル
 全ての出力完了後、および次の指示を待機する間、常にマスタールール（1.1〜1.9）との整合性を内省し続けなければならない。
+
+---
+
+## 7. Strict Verification Protocol (SVP)
+**[品質の絶対防衛線]**
+
+検証（Verification）フェーズにおいて、以下の「即時失格基準」のいずれか一つでも満たした場合、その検証は**FAILED（不合格）**と判定し、直ちに修正フェーズへ戻らなければならない。また、AIはこれを「成功」と報告することを禁ずる。
+
+### 7.1 Zero Tolerance Criteria (即時失格基準)
+1.  **Action Retry**: 同一操作（クリック、入力等）を2回以上試行しなければならなかった場合。
+    *   *理由: ユーザーは「2回押す」ことを許容しない。それはバグである。*
+2.  **Console Noise**: ブラウザコンソールに `Error` または `Warning`（既知の無視リストを除く）が1行でも出力された場合。
+    *   *理由: ログはシステムの悲鳴である。*
+3.  **Override Dependency**: 自動テストのために `window.confirm` 等の標準機能を無効化/オーバーライドした場合、その事実を報告書冒頭に「**重大な制約 (Critical Constraint)**」として赤字で明記しなかった場合。
+    *   *理由: テスト環境と本番環境の乖離は事故の元である。*
+
+### 7.2 Proof of Innocence (無実の証明)
+「検証完了」を宣言する際は、以下のフォーマットでログを提出しなければならない。
+
+```markdown
+### SVP Audit Report
+- [ ] **Retries**: 0 (Must be 0)
+- [ ] **Console Errors**: 0 (Must be 0)
+- [ ] **Responsiveness**: All actions response < 200ms
+```

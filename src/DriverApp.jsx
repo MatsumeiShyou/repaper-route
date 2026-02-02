@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { CheckSquare, LogOut, Camera, X } from 'lucide-react';
-import { useJobStateMachine } from './hooks/useJobStateMachine';
+// import { useJobStateMachine } from './hooks/useJobStateMachine'; // REMOVED
 import { EventRepository } from './lib/eventRepository';
 import { JobCard } from './components/JobCard';
 
@@ -15,11 +15,13 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
 
-const DRIVER_ID = 'driver_001';
-const DRIVER_NAME = '佐藤 ドライバー';
-const VEHICLE_INFO = '車両: 1122AB';
+const DEFAULT_DRIVER_ID = 'driver_001';
 
-export default function DriverApp() {
+export default function DriverApp({ initialDriverName = '佐藤 ドライバー', initialVehicle = '車両: 1122AB' }) {
+    const DRIVER_NAME = initialDriverName;
+    const VEHICLE_INFO = initialVehicle.includes('車両') ? initialVehicle : `車両: ${initialVehicle}`;
+    const DRIVER_ID = DEFAULT_DRIVER_ID; // In real app, this would come from auth context
+
     const [viewMode, setViewMode] = useState('inspection'); // 'inspection' | 'work' | 'end_of_day'
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -37,7 +39,7 @@ export default function DriverApp() {
 
     // L1 State Machine
     const [activeJobId, setActiveJobId] = useState(null);
-    const jobMachine = useJobStateMachine('PENDING', activeJobId, DRIVER_ID);
+    // REMOVED: const jobMachine = useJobStateMachine('PENDING', activeJobId, DRIVER_ID);
 
     // Manual Data (Linked to Active Job)
     const [manualData, setManualData] = useState({
@@ -81,37 +83,30 @@ export default function DriverApp() {
 
     // --- Action Handlers ---
 
-    const handleCardAction = async (action, jobId) => {
-        if (action === 'startMoving') {
-            if (activeJobId && activeJobId !== jobId) {
-                alert("他の案件が進行中です。");
-                return;
-            }
+    // New Handler: Receives state updates from child JobCards
+    const handleJobUpdate = async (jobId, newStatus) => {
+        console.log(`[DriverApp] Job Update: ${jobId} -> ${newStatus}`);
+
+        // Update Job Status
+        setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, status: newStatus } : j));
+
+        // Manage Active Job Logic
+        if (newStatus === 'MOVING' || newStatus === 'ARRIVED' || newStatus === 'WORKING') {
             setActiveJobId(jobId);
-            await jobMachine.actions.startMoving();
-        } else if (action === 'arrive') {
-            await jobMachine.actions.arrive();
-        } else if (action === 'startWork') {
-            await jobMachine.actions.startWork();
-        } else if (action === 'completeWork') {
-            if (!confirm("完了報告を送信しますか？")) return;
+        } else if (newStatus === 'COMPLETED') {
+            setActiveJobId(null);
 
-            // Include photo if exists
-            const payload = { manualData };
-            // Note: logic handled in EventRepository
-
-            const success = await jobMachine.actions.completeWork(payload);
-            if (success) {
-                // If photo exists, log it specifically as well or part of payload
-                if (manualData.photo) {
-                    await EventRepository.log(DRIVER_ID, 'PHOTO_ACCEPTED', { photo: manualData.photo, job_id: jobId });
-                }
-
-                setJobs(jobs.map(j => j.id === jobId ? { ...j, status: 'COMPLETED' } : j));
-                setActiveJobId(null);
-                setManualData({ items: [{ name: '段ボール', weight: '' }, { name: '雑誌', weight: '' }], photo: null });
-                setPhotoPreview(null);
+            // Photo logging (moved from old handler)
+            if (manualData.photo) {
+                await EventRepository.log(DRIVER_ID, 'PHOTO_ACCEPTED', { photo: manualData.photo, job_id: jobId });
             }
+
+            // Reset Data Form
+            setManualData({ items: [{ name: '段ボール', weight: '' }, { name: '雑誌', weight: '' }], photo: null });
+            setPhotoPreview(null);
+        } else {
+            // Abort or other reset
+            setActiveJobId(null);
         }
     };
 
@@ -246,14 +241,14 @@ export default function DriverApp() {
                                 job={job}
                                 isActive={activeJobId === job.id}
                                 isOtherActive={activeJobId && activeJobId !== job.id}
-                                machine={jobMachine}
-                                onAction={(action) => handleCardAction(action, job.id)}
+                                onJobUpdate={handleJobUpdate}
+                                driverId={DRIVER_ID}
                                 manualData={manualData}
                                 onManualDataChange={handleManualDataChange}
                                 isLast={index === jobs.length - 1}
                             />
                             {/* Photo Input Overlay (Only when Active and Working) */}
-                            {activeJobId === job.id && jobMachine.state === 'WORKING' && (
+                            {activeJobId === job.id && job.status === 'WORKING' && (
                                 <div className="mb-4 bg-white p-3 rounded-lg -mt-2 mx-2 border-t border-gray-100 shadow-inner">
                                     <h4 className="font-bold text-sm text-gray-500 mb-2 flex items-center gap-2"><Camera size={16} /> 現場写真</h4>
 

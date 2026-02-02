@@ -1,13 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Truck, MapPin, Play, Send, CheckCircle, Clock } from 'lucide-react';
+import { useJobStateMachine } from '../hooks/useJobStateMachine';
 
 /**
  * JobCard Component
- * Based on 'ドライバー試作.html' design (Tailwind CSS)
- * Integrates with useJobStateMachine logic
+ * Owns its own State Machine instance to prevent state leakage between jobs.
  */
-export const JobCard = ({ job, isActive, isOtherActive, machine, onAction, manualData, onManualDataChange, isLast }) => {
-    // 1. Definition from Prototype (statusConfig)
+export const JobCard = ({ job, isActive, isOtherActive, onJobUpdate, driverId, manualData, onManualDataChange, isLast }) => {
+    // 1. Internal State Machine (Scoped to this Job ID)
+    // Initialize with current prop status to survive remounts (sorting)
+    const machine = useJobStateMachine(job.status || 'PENDING', job.id, driverId);
+
+    // Sync machine state if DB/Parent updates (e.g. from initial load)
+    // But be careful not to loop. We mostly trust the machine for local actions.
+
     const STATUS_CONFIG = {
         'PENDING': { iconColor: 'bg-gray-400', badgeClasses: 'bg-gray-100 text-gray-800', badgeText: '未着手', icon: Clock },
         'MOVING': { iconColor: 'bg-blue-500', badgeClasses: 'bg-blue-100 text-blue-800', badgeText: '移動中', icon: Truck },
@@ -16,19 +22,51 @@ export const JobCard = ({ job, isActive, isOtherActive, machine, onAction, manua
         'COMPLETED': { iconColor: 'bg-gray-500', badgeClasses: 'bg-gray-100 text-gray-800', badgeText: '完了', icon: CheckCircle },
     };
 
-    // Determine Logic State (Priority: Active Machine State -> Job Status)
-    const currentStatus = isActive ? machine.state : (job.status || 'PENDING');
+    const currentStatus = machine.state; // Use local machine state as source of truth for UI
     const config = STATUS_CONFIG[currentStatus] || STATUS_CONFIG['PENDING'];
     const Icon = config.icon;
 
-    // --- Render Logic ---
+    // --- Action Wrappers ---
+    const handleStartMoving = async () => {
+        if (isOtherActive) {
+            alert("他の案件が進行中です。");
+            return;
+        }
+        const success = await machine.actions.startMoving();
+        if (success) onJobUpdate(job.id, 'MOVING');
+    };
 
-    // A. Inactive / Locked State (L1 Constraint)
+    const handleArrive = async () => {
+        const success = await machine.actions.arrive();
+        if (success) onJobUpdate(job.id, 'ARRIVED');
+    };
+
+    const handleStartWork = async () => {
+        const success = await machine.actions.startWork();
+        if (success) onJobUpdate(job.id, 'WORKING');
+    };
+
+    const handleCompleteWork = async () => {
+        const confirmed = confirm("完了報告を送信しますか？");
+        console.log(`[Debug] Confirmation result: ${confirmed}`);
+        if (!confirmed) return;
+
+        // Payload constructed by parent? Or passed here?
+        // Current design: Parent manages 'manualData' state. 
+        // ideally JobCard should manage it if it's "Active Job" data, but let's stick to props for data input to minimize change.
+        const success = await machine.actions.completeWork({ manualData });
+
+        if (success) {
+            console.log('[Debug] Machine transition success, notifying parent');
+            onJobUpdate(job.id, 'COMPLETED');
+        }
+    };
+
+    // A. Inactive / Locked State
     if (isOtherActive) {
         return (
             <div className="relative flex items-start gap-4 mb-4 opacity-40 pointer-events-none grayscale">
                 {!isLast && <div className="absolute left-[20px] top-[40px] bottom-[-20px] w-0.5 bg-gray-200 z-0"></div>}
-
                 <div className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-gray-300 text-white flex items-center justify-center shadow-lg`}>
                     <Icon size={18} />
                 </div>
@@ -48,15 +86,12 @@ export const JobCard = ({ job, isActive, isOtherActive, machine, onAction, manua
     // B. Active or Pending State
     return (
         <div className="relative flex items-start gap-4 mb-4 animate-fade-in-up">
-            {/* Timeline Line */}
             {!isLast && <div className="absolute left-[20px] top-[40px] bottom-[-20px] w-0.5 bg-gray-200 z-0"></div>}
 
-            {/* Icon Badge */}
             <div className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full ${config.iconColor} text-white flex items-center justify-center text-xl shadow-lg transition-colors duration-300`}>
                 <Icon size={20} />
             </div>
 
-            {/* Card Content */}
             <div className={`bg-white rounded-lg p-4 flex-grow shadow-md transition-all duration-300 ${isActive ? 'ring-2 ring-blue-500 shadow-xl scale-[1.02]' : 'hover:shadow-lg'}`}>
 
                 {/* Header */}
@@ -75,7 +110,6 @@ export const JobCard = ({ job, isActive, isOtherActive, machine, onAction, manua
                     </span>
                 </div>
 
-                {/* Special Notes (from Prototype) */}
                 {job.special_notes && (
                     <div className="mt-2 bg-yellow-50 text-yellow-800 text-sm font-semibold px-3 py-2 rounded-md flex items-center gap-2 border border-yellow-200">
                         <span className="text-yellow-600">⚠</span>
@@ -83,37 +117,32 @@ export const JobCard = ({ job, isActive, isOtherActive, machine, onAction, manua
                     </div>
                 )}
 
-                {/* Action Buttons (Ported from Prototype Footer but inline here for Card UI) */}
+                {/* Actions */}
                 <div className="mt-4">
-                    {/* 1. Start Moving */}
                     {!isActive && currentStatus === 'PENDING' && (
-                        <button onClick={() => onAction('startMoving')}
+                        <button onClick={handleStartMoving}
                             className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-lg shadow-md hover:bg-blue-700 active:scale-95 transition-transform flex items-center justify-center gap-2">
                             <Truck /> 向かう
                         </button>
                     )}
 
-                    {/* 2. Arrive */}
                     {isActive && machine.can.arrive && (
-                        <button onClick={() => onAction('arrive')}
+                        <button onClick={handleArrive}
                             className="w-full bg-green-600 text-white py-3 rounded-lg font-bold text-lg shadow-md hover:bg-green-700 active:scale-95 transition-transform flex items-center justify-center gap-2 animate-pulse">
                             <MapPin /> 到着しました
                         </button>
                     )}
 
-                    {/* 3. Start Work */}
                     {isActive && machine.can.work && !machine.can.input && (
-                        <button onClick={() => onAction('startWork')}
+                        <button onClick={handleStartWork}
                             className="w-full bg-orange-500 text-white py-3 rounded-lg font-bold text-lg shadow-md hover:bg-orange-600 active:scale-95 transition-transform flex items-center justify-center gap-2">
                             <Play /> 作業開始
                         </button>
                     )}
 
-                    {/* 4. Input Form (Two-Stage Rough Estimate) */}
                     {isActive && machine.can.input && (
                         <div className="mt-2 space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
                             <h3 className="font-bold text-gray-700 border-b pb-1 mb-2">回収実績入力 (現場概算)</h3>
-
                             {manualData.items.map((item, idx) => (
                                 <div key={idx} className="flex items-center justify-between bg-white p-2 rounded shadow-sm">
                                     <span className="font-bold text-lg text-gray-800">{item.name}</span>
@@ -128,8 +157,7 @@ export const JobCard = ({ job, isActive, isOtherActive, machine, onAction, manua
                                     </div>
                                 </div>
                             ))}
-
-                            <button onClick={() => onAction('completeWork')}
+                            <button onClick={handleCompleteWork}
                                 className="w-full mt-2 bg-blue-600 text-white py-3 rounded-lg font-bold text-lg shadow-md hover:bg-blue-700 active:scale-95 transition-transform flex items-center justify-center gap-2">
                                 <Send /> 入力完了・出発
                             </button>
