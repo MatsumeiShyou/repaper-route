@@ -42,6 +42,16 @@ export const EventRepository = {
             synced: 0 // 0: faluse, 1: true
         };
 
+        // Detect Blob/File in payload for separate handling
+        let blobPayload = null;
+        if (payload && payload.photo instanceof Blob) {
+            blobPayload = payload.photo;
+            // Remove Blob from main payload to prevent JSON stringify issues in Supabase (if we sent raw)
+            // For IDB, we can store it, but let's keep it clean
+            event.payload = { ...payload, photo: 'BLOB_STORED_IN_IDB' };
+            event.blob = blobPayload; // Store separately in IDB object
+        }
+
         // 1. Save to Offline DB first (WAL: Write Ahead Log principle for frontend)
         try {
             const db = await initDB();
