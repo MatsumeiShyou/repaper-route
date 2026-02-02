@@ -2,14 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { CheckSquare, LogOut, Camera, X } from 'lucide-react';
-// import { useJobStateMachine } from './hooks/useJobStateMachine'; // REMOVED
 import { EventRepository } from './lib/eventRepository';
+import { PhotoRepository } from './lib/photoRepository';
 import { JobCard } from './components/JobCard';
 
 // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-// 【設定エリア】
-const WEB_APP_URL = "https://script.google.com/macros/s/xxxxxxxxxxxxxxxxx/exec";
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -88,7 +86,17 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
         console.log(`[DriverApp] Job Update: ${jobId} -> ${newStatus}`);
 
         // Update Job Status
-        setJobs(prevJobs => prevJobs.map(j => j.id === jobId ? { ...j, status: newStatus } : j));
+        // Update Job Status & Save Result Data if Completed
+        setJobs(prevJobs => prevJobs.map(j => {
+            if (j.id === jobId) {
+                // If completing, attach the manual input data
+                if (newStatus === 'COMPLETED') {
+                    return { ...j, status: newStatus, result_items: manualData.items };
+                }
+                return { ...j, status: newStatus };
+            }
+            return j;
+        }));
 
         // Manage Active Job Logic
         if (newStatus === 'MOVING' || newStatus === 'ARRIVED' || newStatus === 'WORKING') {
@@ -96,9 +104,29 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
         } else if (newStatus === 'COMPLETED') {
             setActiveJobId(null);
 
-            // Photo logging (moved from old handler)
+            // Phase 3: Photo Upload to Storage (Fat Client / Direct Upload)
+            let photoUrl = null;
             if (manualData.photo) {
-                await EventRepository.log(DRIVER_ID, 'PHOTO_ACCEPTED', { photo: manualData.photo, job_id: jobId });
+                try {
+                    console.log('Uploading photo...');
+                    const result = await PhotoRepository.uploadPhoto(manualData.photo, jobId);
+                    photoUrl = result.url;
+                } catch (e) {
+                    console.error('Photo upload failed but continuing job completion', e);
+                    // We might want to save to IDB queue here if strictly offline,
+                    // but PhotoRepository (Supabase) needs online. 
+                    // For MVP Phase 3 Zero-Cost, we assume online for Photo or it fails.
+                    // Ideally: separate queue.
+                }
+            }
+
+            // Log event (with photo URL if success)
+            if (photoUrl) {
+                await EventRepository.log(DRIVER_ID, 'PHOTO_UPLOADED', {
+                    job_id: jobId,
+                    photo_url: photoUrl,
+                    path: photoUrl // keeping consistency
+                });
             }
 
             // Reset Data Form
@@ -138,11 +166,51 @@ export default function DriverApp({ initialDriverName = '佐藤 ドライバー'
             alert("総重量を入力してください");
             return;
         }
-        await EventRepository.log(DRIVER_ID, 'BATCH_COMPLETE', { total_weight: eodWeight });
-        alert("お疲れ様でした！業務終了です。");
-        // Reset or redirect? For MVP just show success
+
+        // --- Zero-Cost Arch: Client Side Split Calc (Fat Client) ---
+        // 1. Calculate sum of Rough Estimates
+        let totalEstimate = 0;
+        const jobResults = jobs.filter(j => j.status === 'COMPLETED').map(j => {
+            const jobTotal = j.result_items?.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0) || 0;
+            totalEstimate += jobTotal;
+            return { ...j, estimated_total: jobTotal };
+        });
+
+        const actualTotal = parseFloat(eodWeight);
+        const ratio = totalEstimate > 0 ? actualTotal / totalEstimate : 1;
+
+        console.log(`[AutoSplit] Estimate: ${totalEstimate}kg, Actual: ${actualTotal}kg, Ratio: ${ratio.toFixed(4)}`);
+
+        // 2. Apply Ratio to get Final Weights
+        const finalBreakdown = jobResults.map(j => ({
+            job_id: j.id,
+            customer: j.customer_name,
+            items: j.result_items?.map(item => ({
+                name: item.name,
+                estimated: parseFloat(item.weight) || 0,
+                final: Math.round((parseFloat(item.weight) || 0) * ratio)
+            }))
+        }));
+
+        const payload = {
+            total_weight: actualTotal,
+            total_estimate: totalEstimate,
+            split_ratio: ratio,
+            breakdown: finalBreakdown,
+            driver_id: DRIVER_ID,
+            vehicle: VEHICLE_INFO,
+            timestamp: new Date().toISOString()
+        };
+
+        // Log the full calculated report (Single Source of Truth)
+        await EventRepository.log(DRIVER_ID, 'DAILY_REPORT', payload);
+
+        // Trigger Batch Sync to GAS (Cold Storage)
+        await EventRepository.syncAll();
+
+        alert(`業務終了報告が完了しました。\n総重量: ${actualTotal}kg\n(按分比率: ${(ratio * 100).toFixed(1)}%)`);
         setEodWeight('');
-        setViewMode('inspection'); // Loop back for demo
+        setViewMode('inspection');
     };
 
     // --- Screens ---

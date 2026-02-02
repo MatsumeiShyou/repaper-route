@@ -1,5 +1,6 @@
 import { openDB } from 'idb';
 import { supabase } from './supabase';
+import { GasApi } from '../services/gasApi';
 
 const DB_NAME = 'RepaperRouteDB';
 const DB_VERSION = 1;
@@ -91,8 +92,8 @@ export const EventRepository = {
     },
 
     /**
-     * Tries to push all unsynced events to Supabase.
-     * Should be called when online status is detected.
+     * Tries to push all unsynced events to Supabase and GAS (Cold Storage).
+     * Uses Batch Operation to save API Quota.
      */
     async syncAll() {
         if (!navigator.onLine) return;
@@ -104,28 +105,43 @@ export const EventRepository = {
 
         console.log(`[SDR] Syncing ${unsyncedEvents.length} events...`);
 
-        // Batch upload approach could be better, but loop is safer for order preservation if dependent
-        // For MVP, simple loop
-        for (const event of unsyncedEvents) {
-            try {
-                const { error } = await supabase
-                    .from('event_logs')
-                    .insert([{
-                        event_type: event.event_type,
-                        payload: event.payload,
-                        actor_id: event.actor,
-                        occurred_at: event.timestamp
-                    }]);
+        // 1. Batch Sync to GAS (Cold Storage - Infinite Archive)
+        // This is the PRIORITY for logs.
+        const gasResult = await GasApi.syncBatch(unsyncedEvents);
 
-                if (!error) {
-                    event.synced = 1;
-                    await db.put(STORE_NAME, event);
-                } else {
-                    console.error('[SDR] Sync failed for event', event, error);
-                }
-            } catch (e) {
-                console.error('[SDR] Sync error', e);
+        if (gasResult.success) {
+            console.log('[SDR] Batch sync to GAS successful');
+            // Mark as synced immediately to prevent re-send
+            // Note: We might still want to send to Supabase (Hot) for immediate reaction
+        } else {
+            console.warn('[SDR] GAS Sync failed, will retry later.', gasResult.error);
+        }
+
+        // 2. Batch/Loop Sync to Supabase (Hot Storage - Recent Operations)
+        // For Supabase, we still use loop or upsert if schema supports it.
+        // To be safe with Supabase free limits, we only sync 'KEY' events if needed, 
+        // but for now, we sync all to ensure dashboard works.
+        const { error } = await supabase
+            .from('event_logs')
+            .upsert(unsyncedEvents.map(e => ({
+                client_event_id: e.client_event_id, // Ensure ID is mapped
+                event_type: e.event_type,
+                payload: e.payload,
+                actor_id: e.actor,
+                occurred_at: e.timestamp
+            })), { onConflict: 'client_event_id', ignoreDuplicates: true });
+
+        if (!error) {
+            // Update local IDB state
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            for (const event of unsyncedEvents) {
+                event.synced = 1;
+                await tx.store.put(event);
             }
+            await tx.done;
+            console.log('[SDR] All events synced to Supabase & marked local');
+        } else {
+            console.error('[SDR] Supabase sync failed', error);
         }
     }
 };
