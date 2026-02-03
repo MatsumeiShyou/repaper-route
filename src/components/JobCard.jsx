@@ -88,6 +88,9 @@ export const JobCard = ({ job, isActive, isOtherActive, onJobUpdate, driverId, m
                     <div className="flex justify-between items-start">
                         <div>
                             <h2 className="text-xl font-bold text-gray-500">{job.customer_name}</h2>
+                            <p className="text-xs font-mono text-gray-500 mb-1">
+                                {job.startTime} 〜 ({job.duration}分)
+                            </p>
                             <p className="text-sm text-gray-400">{job.address}</p>
                         </div>
                         <span className="text-xs font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-500">待機中</span>
@@ -117,6 +120,9 @@ export const JobCard = ({ job, isActive, isOtherActive, onJobUpdate, driverId, m
                                 {config.badgeText}
                             </span>
                         </div>
+                        <p className="text-sm font-mono text-gray-600 mb-2">
+                            {job.startTime} 〜 ({job.duration}分)
+                        </p>
 
                         <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`}
                             target="_blank" rel="noopener noreferrer"

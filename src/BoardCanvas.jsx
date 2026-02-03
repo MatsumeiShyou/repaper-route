@@ -16,14 +16,22 @@ import {
     Redo2,
     Menu
 } from 'lucide-react';
-import { supabase } from './lib/supabase';
+import { supabase } from './lib/supabase/client'; // Updated path
+import { timeToMinutes, minutesToTime, calculateTimeFromY } from './features/board/logic/timeUtils';
+import { calculateCollision, checkVehicleCompatibility } from './features/board/logic/collision';
 
 // ==========================================
 // 1. データ定義 (マスタ & モック)
 // ==========================================
 
-// カラーパレット定義 (18色)
+// ... (COLOR_PALETTE, etc. unchanged)
+
 const COLOR_PALETTE = [
+    { name: 'Red', bg: 'bg-red-100', border: 'border-red-300', text: 'text-red-900' },
+    // ...
+    // (I will skip repeating constant definitions in instructions if possible, but replace_file_content needs context)
+    // Actually, I can just replace the top imports and the helper function section.
+
     { name: 'Red', bg: 'bg-red-100', border: 'border-red-300', text: 'text-red-900' },
     { name: 'Orange', bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-900' },
     { name: 'Amber', bg: 'bg-amber-100', border: 'border-amber-300', text: 'text-amber-900' },
@@ -84,17 +92,7 @@ const PIXELS_PER_REM = 16;
 const CELL_HEIGHT_PX = QUARTER_HEIGHT_REM * PIXELS_PER_REM;
 const CURRENT_DATE_KEY = '2025-01-24'; // 仮の日付キー
 
-const timeToMinutes = (timeStr) => {
-    const [h, m] = timeStr.split(':').map(Number);
-    return h * 60 + m;
-};
-
-const minutesToTime = (totalMinutes) => {
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    return `${h}:${m.toString().padStart(2, '0')}`;
-};
-
+// Helpers moved to pure pure modules
 const getHashIndex = (str, max) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -495,8 +493,8 @@ export default function BoardCanvas() {
         const targetJob = jobs.find(j => j.id === targetJobId);
         if (!targetJob) return null;
 
-        const moveYBlocks = Math.round(currentY / CELL_HEIGHT_PX);
-        const moveYMinutes = moveYBlocks * 15;
+        // 1. View Logic: Determine Proposed Position
+        const moveYMinutes = calculateTimeFromY(currentY);
         let newStartMin = timeToMinutes(targetJob.startTime) + moveYMinutes;
         newStartMin = Math.max(timeToMinutes('06:00'), Math.min(timeToMinutes('17:45'), newStartMin));
         const newStartTime = minutesToTime(newStartMin);
@@ -511,67 +509,33 @@ export default function BoardCanvas() {
             }
         });
 
-        let newDuration = targetJob.duration;
-        let isOverlapError = false;
-
-        const driverSplits = splits.filter(s => s.driverId === newDriverId);
-        const splitAtStart = driverSplits.find(s => s.time === newStartTime);
-        if (splitAtStart) isOverlapError = true;
-
-        const otherJobs = jobs.filter(j => j.driverId === newDriverId && j.id !== targetJobId);
-        const isStartOverlapping = otherJobs.some(other => {
-            const s = timeToMinutes(other.startTime);
-            const e = s + other.duration;
-            return newStartMin >= s && newStartMin < e;
+        // 2. Business Logic: Collision & Constraints
+        const { isOverlapError, adjustedDuration } = calculateCollision({
+            proposedDriverId: newDriverId,
+            proposedStartMin: newStartMin,
+            proposedDuration: targetJob.duration,
+            ignoreJobId: targetJobId,
+            existingJobs: jobs,
+            splits: splits,
+            isResize: dragButton === 2
         });
 
-        if (isStartOverlapping) {
-            isOverlapError = true;
-        } else {
-            const tentativeEndMin = newStartMin + newDuration;
-            let nearestObstacleStart = 99999;
-            const conflictingJob = otherJobs.find(other => {
-                const s = timeToMinutes(other.startTime);
-                return s >= newStartMin && s < tentativeEndMin;
-            });
-            if (conflictingJob) nearestObstacleStart = timeToMinutes(conflictingJob.startTime);
+        // 3. Business Logic: Vehicle Check
+        const isVehicleError = checkVehicleCompatibility(
+            newDriverId,
+            newStartMin,
+            splits,
+            drivers,
+            targetJob.requiredVehicle
+        );
 
-            const conflictingSplit = driverSplits.find(s => {
-                const sMin = timeToMinutes(s.time);
-                return sMin > newStartMin && sMin < tentativeEndMin;
-            });
-            if (conflictingSplit) {
-                const sMin = timeToMinutes(conflictingSplit.time);
-                if (sMin < nearestObstacleStart) nearestObstacleStart = sMin;
-            }
-
-            if (nearestObstacleStart !== 99999) {
-                const availableDuration = nearestObstacleStart - newStartMin;
-                if (availableDuration < 15) {
-                    isOverlapError = true;
-                    newDuration = 15;
-                } else {
-                    newDuration = availableDuration;
-                }
-            } else if (dragButton === 2) {
-                newDuration = 15;
-            }
-        }
-
-        const driver = drivers.find(d => d.id === newDriverId);
-        let currentVeh = driver?.currentVehicle;
-        const sortedSplits = [...driverSplits].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-        for (const split of sortedSplits) {
-            if (timeToMinutes(split.time) <= newStartMin) currentVeh = split.vehicle;
-            else break;
-        }
-
-        let isVehicleError = false;
-        if (targetJob.requiredVehicle && currentVeh && currentVeh !== targetJob.requiredVehicle) {
-            isVehicleError = true;
-        }
-
-        return { driverId: newDriverId, startTime: newStartTime, duration: newDuration, isVehicleError, isOverlapError };
+        return {
+            driverId: newDriverId,
+            startTime: newStartTime,
+            duration: adjustedDuration,
+            isVehicleError,
+            isOverlapError
+        };
     };
 
     const calculateSplitDropTarget = (currentX, currentY, splitId) => {
