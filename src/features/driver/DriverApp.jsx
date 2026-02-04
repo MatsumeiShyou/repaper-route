@@ -1,21 +1,20 @@
-// src/DriverApp.jsx
+// src/features/driver/DriverApp.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import confetti from 'canvas-confetti';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 
 // Logic & Repositories
-import { EventRepository } from './lib/eventRepository';
-import { PhotoRepository } from './lib/photoRepository';
-import { JobRepository } from './lib/repositories/JobRepository';
-import { MISSION_STATES, transitionMissionState } from './features/driver/logic/missionStateMachine';
-import { calculateEodStats } from './features/driver/logic/reportLogic';
-import { supabase } from './lib/supabase/client'; // Use centralized client
+import { EventRepository } from '../../lib/eventRepository';
+import { PhotoRepository } from '../../lib/photoRepository';
+import { JobRepository } from '../../lib/repositories/JobRepository';
+import { MISSION_STATES, transitionMissionState } from './logic/missionStateMachine';
+import { calculateEodStats } from './logic/reportLogic';
+
 
 // Components
-import { InspectionGate } from './features/driver/components/InspectionGate';
-import { DriverWorkView } from './features/driver/components/DriverWorkView';
-import { DailyReport } from './features/driver/components/DailyReport';
+import { InspectionGate } from './components/InspectionGate';
+import { DriverWorkView } from './components/DriverWorkView';
+import { DailyReport } from './components/DailyReport';
 
 // Shared UI (Helpers managed here for now, or use context later)
 // Note: DriverApp manages generic UI state (toasts, modal) and passes them down.

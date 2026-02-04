@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from './supabase/client';
 import { ImageOptimizer } from './imageOptimizer';
 
 /**
@@ -33,7 +33,7 @@ export const PhotoRepository = {
 
             if (error) throw error;
 
-            console.log(`[PhotoRepo] Uploaded to ${data.path}`);
+
             return {
                 path: data.path,
                 // Construct public URL if bucket is public, or signed URL if private
@@ -42,6 +42,7 @@ export const PhotoRepository = {
             };
 
         } catch (error) {
+            // eslint-disable-next-line no-console
             console.error('[PhotoRepo] Upload failed:', error);
             throw error;
         }

@@ -1,5 +1,5 @@
 import { openDB } from 'idb';
-import { supabase } from './supabase';
+import { supabase } from './supabase/client';
 import { GasApi } from '../services/gasApi';
 
 const DB_NAME = 'RepaperRouteDB';

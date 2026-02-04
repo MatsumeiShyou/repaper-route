@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import DriverApp from './DriverApp';
-import AdminDashboard from './AdminDashboard';
-import BoardCanvas from './BoardCanvas';
+import DriverApp from './features/driver/DriverApp';
+import AdminDashboard from './features/admin/AdminDashboard';
+import BoardCanvas from './features/board/BoardCanvas';
 import { cn } from './lib/utils';
 import { User, Shield, Truck, LogOut } from 'lucide-react';
 

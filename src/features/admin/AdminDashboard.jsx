@@ -4,8 +4,8 @@ import {
     MessageSquare, ClipboardList, RefreshCw,
     ArrowRight, Save, Filter
 } from 'lucide-react';
-import { supabase } from './lib/supabase';
-import { cn } from './lib/utils';
+import { supabase } from '../../lib/supabase/client';
+import { cn } from '../../lib/utils';
 
 // --- Configuration ---
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbztzbQGp7FTQ2t0qlBgY0qz3uOuRed6ec8QseGtbE69pHmjHZy_x6Y2ATNu-DKomCFygA/exec";
