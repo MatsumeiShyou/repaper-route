@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { RotateCcw } from 'lucide-react';
 import { EventRepository } from '../../../lib/eventRepository';
 import { PhotoRepository } from '../../../lib/photoRepository';
 import { JobRepository } from '../../../lib/repositories/JobRepository';
@@ -137,6 +138,14 @@ export const useDriverLogic = (initialDriverName, initialVehicle) => {
         }
     };
 
+    const handleUndo = () => {
+        if (!undoStack) return;
+        setJobs(prev => prev.map(j => j.id === undoStack.jobId ? { ...j, status: undoStack.prevStatus, result_items: undoStack.prevResult } : j));
+        setActiveJobId(undoStack.prevActiveId);
+        setUndoStack(null);
+        addToast("操作を元に戻しました。", "info");
+    };
+
     const completeJobLogic = async (jobId, currentJobs) => {
         if (manualData.photo) {
             try {
@@ -149,27 +158,18 @@ export const useDriverLogic = (initialDriverName, initialVehicle) => {
 
         const unfinished = currentJobs.filter(j => j.status !== 'COMPLETED');
         if (unfinished.length === 0) {
-            // Confetti logic should technically be in the view, but triggering it from logic via a flag or callback is better. 
-            // For now, we'll return a 'completedAll' flag or effect.
-            // But to keep it simple, we can import confetti here or move it to view.
-            // Let's keep it here for now as a side effect.
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#3b82f6', '#10b981', '#f59e0b'] });
             addToast("全案件完了！お疲れ様でした！", "success");
         } else {
-            addToast("案件完了！", "success"); // Undo button action is complex to return, simplifying for now
-            // We can add the undo toast in the View layer by observing logic state changes, or pass a callback.
+            addToast("案件完了！", "success",
+                <button onClick={handleUndo} className="ml-2 bg-white/20 hover:bg-white/30 px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
+                    <RotateCcw size={12} /> 元に戻す
+                </button>
+            );
         }
 
         setManualData({ items: [{ name: '段ボール', weight: '' }, { name: '雑誌', weight: '' }], photo: null });
         setPhotoPreview(null);
-    };
-
-    const handleUndo = () => {
-        if (!undoStack) return;
-        setJobs(prev => prev.map(j => j.id === undoStack.jobId ? { ...j, status: undoStack.prevStatus, result_items: undoStack.prevResult } : j));
-        setActiveJobId(undoStack.prevActiveId);
-        setUndoStack(null);
-        addToast("操作を元に戻しました。", "info");
     };
 
     const handlePhotoSelect = (e) => {
@@ -186,6 +186,10 @@ export const useDriverLogic = (initialDriverName, initialVehicle) => {
         openModal("業務終了確認", "全ての業務を終了し、帰社報告を行いますか？",
             () => setMissionState(transitionMissionState(missionState, 'START_EOD'))
         );
+    };
+
+    const cancelReport = () => {
+        setMissionState(transitionMissionState(missionState, 'CANCEL_REPORT'));
     };
 
     // 3. Report
@@ -237,6 +241,7 @@ export const useDriverLogic = (initialDriverName, initialVehicle) => {
         handleUndo,
         handlePhotoSelect,
         startEndOfDay,
+        cancelReport,
         submitEndOfDay,
         setModalConfig,
         setManualData,
