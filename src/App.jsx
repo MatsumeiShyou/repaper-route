@@ -5,26 +5,48 @@ import BoardCanvas from './features/board/BoardCanvas';
 import { cn } from './lib/utils';
 import { User, Shield, Truck, LogOut } from 'lucide-react';
 
-// --- Mock Data (Ideally tailored via DB) ---
-const USERS = [
-    { id: 'admin', name: '管理者 (Admin)', role: 'ADMIN', color: 'bg-slate-800' },
-    { id: 'd1', name: '畑澤', role: 'DRIVER', vehicle: '2025PK', color: 'bg-blue-600' },
-    { id: 'd2', name: '菊地', role: 'DRIVER', vehicle: '2267PK', color: 'bg-green-600' },
-    { id: 'd3', name: '万里', role: 'DRIVER', vehicle: '2618PK', color: 'bg-purple-600' },
-    { id: 'd4', name: '片山', role: 'DRIVER', vehicle: '5122PK', color: 'bg-orange-600' },
-];
+import { supabase } from './lib/supabase/client';
 
 /**
  * アプリケーションのルートコンポーネント (Role Portal)
- * ユーザー認証(Mock)を行い、適切な画面へ振り分ける
+ * ユーザー認証(Login via DB)を行い、適切な画面へ振り分ける
  */
 export default function App() {
     const [currentUser, setCurrentUser] = useState(null); // { id, name, role, ... }
     const [adminView, setAdminView] = useState('menu'); // 'menu' | 'dashboard' | 'board'
+    const [profiles, setProfiles] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // --- Login (Mock) ---
+    // --- Load Users from DB ---
+    React.useEffect(() => {
+        const fetchProfiles = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('role', { ascending: true }) // ADMIN first
+                    .order('name');
+
+                if (data) setProfiles(data);
+                if (error) console.error("Profile Fetch Error:", error);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchProfiles();
+    }, []);
+
+    // --- Login ---
     const handleLogin = (user) => {
-        setCurrentUser(user);
+        const userData = {
+            id: user.id || user.user_id, // Normalize ID
+            name: user.name,
+            role: user.role,
+            vehicle: user.vehicle_info || user.vehicle // Normalize Vehicle
+        };
+        setCurrentUser(userData);
         setAdminView('menu'); // Reset admin view on login
     };
 
@@ -38,35 +60,46 @@ export default function App() {
 
     // 1. Login Screen
     if (!currentUser) {
+        if (isLoading) {
+            return <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-500">Loading Users...</div>;
+        }
+
         return (
             <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 text-gray-800 font-sans">
                 <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
                     <div className="bg-slate-900 p-8 text-white text-center">
                         <h1 className="text-3xl font-bold mb-2">RePaper Route</h1>
-                        <p className="opacity-70 text-sm">ユーザーを選択してください</p>
+                        <p className="opacity-70 text-sm">ユーザーを選択してください (DB Connected)</p>
                     </div>
                     <div className="p-6 space-y-3">
-                        {USERS.map(user => (
-                            <button
-                                key={user.id}
-                                onClick={() => handleLogin(user)}
-                                className={cn(
-                                    "w-full p-4 rounded-xl flex items-center gap-4 transition-all hover:bg-gray-50 active:scale-95 shadow-sm border border-gray-100",
-                                    user.role === 'ADMIN' ? "border-l-4 border-l-slate-800" : ""
-                                )}
-                            >
-                                <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md", user.color)}>
-                                    {user.role === 'ADMIN' ? <Shield size={20} /> : <User size={20} />}
-                                </div>
-                                <div className="text-left flex-1">
-                                    <h2 className="text-lg font-bold">{user.name}</h2>
-                                    {user.vehicle && <p className="text-xs text-gray-500 flex items-center gap-1"><Truck size={12} /> {user.vehicle}</p>}
-                                </div>
-                            </button>
-                        ))}
+                        {profiles.map(user => {
+                            // Assign Color based on Role/Index manually for UI consistency
+                            // In real app, color could be in DB or hashed from name
+                            const isDriver = user.role === 'DRIVER';
+                            const bgColor = isDriver ? 'bg-blue-600' : 'bg-slate-800';
+
+                            return (
+                                <button
+                                    key={user.id || user.user_id}
+                                    onClick={() => handleLogin(user)}
+                                    className={cn(
+                                        "w-full p-4 rounded-xl flex items-center gap-4 transition-all hover:bg-gray-50 active:scale-95 shadow-sm border border-gray-100",
+                                        !isDriver ? "border-l-4 border-l-slate-800" : ""
+                                    )}
+                                >
+                                    <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md", bgColor)}>
+                                        {!isDriver ? <Shield size={20} /> : <User size={20} />}
+                                    </div>
+                                    <div className="text-left flex-1">
+                                        <h2 className="text-lg font-bold">{user.name}</h2>
+                                        {user.vehicle_info && <p className="text-xs text-gray-500 flex items-center gap-1"><Truck size={12} /> {user.vehicle_info}</p>}
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                     <div className="bg-gray-50 p-4 text-center text-xs text-gray-400">
-                        Development Build v1.0
+                        Production Mode v2.0
                     </div>
                 </div>
             </div>

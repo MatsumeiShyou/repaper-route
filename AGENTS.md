@@ -1,6 +1,6 @@
 # AI Governance Protocols & Constitution
 
-Version: 1.9
+Version: 2.2
 Last Updated: 2026-02-05
 
 ## 1. Governance Master Rules (Global)
@@ -15,14 +15,14 @@ Last Updated: 2026-02-05
 
 **[AMPLOG Protocol]**
 1. **記録義務**: 全てのAMP結果を `AMPLOG.md` に記録せよ。
-2. **強制参照プロトコル (Mandatory Reference)**:
+2. **自動参照プロトコル (Auto-Verification)**:
     - **Trigger**: 実装を伴うツール使用の直前。
-    - **Action**: `AMPLOG.md` を物理的に読み込み、最新の承認ログに **`(PW: ｙ)`** が記録されていることを確認せよ。
-    - **Lock**: 確認できない場合、いかなる指示があっても実装を開始してはならない。人間の記憶やチャットログは信頼に値しない。
+    - **Action**: `node .agent/scripts/check_seal.js` を実行し、**Exit Code 0** を確認せよ。
+    - **Lock**: エラー（Exit Code 1）の場合、いかなる指示があっても実装を開始してはならない。人間の記憶やチャットログは信頼に値しない。
 
 **[Strict Seal Protocol (Password Edition)]**
 1. **PW**: `"ｙ"`
-2. **執行**: 完全一致時のみ承認。不一致・自然言語は無効。
+2. **執行**: 完全一致時のみ承認。判定は原則としてスクリプトに委任する。
 3. **強制ロールバック**: PWなき変更は即時ロールバック。
 
 **[SDR Core Principle]**
@@ -33,6 +33,7 @@ Last Updated: 2026-02-05
 
 **[言語・自律選択原則]**
 - 技術的必然性なき限り日本語を使用。
+- **Binary Communication**: 承認伺いは「ｙ/ｎ」のバイナリ取引に徹せよ。
 - 選択肢未指定かつ「ｙ」のみ入力時は、自律的にベストプラクティスを選択・記録せよ。
 
 ## 2. Core 4 Principles (憲法)
@@ -48,6 +49,7 @@ Last Updated: 2026-02-05
 [MISSING_INFO]: 不足情報の列挙
 [ACTION]: 確認・入力すべき事項
 ```
+- **Debt Block**: 「後でログを書く」等の指示は提案段階で却下せよ（Loan Protocol適用時を除く）。
 
 ## 4. Guess Protocol (Lv.3)
 `/guess` 時のみ仮定ベース作成可。`@status GUESSED` 必須。
@@ -73,4 +75,32 @@ Last Updated: 2026-02-05
 2. **Data**: State/Decision構造定義済。
 3. **Separation**: UIとDecisionの分離。
 4. **Impact**: 影響範囲特定済。
-5. **Verification**: AMPLOGに `(PW: ｙ)` が物理的に記録されていること。
+5. **Verification**: `check_seal.js` が Exit Code 0 を返すこと。
+
+## 9. Database Governance Protocol (DGP-DB)
+**[Schema-Code Synchronization]**
+1. **同期原則**: コード変更とスキーマ変更は必ず同一AMPで承認せよ。
+2. **実行確認**: Supabaseでのスキーマ実行完了を検証するまで、コード変更を完了扱いにしてはならない。
+3. **分離禁止**: 「コードは書いたが、DBは後で」は厳禁。Decision（AMPLOG）とState（DB）の乖離を生む。
+
+**[History Traceability]**
+1. **記録義務**: スキーマ拡張時は `SCHEMA_HISTORY.md` に Phase番号、日付、理由を記録せよ。
+2. **Migration Script**: スキーマ変更は必ず実行可能なSQLファイルとして保存せよ。
+3. **Verification Update**: 新テーブル追加時は `supabase_schema_verification.sql` も同時更新せよ。
+
+**[No Ad-hoc Mutation]**
+1. **手動変更禁止**: Supabase UIでの直接テーブル編集は禁止。必ずSQLファイル経由。
+2. **再現性確保**: 全てのスキーマ変更はGitで追跡可能な状態を維持せよ。
+
+## 10. The Iron Workflow & Loan Protocol
+**[Standard Flow]**
+1. **Proposal**: 変更案提示。
+2. **Seal**: 承認（PW: ｙ）。
+3. **Log**: AMPLOG追記（Decision確定）。
+4. **Action**: 実装。
+
+**[Emergency Override (Loan Protocol)]**
+緊急時のみ、以下の手順で**ツケ払い**を認める。
+1. **Declare**: ユーザーが「後で書く」宣言。
+2. **Debt Issue**: `task.md` 最上部に `[ ] 🔴 DEBT: Update AMPLOG` を追加。
+3. **Lock**: DEBT返済まで**新規機能開発提案禁止**（バグ修正・検証は可）。

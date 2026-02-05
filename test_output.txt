@@ -1,0 +1,109 @@
+﻿
+> repaper-route@1.0.0 test
+> vitest collision.test.js --run --reporter=verbose
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/shiyo/髢狗匱荳ｭAPP/RePaper Route[39m
+
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcalculateCollision[2m > [22mreturns no overlap when slot is completely free[32m 1[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcalculateCollision[2m > [22mdetects overlap when start time is inside existing job[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcalculateCollision[2m > [22mignores self when checking collision[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcalculateCollision[2m > [22madjusts duration when job would overlap with another job[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcalculateCollision[2m > [22madjusts duration when job would overlap with a split[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcalculateCollision[2m > [22msets overlap error when available duration is less than 15 minutes[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcalculateCollision[2m > [22mdoes not detect collision for different drivers[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcalculateCollision[2m > [22mhandles multiple jobs and picks nearest obstacle[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcheckVehicleCompatibility[2m > [22mreturns false when no vehicle is required[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcheckVehicleCompatibility[2m > [22mreturns false when vehicle matches[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcheckVehicleCompatibility[2m > [22mreturns true when vehicle does not match[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcheckVehicleCompatibility[2m > [22muses split vehicle when time is after split[32m 0[2mms[22m[39m
+ [32m笨・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcheckVehicleCompatibility[2m > [22muses most recent split when multiple splits exist[32m 0[2mms[22m[39m
+ [31mﾃ・[39m src/test/collision.test.js[2m > [22mcollision[2m > [22mcheckVehicleCompatibility[2m > [22mreturns false when driver not found[32m 4[2mms[22m[39m
+[31m   竊・expected undefined to be false // Object.is equality[39m
+node.exe : 
+発生場所 行:1 文字:1
++ & "C:\Program File
+s\nodejs/node.exe" "
+C:\Program Files\nod
+ejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo  
+            : NotS  
+  pecified: (:Str   
+ ing) [], Remote    
+Exception
+    + FullyQualifie 
+   dErrorId : Nati  
+  veCommandError
+ 
+[31m竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ
+[39m[1m[41m Failed
+ Tests 1 [49m[22m
+[31m竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ[
+39m
+
+[41m[1m FAIL [22m
+[49m src/test/colli
+sion.test.js[2m > 
+[22mcollision[2m > 
+[22mcheckVehicleCom
+patibility[2m > [2
+2mreturns false when
+ driver not found
+[31m[1mAssertionEr
+ror[22m: expected u
+ndefined to be false
+ // Object.is equali
+ty[39m
+
+[32m- Expected:[39
+m 
+false
+
+[31m+ Received:[39
+m 
+undefined
+
+[36m [2m笶ｯ[22m sr
+c/test/collision.tes
+t.js:[2m195:28[22m
+[39m
+    [90m193| [39m 
+       [34mit[39m(
+[32m'returns false 
+when driver not foun
+d'[39m[33m,[39m (
+) [33m=>[39m {
+    [90m194| [39m 
+           const res
+ult = checkVehicleCo
+mpatibility('d999', 
+360, [], 窶ｦ
+    [90m195| [39m 
+           [34mexpe
+ct[39m(result)[33m
+.[39m[34mtoBe[39m
+([35mfalse[39m)[3
+3m;[39m
+    [90m   | [39m 
+                    
+      [31m^[39m
+    [90m196| [39m 
+       })[33m;[39m
+    [90m197| [39m 
+   })[33m;[39m
+
+[31m[2m竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡
+ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡
+ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ竡ｯ[1/
+1]竡ｯ[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m13 passed[39m[22m[90m (14)[39m
+[2m   Start at [22m 22:11:34
+[2m   Duration [22m 836ms[2m (transform 26ms, setup 76ms, import 26ms, tests 7ms, environment 588ms)[22m
+

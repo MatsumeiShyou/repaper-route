@@ -5,9 +5,8 @@
  * For Zero-Cost, we use this for Batch Log Sync (Cold Storage).
  */
 
-// Placeholder URL - User needs to update this after deployment
-// TODO: Replace with actual Web App URL
-const GAS_WEB_APP_URL = import.meta.env.VITE_GAS_API_URL || '';
+// Production Endpoint (v1.0)
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbztzbQGp7FTQ2t0qlBgY0qz3uOuRed6ec8QseGtbE69pHmjHZy_x6Y2ATNu-DKomCFygA/exec";
 
 export const GasApi = {
     /**

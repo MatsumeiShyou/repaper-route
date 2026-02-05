@@ -12,7 +12,9 @@ import {
     Menu,
     MoreVertical,
     Copy,
-    Scissors
+    Scissors,
+    Check,
+    X
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase/client';
 import { timeToMinutes, minutesToTime, calculateTimeFromY } from './logic/timeUtils';
@@ -27,7 +29,24 @@ import { BoardModals } from './components/BoardModals';
 const QUARTER_HEIGHT_REM = 2;
 const PIXELS_PER_REM = 16;
 const CELL_HEIGHT_PX = QUARTER_HEIGHT_REM * PIXELS_PER_REM;
-const CURRENT_DATE_KEY = '2025-01-24'; // 仮の日付キー
+
+// --- Date Logic ---
+// 1. URL searchParams (e.g. ?date=2024-01-01)
+// 2. Default: Today (YYYY-MM-DD)
+const getUrlDate = () => {
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    if (dateParam) return dateParam;
+
+    // Return Today in YYYY-MM-DD (Local Time)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const CURRENT_DATE_KEY = getUrlDate();
 
 const TIME_SLOTS = [];
 for (let h = 6; h < 18; h++) {
@@ -36,20 +55,9 @@ for (let h = 6; h < 18; h++) {
     });
 }
 
-// Initial Data Generation from Master Config
-const INITIAL_DRIVERS = MASTER_CONFIG.drivers.map(d => ({
-    id: d.id,
-    name: d.name,
-    currentVehicle: d.defaultVehicle,
-    course: d.defaultCourse,
-    color: 'bg-gray-50 border-gray-200' // Default, will be colored by theme logic if needed or static
-}));
-
-// Mock Initial Jobs (Could be empty or fetched)
-const INITIAL_JOBS = [
-    { id: 'j1', title: '富士電線', driverId: 'd1', startTime: '6:30', duration: 30, bucket: 'AM', originalCustomerId: 'c99' },
-    { id: 'j2', title: '厚木事業所', driverId: 'd2', startTime: '7:00', duration: 60, bucket: 'AM', originalCustomerId: 'c98' },
-];
+// Initial Data = Empty (Repo First Pattern)
+const INITIAL_DRIVERS = []; // Will be loaded from DB or Master
+const INITIAL_JOBS = [];    // Will be loaded from DB
 
 // ==========================================
 // 3. メインコンポーネント
@@ -78,6 +86,14 @@ export default function BoardCanvas() {
 
     // コンテキストメニューState
     const [contextMenu, setContextMenu] = useState(null); // { x, y, jobId, driverId, time }
+
+    // 通知State
+    const [notification, setNotification] = useState(null); // { message, type: 'success' | 'error' }
+
+    const showNotification = (message, type = 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 3000);
+    };
 
     // ドラッグ & リサイズ管理
     const [draggingJobId, setDraggingJobId] = useState(null);
@@ -112,12 +128,27 @@ export default function BoardCanvas() {
                 if (error) throw error;
 
                 if (data) {
+                    // Restore from DB
                     if (data.jobs) setJobs(data.jobs);
-                    if (data.drivers) setDrivers(data.drivers);
+                    // Use saved drivers if exist, otherwise master defaults
+                    if (data.drivers && data.drivers.length > 0) {
+                        setDrivers(data.drivers);
+                    } else {
+                        // Fallback: If no drivers saved for this date, init from Master
+                        setDrivers(MASTER_CONFIG.drivers.map(d => ({
+                            id: d.id,
+                            name: d.name,
+                            currentVehicle: d.defaultVehicle,
+                            course: d.defaultCourse,
+                            color: 'bg-gray-50 border-gray-200'
+                        })));
+                    }
+
                     if (data.splits) setSplits(data.splits);
                     if (data.pending) setPendingJobs(data.pending);
                     setIsOffline(false);
                 } else {
+                    // New Date: Initialize Empty
                     generateInitialData();
                 }
             } catch (err) {
@@ -136,6 +167,7 @@ export default function BoardCanvas() {
                     if (storedSplits) setSplits(JSON.parse(storedSplits));
                     if (storedPending) setPendingJobs(JSON.parse(storedPending));
                 } else {
+                    // No Local Storage -> Init Empty
                     generateInitialData();
                 }
             } finally {
@@ -145,38 +177,19 @@ export default function BoardCanvas() {
         };
 
         const generateInitialData = () => {
-            const generatedPendingJobs = [];
-            // Use Master Config for Customers
-            const targetCustomers = MASTER_CONFIG.customers.filter(c => ['c1', 'c2', 'c3', 'c4', 'c5'].includes(c.id));
+            // Initialize Drivers from Master
+            setDrivers(MASTER_CONFIG.drivers.map(d => ({
+                id: d.id,
+                name: d.name,
+                currentVehicle: d.defaultVehicle,
+                course: d.defaultCourse,
+                color: 'bg-gray-50 border-gray-200'
+            })));
 
-            targetCustomers.forEach(customer => {
-                // Mock visits if not present in master (Master checked has simple structure, might need enhancement or default)
-                // For now assuming master.js structure is simple, let's adapt or mock visits logic if it was removed from master.
-                // Re-reading master.js: it does NOT have 'visits'. It's simple.
-                // We will create default visits based on logic for now to match legacy behavior.
-                const visits = [{ type: 'Free', label: '回収' }]; // Default
-
-                visits.forEach((visit, index) => {
-                    generatedPendingJobs.push({
-                        id: `p_${customer.id}_${index}`,
-                        title: customer.name + (visit.label ? ` (${visit.label})` : ''),
-                        duration: customer.defaultDuration,
-                        note: '',
-                        area: customer.area,
-                        bucket: visit.type,
-                        originalCustomerId: customer.id,
-                        requiredVehicle: null // simplify for MVP
-                    });
-                });
-            });
-            setPendingJobs(generatedPendingJobs);
-
-            const initialSplits = INITIAL_DRIVERS.map((d) => {
-                const base = { id: `split_${d.id}_init`, driverId: d.id };
-                // Default split logic simplified
-                return { ...base, time: '13:00', driverName: d.name, vehicle: d.currentVehicle };
-            });
-            setSplits(initialSplits);
+            // Jobs logic: Empty for now (Admin builds them)
+            // Pending: Empty for now (Or fetch from Master if required)
+            setPendingJobs([]);
+            setSplits([]);
         };
 
         initializeData();
@@ -249,9 +262,11 @@ export default function BoardCanvas() {
                 updated_at: new Date().toISOString()
             }, { onConflict: 'date' });
             setIsOffline(false);
+            showNotification("保存しました", "success");
         } catch (e) {
             console.error(e);
             setIsOffline(true);
+            showNotification("保存に失敗しました", "error");
         } finally {
             setIsSyncing(false);
         }
@@ -701,11 +716,20 @@ export default function BoardCanvas() {
                     </div>
                     <div className="bg-gray-700 px-3 py-1 rounded flex items-center gap-2">
                         <Calendar size={16} />
-                        <span>2025年 1月 24日 (金)</span>
+                        <span>{CURRENT_DATE_KEY}</span>
                     </div>
                     <button onClick={handleSaveToSupabase} className="bg-white text-gray-900 px-3 py-1 rounded font-bold hover:bg-gray-100 transition">保存する</button>
                 </div>
             </header>
+
+            {/* Notification Toast */}
+            {notification && (
+                <div className={`absolute top-16 right-4 z-[100] px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-right fade-in duration-300 ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
+                    }`}>
+                    {notification.type === 'success' ? <Check size={20} /> : <X size={20} />}
+                    <span className="font-bold">{notification.message}</span>
+                </div>
+            )}
 
             {/* Main Board */}
             <div className="flex-1 overflow-auto relative bg-white" onClick={() => setSelectedJobId(null)}>
