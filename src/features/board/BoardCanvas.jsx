@@ -751,7 +751,12 @@ export default function BoardCanvas() {
                         <div className="flex">
                             {drivers.map((driver) => (
                                 <div key={driver.id} className="w-[180px] border-r border-gray-300 relative" ref={el => driverColRefs.current[driver.id] = el}>
-                                    {TIME_SLOTS.map((time) => {
+                                    {TIME_SLOTS.map((time, slotIndex) => {
+                                        // DEBUG: Log rendering to identify cutoff point
+                                        if (driver.id === drivers[0]?.id && slotIndex % 4 === 0) {
+                                            console.log(`[DEBUG] Rendering slot ${slotIndex}: ${time} for driver ${driver.id}`);
+                                        }
+
                                         const isHour = time.endsWith('00');
                                         const borderClass = isHour ? 'border-t border-t-red-200/50' : 'border-b border-b-gray-100/50';
 
@@ -791,6 +796,7 @@ export default function BoardCanvas() {
                                             </div>
                                         );
                                     })}
+
 
                                     {/* Jobs Layer */}
                                     {jobs.filter(job => job.driverId === driver.id).map(job => {
