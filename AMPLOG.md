@@ -16,3 +16,4 @@
 | 2026-02-05 | Profiles Schema Creation (DEBT返済) | profilesテーブルのスキーマ作成と初期データ投入 | Core Auth De-mocking完了に必要だったが漏れていた (Code変更とSchema変更の同期漏れ) | User (PW: ｙ) | 承認 |
 | 2026-02-05 | Schema Unification | 3つのSQLファイルを統合し、保守性向上 | 実行順序の明確化、データ整合性向上、履歴の可視化（SCHEMA_HISTORY.md追加） | User (PW: ｙ) | 承認 |
 | 2026-02-05 | AGENTS.md Version 2.2 Update | Database Governance Protocol (DGP-DB) 追加 | スキーマ変更とコード変更の同期原則、履歴記録義務を明文化 | User (PW: ｙ) | 承認 |
+| 2026-02-05 | Actual Schema Reflection (Phase 2.5) | 実際のSupabase構造を反映した統合スキーマ作成 | routes テーブル追加、テーブル名/ID型修正、冪等性対応、履歴可視化 | User (PW: ｙ + 制約) | 承認 |

@@ -75,6 +75,38 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 
 ---
 
+## Phase 2.5: 実構造反映（Actual Schema Reflection）
+**日付**: 2026-02-05  
+**目的**: 実際のSupabase構造と統合スキーマの不整合を修正
+
+### 発見された問題
+- 統合スキーマと実際のSupabaseで **テーブル名、カラム数、ID型** が異なる
+- **`routes` テーブルが欠落**（BoardCanvasが使用するが統合スキーマに未定義）
+- `jobs` テーブルに余分な9カラムが追加されていた
+
+### 修正内容
+- **新規作成**: `supabase_schema_actual.sql`（実際の9テーブル構造を反映）
+- **テーブル名修正**:
+  - `customer_items` → `customer_item_defaults`（2カラムのシンプル版）
+  - `job_items` → `job_contents`（重量カラム名が異なる）
+- **ID型修正**:
+  - `items.id`: text → **UUID**
+  - `job_contents.id`: text → **UUID**
+  - `job_contents.item_id`: text → **UUID**
+- **jobs テーブル**: 20カラム版を反映（driver_name, vehicle_name, customer_name, item_category, weight_kg, special_notes, is_synced_to_sheet, work_type, task_details を追加）
+- **routes テーブル追加**: 配車計画のスナップショット保存用（date, jobs, drivers, splits, pending）
+
+### 改善点
+- **冪等性**: 全テーブルに `IF NOT EXISTS`、全データに `ON CONFLICT DO NOTHING`
+- **簡潔な構造**: コメントを最小化、セクション番号で折りたたみ対応
+- **履歴の可視化**: 各テーブルに由来Phase番号を記載
+
+**参考**: 
+- `supabase_schema_actual.sql`（新規）
+- `_archived/supabase_schema_unified.sql`（旧統合ファイル）
+
+---
+
 ## 今後の拡張予定
 
 ### Phase 3: 外部キー制約強化（予定）
