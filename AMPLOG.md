@@ -17,3 +17,5 @@
 | 2026-02-05 | Schema Unification | 3つのSQLファイルを統合し、保守性向上 | 実行順序の明確化、データ整合性向上、履歴の可視化（SCHEMA_HISTORY.md追加） | User (PW: ｙ) | 承認 |
 | 2026-02-05 | AGENTS.md Version 2.2 Update | Database Governance Protocol (DGP-DB) 追加 | スキーマ変更とコード変更の同期原則、履歴記録義務を明文化 | User (PW: ｙ) | 承認 |
 | 2026-02-05 | Actual Schema Reflection (Phase 2.5) | 実際のSupabase構造を反映した統合スキーマ作成 | routes テーブル追加、テーブル名/ID型修正、冪等性対応、履歴可視化 | User (PW: ｙ + 制約) | 承認 |
+| 2026-02-05 | Verification File Update (Phase 2.5) | supabase_schema_verification.sql をPhase 2.5対応に更新 | テーブル名修正（customer_item_defaults, job_contents）、routes テーブル検証追加、カラム名を実構造に修正 | User (PW: ｙ) | 承認 |
+| 2026-02-05 | Project Cleanup (Phase 2.5) | プロジェクト整合性監査に基づくクリーンアップ実施 | 試作品を_archived/prototypes/へ移動、src/の古いスキーマ削除、original_BoardCanvas.jsx削除、task.md更新 | User (PW: ｙ + 制約) | 承認 |
