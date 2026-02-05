@@ -14,6 +14,20 @@
 
 - **supabase_schema_unified_v1.sql** - 初回統合版（実構造と不整合あり）
 
+### Phase 2.5 クリーンアップ（2026-02-05 夜）
+
+#### スキーマファイル（src/から移動）
+- **schema_jobs.sql** - Phase 0時代の古いjobsテーブル定義（11カラム版）
+- **schema_jobs_reset.sql** - Phase 0時代のjobsリセット用（DROP TABLE含む、危険）
+
+#### 試作品（ルートから prototypes/ へ移動）
+- **prototypes/ドライバー試作.html** - Phase 0以前のHTML試作品（UI参考用）
+- **prototypes/回収アプリソースコード.jsx** - Phase 0以前の初期コード（コンセプト参考用）
+
+**注意**: 試作品は原点回帰・参考用として保管。詳細は [prototypes/README.md](file:///c:/Users/shiyo/開発中APP/RePaper%20Route/_archived/prototypes/README.md) 参照。
+
+---
+
 ## 現在の構成（Phase 2.5）
 
 現在は以下のファイルが最新です：
