@@ -18,4 +18,63 @@
 - [x] **Project Cleanup**: 不要ファイル削除、試作品を_archived/prototypes/へ移動
 
 ## フェーズ 2: 機能強化 (Enhancement)
-- [ ] **Concurrency**: 配車盤の編集競合防止ロジック (`BoardCanvas.jsx` TODO) の実装
+- [x] **Concurrency**: 配車盤の編集競合防止ロジック実装 <!-- id: 11 -->
+  - [x] Project hygiene: .gitignore最適化、ログファイル削除
+  - [x] Implementation plan作成: Optimistic Locking設計
+  - [x] BoardCanvas.jsx: localUpdatedAt State追加
+  - [x] BoardCanvas.jsx: 初期化時タイムスタンプ記録
+  - [x] BoardCanvas.jsx: Real-time購読の競合検知ロジック
+  - [x] BoardCanvas.jsx: 保存時の競合検出・リロード処理
+  - [x] Manual verification: 3シナリオ検証
+
+
+## フェーズ 2.2: 排他的編集ロック (Exclusive Edit Lock - Option E)
+- [x] **Edit Lock Mechanism**: 編集権トークン + 15分タイムアウト実装 <!-- id: 12 -->
+  - [x] Schema: routesテーブルに3カラム追加 (edit_locked_by, edit_locked_at, last_activity_at)
+  - [x] SCHEMA_HISTORY.md更新
+  - [x] Migration SQLファイル作成
+  - [x] Supabase migration実行
+  - [x] BoardCanvas: ロック取得ロジック実装
+  - [x] BoardCanvas: タイムアウト判定（15分）
+  - [x] BoardCanvas: ハートビート（1分ごとのアクティビティ更新）
+  - [x] BoardCanvas: ロック解放ロジック
+  - [x] Real-time: ロック状態の購読・通知
+  - [x] UI: 編集モード/閲覧モード切替
+  - [x] UI: 編集中ユーザー表示
+  - [x] Manual verification: 緊急変更シナリオ検証
+
+## フェーズ 2.3: 編集権限制御 (Edit Permission Control - RBAC)
+- [x] **Permission Management**: 特定ユーザーのみ編集可能にする権限制御 <!-- id: 13 -->
+  - [x] Implementation plan作成
+  - [x] Schema: profilesテーブルにcan_edit_boardカラム追加
+  - [x] Migration SQLファイル作成 (supabase_migration_phase2.3.sql)
+  - [x] Supabase migration実行
+  - [x] BoardCanvas: canEditBoard State追加
+  - [x] BoardCanvas: 初期化時に権限取得
+  - [x] BoardCanvas: requestEditLock内で権限チェック
+  - [x] UI: 権限なしユーザー向け表示（閲覧専用バッジ）
+  - [x] User matching fix: currentUserId修正 (admin1に変更)
+  - [x] Query fix: .eq('id')に変更
+  - [x] Manual verification: 権限あり/なしユーザーテスト
+
+## フェーズ 3: 管理機能強化 (Admin Features)
+- [ ] **User Permission Management UI**: UIから編集権限を管理できる画面 <!-- id: 14 -->
+  - [ ] ユーザー一覧画面作成
+  - [ ] 権限トグル機能（ON/OFF切替）
+  - [ ] ロール別一括権限付与機能
+  - [ ] 権限変更監査ログ（誰がいつ変更したか）
+  - [ ] リアルタイム反映（権限変更後、即座にUIに反映）
+
+## フェーズ 3.1: 未配車リストバケット改良
+- [x] **Pending Jobs Bucket Improvement**: 定期/スポット明確化 <!-- id: 15 -->
+  - [x] BoardCanvas: フィルタータブ変更 (すべて/定期/スポット)
+  - [x] BoardCanvas: フィルタリングロジック修正
+  - [x] Manual verification: バケット表示確認
+
+## フェーズ 3.2: バケットシステム再設計 (Blueprint v2.1)
+- [x] **4-Bucket System**: 制約ベースの分類システム <!-- id: 16 -->
+  - [x] BoardCanvas: タブ変更 (全て/スポット/時間指定/特殊案件)
+  - [x] BoardCanvas: フィルタリングロジック更新
+  - [x] データモデル: is_spot, time_constraint, task_type カラム追加
+  - [x] Migration SQL作成
+  - [x] Manual verification: 4バケット表示確認

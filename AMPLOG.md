@@ -19,3 +19,6 @@
 | 2026-02-05 | Actual Schema Reflection (Phase 2.5) | 実際のSupabase構造を反映した統合スキーマ作成 | routes テーブル追加、テーブル名/ID型修正、冪等性対応、履歴可視化 | User (PW: ｙ + 制約) | 承認 |
 | 2026-02-05 | Verification File Update (Phase 2.5) | supabase_schema_verification.sql をPhase 2.5対応に更新 | テーブル名修正（customer_item_defaults, job_contents）、routes テーブル検証追加、カラム名を実構造に修正 | User (PW: ｙ) | 承認 |
 | 2026-02-05 | Project Cleanup (Phase 2.5) | プロジェクト整合性監査に基づくクリーンアップ実施 | 試作品を_archived/prototypes/へ移動、src/の古いスキーマ削除、original_BoardCanvas.jsx削除、task.md更新 | User (PW: ｙ + 制約) | 承認 |
+| 2026-02-06 | Phase 2: Concurrency Implementation | 編集競合防止ロジック実装とプロジェクト衛生管理 | 複数ユーザー同時編集時のデータ破壊防止、.gitignore最適化、プロダクション運用の前提条件達成 | User (PW: ｙ) | 承認 |
+| 2026-02-06 | Phase 2.2: Exclusive Edit Lock Implementation | 排他的編集ロック実装（Option E） | 編集権トークン方式、15分タイムアウト、閲覧モード追加、緊急変更対応、新人研修対応 | User (PW: ｙ) | 承認 |
+| 2026-02-06 | Phase 3.2: Bucket System Redesign (Blueprint v2.1) | 4バケット制約ベース分類システム実装 | jobs テーブル拡張 (is_spot, time_constraint, task_type, vehicle_lock)、フィルタリングロジック更新、タブUI変更（全て/スポット/時間指定/特殊案件） | User (PW: ｙ) | 承認 |

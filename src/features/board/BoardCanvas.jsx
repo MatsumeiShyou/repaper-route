@@ -74,6 +74,13 @@ export default function BoardCanvas() {
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [, setIsOffline] = useState(false); // Using offline state for internal logic fallback
     const [, setIsSyncing] = useState(false);
+    const [localUpdatedAt, setLocalUpdatedAt] = useState(null); // Phase 2: Optimistic Lock
+
+    // Phase 2.2: Exclusive Edit Lock
+    const [editMode, setEditMode] = useState(false); // true: 編集可能, false: 閲覧専用
+    const [lockedBy, setLockedBy] = useState(null); // 他ユーザーが編集中の場合、そのユーザー名
+    const [canEditBoard, setCanEditBoard] = useState(false); // Phase 2.3: 編集権限フラグ
+    const currentUserId = "admin1"; // TODO: App.jsxからpropsで受け取る（Phase 2.3で対応） - Changed to match profiles.id
 
     // 履歴管理State
     const [history, setHistory] = useState({ past: [], future: [] });
@@ -107,7 +114,7 @@ export default function BoardCanvas() {
     const [dragMousePos, setDragMousePos] = useState({ x: 0, y: 0 });
 
     const [resizingState, setResizingState] = useState(null);
-    const [pendingFilter, setPendingFilter] = useState('all');
+    const [pendingFilter, setPendingFilter] = useState('全て');
     const driverColRefs = useRef({});
 
     // ----------------------------------------
@@ -146,6 +153,28 @@ export default function BoardCanvas() {
 
                     if (data.splits) setSplits(data.splits);
                     if (data.pending) setPendingJobs(data.pending);
+
+                    // Phase 2.3: Fetch user's edit permission
+                    try {
+                        const { data: userProfile, error: profileError } = await supabase
+                            .from('profiles')
+                            .select('can_edit_board')
+                            .eq('id', currentUserId) // Phase 2.3: Changed from user_id to id
+                            .single();
+
+                        if (!profileError && userProfile) {
+                            setCanEditBoard(userProfile.can_edit_board || false);
+                        } else {
+                            console.warn("Could not fetch user permissions, defaulting to read-only");
+                            setCanEditBoard(false);
+                        }
+                    } catch (permErr) {
+                        console.error("Permission fetch error:", permErr);
+                        setCanEditBoard(false);
+                    }
+
+                    // Phase 2: Record timestamp for optimistic locking
+                    setLocalUpdatedAt(data.updated_at);
                     setIsOffline(false);
                 } else {
                     // New Date: Initialize Empty
@@ -196,6 +225,159 @@ export default function BoardCanvas() {
     }, []);
 
     // ----------------------------------------
+    // Phase 2.2: Edit Lock Management
+    // ----------------------------------------
+
+    // ロック取得関数（15分タイムアウト判定あり）
+    const requestEditLock = useCallback(async () => {
+        // Phase 2.3: Permission check (highest priority)
+        if (!canEditBoard) {
+            showNotification("編集権限がありません（閲覧専用）", "error");
+            setEditMode(false);
+            setLockedBy("権限なし");
+            return;
+        }
+
+        const currentTime = new Date().toISOString();
+        const TIMEOUT_MS = 15 * 60 * 1000; // 15分
+
+        try {
+            // 現在のロック状態を確認
+            const { data: route } = await supabase
+                .from('routes')
+                .select('edit_locked_by, edit_locked_at, last_activity_at, jobs, drivers, splits, pending, updated_at')
+                .eq('date', CURRENT_DATE_KEY)
+                .maybeSingle();
+
+            // タイムアウト判定
+            const isLockExpired = route?.last_activity_at &&
+                (Date.now() - new Date(route.last_activity_at).getTime()) > TIMEOUT_MS;
+
+            // ケース1: ロックなし or タイムアウト → 編集権取得
+            if (!route?.edit_locked_by || isLockExpired) {
+                const { error } = await supabase.from('routes').upsert({
+                    date: CURRENT_DATE_KEY,
+                    edit_locked_by: currentUserId,
+                    edit_locked_at: currentTime,
+                    last_activity_at: currentTime,
+                    jobs: route?.jobs || [],
+                    drivers: route?.drivers || [],
+                    splits: route?.splits || [],
+                    pending: route?.pending || [],
+                    updated_at: currentTime
+                });
+
+                if (!error) {
+                    setEditMode(true);
+                    setLockedBy(null);
+                    showNotification("編集モードで開きました", "success");
+                } else {
+                    console.error("Lock acquisition error:", error);
+                    setEditMode(false);
+                }
+                return;
+            }
+
+            // ケース2: 自分がロック保持中 → 編集モード継続
+            if (route.edit_locked_by === currentUserId) {
+                setEditMode(true);
+                setLockedBy(null);
+                // Update last_activity
+                await supabase.from('routes').update({
+                    last_activity_at: currentTime
+                }).eq('date', CURRENT_DATE_KEY);
+                return;
+            }
+
+            // ケース3: 他ユーザーが編集中 → 閲覧モード
+            setEditMode(false);
+            setLockedBy(route.edit_locked_by);
+            showNotification(`${route.edit_locked_by}が編集中です（閲覧モード）`, "info");
+        } catch (e) {
+            console.error("ロック取得エラー:", e);
+            setEditMode(false);
+        }
+    }, [currentUserId, canEditBoard]); // Phase 2.3: added canEditBoard dependency
+
+
+    // ハートビート（アクティビティ更新）
+    const updateActivity = useCallback(async () => {
+        if (!editMode) return;
+
+        try {
+            await supabase.from('routes').update({
+                last_activity_at: new Date().toISOString()
+            }).eq('date', CURRENT_DATE_KEY)
+                .eq('edit_locked_by', currentUserId);
+        } catch (e) {
+            console.error("Activity update error:", e);
+        }
+    }, [editMode, currentUserId]);
+
+    // ロック解放（明示的）
+    const releaseEditLock = useCallback(async () => {
+        if (!editMode) return;
+
+        try {
+            await supabase.from('routes').update({
+                edit_locked_by: null,
+                edit_locked_at: null,
+                last_activity_at: null
+            }).eq('date', CURRENT_DATE_KEY)
+                .eq('edit_locked_by', currentUserId);
+
+            setEditMode(false);
+            setLockedBy(null);
+            showNotification("編集権を解放しました", "success");
+        } catch (e) {
+            console.error("Lock release error:", e);
+        }
+    }, [editMode, currentUserId]);
+
+
+    // 初回ロック取得（データ読み込み後）
+    const lockRequestedRef = useRef(false);
+    useEffect(() => {
+        if (isDataLoaded && !lockRequestedRef.current) {
+            lockRequestedRef.current = true;
+            requestEditLock();
+        }
+    }, [isDataLoaded]); // Fixed: removed requestEditLock from deps, use ref for single execution
+
+    // 1分ごとのハートビート
+    useEffect(() => {
+        if (!editMode) return;
+
+        const heartbeat = setInterval(() => {
+            updateActivity();
+        }, 60000); // 60秒
+
+        return () => clearInterval(heartbeat);
+    }, [editMode, updateActivity]);
+
+    // ページ離脱時にロック解放
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            if (editMode) {
+                // Synchronous API for beforeunload
+                navigator.sendBeacon('/api/release-lock', JSON.stringify({
+                    date: CURRENT_DATE_KEY,
+                    userId: currentUserId
+                }));
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            // Cleanup on component unmount
+            if (editMode) {
+                releaseEditLock();
+            }
+        };
+    }, [editMode, releaseEditLock]);
+
+
+    // ----------------------------------------
     // 同期保存 & リアルタイム購読 (Real-time Sync)
     // ----------------------------------------
     // A. 変更検知と保存 (Optimistic UI + Save)
@@ -222,7 +404,7 @@ export default function BoardCanvas() {
         saveData();
     }, [jobs, drivers, splits, pendingJobs, isDataLoaded]);
 
-    // B. Real-time Subscription (Receive Changes)
+    // B. Real-time Subscription (Receive Changes + Lock State Monitoring)
     useEffect(() => {
         const channel = supabase
             .channel('board_changes')
@@ -232,16 +414,41 @@ export default function BoardCanvas() {
                 (payload) => {
                     // console.log('Real-time update received:', payload);
                     const newData = payload.new;
-                    // Merge Strategy: "Last Win" for now. 
-                    // Ideally check updated_at timestamps.
+
+                    // Phase 2.2: Lock State Monitoring
+                    if (newData && newData.edit_locked_by !== undefined) {
+                        // 他ユーザーがロック取得 → 強制的に閲覧モード
+                        if (newData.edit_locked_by && newData.edit_locked_by !== currentUserId) {
+                            setEditMode(false);
+                            setLockedBy(newData.edit_locked_by);
+                            showNotification(`${newData.edit_locked_by}が編集中です`, "warning");
+                        }
+
+                        // ロックが解放された → 編集可能通知
+                        if (!newData.edit_locked_by && !editMode && lockedBy) {
+                            setLockedBy(null);
+                            showNotification("編集可能になりました", "success");
+                        }
+                    }
+
+                    // Phase 2: Optimistic Lock - Check for conflicts (閲覧モード時のみデータ自動反映)
                     if (newData && newData.updated_at) {
-                        // TODO: Add a check to prevent overwriting local active edits?
-                        // For MVP, just update internal state (React Re-render will happen)
-                        if (newData.jobs) setJobs(newData.jobs);
-                        if (newData.drivers) setDrivers(newData.drivers);
-                        if (newData.splits) setSplits(newData.splits);
-                        if (newData.pending) setPendingJobs(newData.pending);
-                        // Optional: Show toast "データが更新されました"
+                        // 編集モード時: 競合検知（Phase 2のロジック継続）
+                        if (editMode && localUpdatedAt && newData.updated_at !== localUpdatedAt) {
+                            // Conflict detected: reload to get latest version
+                            showNotification("他のユーザーが編集しました。最新版を読み込みます", "error");
+                            setTimeout(() => window.location.reload(), 1500);
+                            return;
+                        }
+
+                        // 閲覧モード時: データを自動反映
+                        if (!editMode) {
+                            if (newData.jobs) setJobs(newData.jobs);
+                            if (newData.drivers) setDrivers(newData.drivers);
+                            if (newData.splits) setSplits(newData.splits);
+                            if (newData.pending) setPendingJobs(newData.pending);
+                            setLocalUpdatedAt(newData.updated_at);
+                        }
                     }
                 }
             )
@@ -250,17 +457,38 @@ export default function BoardCanvas() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [editMode, lockedBy, localUpdatedAt, currentUserId]);
+
 
     // Explicit Save Function (Called by Button or Auto-Interval)
     const handleSaveToSupabase = async () => {
         setIsSyncing(true);
         try {
+            // Phase 2: Check for conflicts before saving
+            const { data: latestData } = await supabase
+                .from('routes')
+                .select('updated_at')
+                .eq('date', CURRENT_DATE_KEY)
+                .maybeSingle();
+
+            // If record exists and timestamps don't match, another user has edited
+            if (latestData && localUpdatedAt && latestData.updated_at !== localUpdatedAt) {
+                showNotification("他のユーザーが編集しました。再読込します", "error");
+                setIsSyncing(false);
+                setTimeout(() => window.location.reload(), 1500);
+                return;
+            }
+
+            // No conflict: proceed with save
+            const newTimestamp = new Date().toISOString();
             await supabase.from('routes').upsert({
                 date: CURRENT_DATE_KEY,
                 jobs, drivers, splits, pending: pendingJobs,
-                updated_at: new Date().toISOString()
+                updated_at: newTimestamp
             }, { onConflict: 'date' });
+
+            // Update local timestamp after successful save
+            setLocalUpdatedAt(newTimestamp);
             setIsOffline(false);
             showNotification("保存しました", "success");
         } catch (e) {
@@ -334,7 +562,7 @@ export default function BoardCanvas() {
                 redo();
                 return;
             }
-            if (editModal || selectedCell) return;
+            if (modalState.isOpen || selectedCell) return;
             if (!selectedJobId) return;
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (selectedJobId) handleDeleteJob(selectedJobId);
@@ -698,7 +926,13 @@ export default function BoardCanvas() {
         return lines;
     };
 
-    const filteredPendingJobs = pendingJobs.filter(job => pendingFilter === 'all' || job.bucket === pendingFilter);
+    const filteredPendingJobs = pendingJobs.filter(job => {
+        if (pendingFilter === '全て') return true;
+        if (pendingFilter === 'スポット') return job.isSpot === true;
+        if (pendingFilter === '時間指定') return job.timeConstraint != null;
+        if (pendingFilter === '特殊案件') return job.taskType === 'special';
+        return false;
+    });
 
     return (
         <div className="flex flex-col h-screen bg-white text-sm font-sans text-gray-800 select-none">
@@ -708,17 +942,82 @@ export default function BoardCanvas() {
                 <div className="flex items-center gap-2">
                     <button className="p-1 hover:bg-gray-700 rounded transition-colors"><Menu size={20} /></button>
                     <h1 className="font-bold text-lg">回収シフト管理</h1>
+
+                    {/* Phase 2.2 & 2.3: Edit Mode Indicator */}
+                    {!canEditBoard ? (
+                        <span className="ml-4 px-3 py-1 bg-red-500 text-white rounded text-sm font-bold flex items-center gap-1">
+                            🔒 閲覧専用（編集権限なし）
+                        </span>
+                    ) : editMode ? (
+                        <span className="ml-4 px-3 py-1 bg-green-600 rounded text-sm font-bold flex items-center gap-1">
+                            ✅ 編集モード
+                        </span>
+                    ) : (
+                        <span className="ml-4 px-3 py-1 bg-yellow-500 text-black rounded text-sm font-bold flex items-center gap-1">
+                            👁️ 閲覧モード {lockedBy && `（${lockedBy}が編集中）`}
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="flex gap-1 mr-4">
-                        <button onClick={undo} disabled={history.past.length === 0} className={`p-1.5 rounded transition ${history.past.length === 0 ? 'text-gray-600' : 'text-white hover:bg-gray-700'}`} title="元に戻す (Ctrl+Z)"><Undo2 size={18} /></button>
-                        <button onClick={redo} disabled={history.future.length === 0} className={`p-1.5 rounded transition ${history.future.length === 0 ? 'text-gray-600' : 'text-white hover:bg-gray-700'}`} title="やり直し (Ctrl+Y)"><Redo2 size={18} /></button>
+                        <button
+                            onClick={undo}
+                            disabled={!editMode || history.past.length === 0}
+                            className={`p-1.5 rounded transition ${(!editMode || history.past.length === 0) ? 'text-gray-600' : 'text-white hover:bg-gray-700'}`}
+                            title={editMode ? "元に戻す (Ctrl+Z)" : "閲覧モードでは無効"}
+                        >
+                            <Undo2 size={18} />
+                        </button>
+                        <button
+                            onClick={redo}
+                            disabled={!editMode || history.future.length === 0}
+                            className={`p-1.5 rounded transition ${(!editMode || history.future.length === 0) ? 'text-gray-600' : 'text-white hover:bg-gray-700'}`}
+                            title={editMode ? "やり直し (Ctrl+Y)" : "閲覧モードでは無効"}
+                        >
+                            <Redo2 size={18} />
+                        </button>
                     </div>
                     <div className="bg-gray-700 px-3 py-1 rounded flex items-center gap-2">
                         <Calendar size={16} />
                         <span>{CURRENT_DATE_KEY}</span>
                     </div>
-                    <button onClick={handleSaveToSupabase} className="bg-white text-gray-900 px-3 py-1 rounded font-bold hover:bg-gray-100 transition">保存する</button>
+
+                    {/* Phase 2.2: Mode Control Buttons */}
+                    {editMode ? (
+                        <>
+                            <button
+                                onClick={handleSaveToSupabase}
+                                className="bg-white text-gray-900 px-3 py-1 rounded font-bold hover:bg-gray-100 transition"
+                            >
+                                保存する
+                            </button>
+                            <button
+                                onClick={releaseEditLock}
+                                className="bg-gray-700 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition"
+                                title="編集権を解放し、他のユーザーが編集できるようにします"
+                            >
+                                編集権を解放
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                disabled
+                                className="bg-gray-500 text-gray-300 px-3 py-1 rounded font-bold cursor-not-allowed"
+                                title="閲覧モードでは保存できません"
+                            >
+                                保存する
+                            </button>
+                            {!lockedBy && (
+                                <button
+                                    onClick={requestEditLock}
+                                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm font-bold hover:bg-blue-600 transition"
+                                >
+                                    編集モードに切替
+                                </button>
+                            )}
+                        </>
+                    )}
                 </div>
             </header>
 
@@ -995,13 +1294,13 @@ export default function BoardCanvas() {
 
                     {/* Filter Tabs */}
                     <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-                        {['all', 'AM', 'PM', 'Free'].map(f => (
+                        {['全て', 'スポット', '時間指定', '特殊案件'].map(f => (
                             <button
                                 key={f}
                                 onClick={() => setPendingFilter(f)}
                                 className={`flex-1 py-1 text-xs font-bold rounded-md transition-all ${pendingFilter === f ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                             >
-                                {f === 'all' ? '全て' : f}
+                                {f}
                             </button>
                         ))}
                     </div>

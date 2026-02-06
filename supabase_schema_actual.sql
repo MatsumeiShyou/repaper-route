@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   role TEXT NOT NULL,
+  can_edit_board BOOLEAN DEFAULT false, -- Phase 2.3: Edit permission flag
   vehicle_info TEXT,
   user_id TEXT UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
@@ -149,6 +150,7 @@ CREATE TABLE IF NOT EXISTS job_contents (
 -- ==========================================
 -- [9] Application State - routes
 -- Phase 2.5: 配車計画保存（日付ごとのスナップショット）
+-- Phase 2.2: 排他的編集ロック追加
 -- ==========================================
 CREATE TABLE IF NOT EXISTS routes (
   date TEXT PRIMARY KEY,
@@ -157,7 +159,11 @@ CREATE TABLE IF NOT EXISTS routes (
   splits JSONB,
   pending JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  -- Phase 2.2: Exclusive Edit Lock
+  edit_locked_by TEXT,
+  edit_locked_at TIMESTAMP WITH TIME ZONE,
+  last_activity_at TIMESTAMP WITH TIME ZONE
 );
 
 -- ==========================================

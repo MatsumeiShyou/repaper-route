@@ -116,3 +116,9 @@ dist
 
 # Windows thumbnail cache
 Thumbs.db
+
+# Project-specific log files
+lint_log.txt
+lint_results.txt
+lint_manual.json
+test_output.txt

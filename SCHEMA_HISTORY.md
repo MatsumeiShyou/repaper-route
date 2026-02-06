@@ -36,7 +36,8 @@
 ---
 
 ## Phase 1.5: 認証機能追加（Authentication）
-**日付**: 2026-02-05  
+**日付**: 2026-02-06 | Phase 2.3: Edit Permission Control (RBAC) | profiles テーブルに can_edit_board カラム追加 | 特定ユーザーのみボード編集可能にする RBAC 実装
+2026-02-06 | Phase 3.2: Bucket System Redesign (Blueprint v2.1) | jobs テーブルに is_spot, time_constraint, task_type, vehicle_lock カラム追加 | 制約ベースの4バケット分類システム（全て/スポット/時間指定/特殊案件）に対応
 **目的**: ユーザー認証とログイン機能の実装
 
 ### 追加テーブル
@@ -118,12 +119,37 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 
 ---
 
+## Phase 2.2: 排他的編集ロック（Exclusive Edit Lock）
+**日付**: 2026-02-06  
+**目的**: 編集競合の事前防止、緊急変更対応、新人研修対応
+
+### 追加カラム
+- **routes.edit_locked_by** - 編集権保持ユーザーID（TEXT, NULL可）
+- **routes.edit_locked_at** - ロック取得時刻（TIMESTAMP WITH TIME ZONE, NULL可）
+- **routes.last_activity_at** - 最終操作時刻（TIMESTAMP WITH TIME ZONE, NULL可）
+
+### 機能
+- 編集権トークン方式（1人のみ編集可能）
+- 15分無操作でタイムアウト → 自動解放
+- ハートビート（1分ごとのアクティビティ更新）
+- 閲覧専用モード（編集権がないユーザー）
+
+### 理由
+- 緊急変更時のデータロス防止（Phase 2のOptimistic Lockと併用）
+- 新人研修での閲覧専用モード提供
+- 編集中ユーザーの可視化
+
+**参考**: `supabase_migration_phase2.2.sql`
+
+---
+
 ## 参考情報
 
 ### テーブル数の推移
 - Phase 0: 3テーブル（drivers, jobs, splits）
 - Phase 1: +4テーブル（items, customers, customer_items, job_items） = 7テーブル
 - Phase 1.5: +1テーブル（profiles） = **8テーブル**
+- Phase 2.5: routes テーブル = **9テーブル**
 
 ### アーカイブ
 旧スキーマファイルは `_archived/` ディレクトリに保管されています。詳細は `_archived/README.md` を参照してください。
