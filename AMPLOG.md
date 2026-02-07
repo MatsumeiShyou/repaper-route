@@ -22,3 +22,5 @@
 | 2026-02-06 | Phase 2: Concurrency Implementation | 編集競合防止ロジック実装とプロジェクト衛生管理 | 複数ユーザー同時編集時のデータ破壊防止、.gitignore最適化、プロダクション運用の前提条件達成 | User (PW: ｙ) | 承認 |
 | 2026-02-06 | Phase 2.2: Exclusive Edit Lock Implementation | 排他的編集ロック実装（Option E） | 編集権トークン方式、15分タイムアウト、閲覧モード追加、緊急変更対応、新人研修対応 | User (PW: ｙ) | 承認 |
 | 2026-02-06 | Phase 3.2: Bucket System Redesign (Blueprint v2.1) | 4バケット制約ベース分類システム実装 | jobs テーブル拡張 (is_spot, time_constraint, task_type, vehicle_lock)、フィルタリングロジック更新、タブUI変更（全て/スポット/時間指定/特殊案件） | User (PW: ｙ) | 承認 |
+| 2026-02-07 | Phase 4.0/4.1: SDR Migration & CLI Setup | SDRアーキテクチャ移行とSupabase CLI環境構築 | `master_collection_points`等SDRテーブル作成、CLI連携、`useMasterData`アダプタ実装 | User (PW: ｙ) | 承認 |
+| 2026-02-07 | Phase 4.2: Approval Flow UI Implementation | SDR Dashboard (Audit UI) の実装 | `decision_proposals`, `decisions` テーブルの可視化、監査機能 (`SDRDashboard.jsx`, `useSDR.js`) 追加 | User (PW: ｙ) | 承認 |

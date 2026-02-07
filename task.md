@@ -77,4 +77,51 @@
   - [x] BoardCanvas: フィルタリングロジック更新
   - [x] データモデル: is_spot, time_constraint, task_type カラム追加
   - [x] Migration SQL作成
+  - [x] Migration SQL実行 (User Manual)
   - [x] Manual verification: 4バケット表示確認
+
+## フェーズ 3.3: 制約検証ロジック (Yellow Warning)
+- [ ] **Constraint Logic**: 時間制約違反の検知と警告 <!-- id: 17 -->
+  - [x] BoardCanvas: `validateTimeConstraint` 実装
+  - [x] BoardCanvas: ドロップ時に検証実行 & 警告表示
+  - [x] UI: Warning Notification (黄色トースト) 対応
+  - [x] Manual verification: 違反時の警告動作確認
+  - [x] Manual verification: 違反時のブロック確認
+
+## フェーズ 3.5: 制約検証ロジック (Reason Input)
+- [x] **Reason Input UI**: 警告時の理由入力ダイアログ <!-- id: 19 -->
+  - [x] UI: `ReasonModal` コンポーネント実装
+  - [x] BoardCanvas: Yellow Warning時にモーダル表示
+  - [x] Logic: 理由付きで配置を実行する処理
+  - [x] Manual verification: 理由入力フローの確認
+
+## フェーズ 3.X: マスタデータ正規化 (Master Data Normalization - Simple)
+- [x] **Schema Definition**: `customers`, `vehicles` テーブル作成
+- [x] **Data Migration**: 初期データ投入
+- [x] **Code Refactoring**: `BoardCanvas.jsx` 等のマスタ参照をDB経由に変更 <!-- id: 20 -->
+- [x] **Manual verification**: マスタデータが正しく読み込まれるか確認
+
+## フェーズ 4.0: SDRアーキテクチャ移行 (SDR Migration)
+## フェーズ 4.0: SDRアーキテクチャ移行 (SDR Migration)
+- [/] **SDR Schema Implementation**: `manual_sdr_migration_full.sql` 作成完了 (一時停止: CLI設定へ移行) <!-- id: 21 -->
+- [x] **Master Data Migration**: `customers` -> `master_collection_points` 移行 (Remote既存確認済み) <!-- id: 22 -->
+- [x] **Application Adapter**: `useMasterData` をSDR対応版へ更新 <!-- id: 23 -->
+- [x] **Proposal Flow**: コード実装完了 (DBテーブル作成済み、CLI環境整備完了) <!-- id: 24 -->
+
+## フェーズ 4.1: CLI環境構築 (CLI Configuration)
+- [x] **CLI Authentication**: Supabaseへログイン <!-- id: 25 -->
+- [x] **Project Link**: リモートプロジェクトとリンク (`mjaoolcjjlxwstlpdgrg`) <!-- id: 26 -->
+- [x] **Migration Execution**: CLI経由でSDRマイグレーションを適用 (PGRST205解消) <!-- id: 27 -->
+
+## フェーズ 4.2: 承認フローUI実装 (Approval Flow UI)
+- [ ] **SDR Dashboard**: 提案・決定ログを閲覧できる管理画面の実装 <!-- id: 28 -->
+  - [ ] UI: `SDRDashboard.jsx` 作成 (Proposals & Decisions Tabs)
+  - [ ] Logic: `useSDR.js` フック作成 (Fetch & Supabase Subscription)
+  - [ ] Action: 手動承認/却下ボタンの実装 (Pending提案用)
+- [ ] **Integration**: 管理メニューへのリンク追加 <!-- id: 29 -->
+
+## フェーズ 3.X: マスタデータ正規化 (Future - Completed Parts)
+- [ ] **Vehicle Lock Logic**: 指定車両以外への配置禁止 <!-- id: 18 -->
+  - [x] BoardCanvas: `validateVehicleLock` 実装
+  - [x] BoardCanvas: ドロップ時に検証実行 & ブロック動作
+  - [x] Manual verification: 違反時のブロック確認

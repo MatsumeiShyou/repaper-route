@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import DriverApp from './features/driver/DriverApp';
-import AdminDashboard from './features/admin/AdminDashboard';
+import SDRDashboard from './features/admin/SDRDashboard'; // New Import
 import BoardCanvas from './features/board/BoardCanvas';
 import { cn } from './lib/utils';
-import { User, Shield, Truck, LogOut } from 'lucide-react';
+import { User, Shield, Truck, LogOut, Activity } from 'lucide-react'; // Added Activity
 
 import { supabase } from './lib/supabase/client';
 
@@ -13,7 +13,7 @@ import { supabase } from './lib/supabase/client';
  */
 export default function App() {
     const [currentUser, setCurrentUser] = useState(null); // { id, name, role, ... }
-    const [adminView, setAdminView] = useState('menu'); // 'menu' | 'dashboard' | 'board'
+    const [adminView, setAdminView] = useState('menu'); // 'menu' | 'dashboard' | 'board' | 'sdr'
     const [profiles, setProfiles] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -111,9 +111,9 @@ export default function App() {
         if (adminView === 'menu') {
             return (
                 <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-                    <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Changed grid cols */}
                         {/* Header */}
-                        <div className="md:col-span-2 flex justify-between items-center mb-4">
+                        <div className="md:col-span-2 lg:col-span-3 flex justify-between items-center mb-4">
                             <div>
                                 <h1 className="text-3xl font-bold text-slate-800">管理メニュー</h1>
                                 <p className="text-slate-500">管理者: {currentUser.name}</p>
@@ -126,27 +126,41 @@ export default function App() {
                         {/* Options */}
                         <button
                             onClick={() => setAdminView('dashboard')}
-                            className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition flex flex-col items-center text-center gap-4 group"
+                            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition flex flex-col items-center text-center gap-4 group h-64 justify-center"
                         >
-                            <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition">
-                                <Shield size={40} />
+                            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition">
+                                <Shield size={32} />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-800">管理ダッシュボード</h2>
-                                <p className="text-gray-500 mt-2">回収状況の確認・承認作業</p>
+                                <h2 className="text-xl font-bold text-gray-800">管理ボード</h2>
+                                <p className="text-gray-500 mt-2 text-sm">回収実績の承認</p>
                             </div>
                         </button>
 
                         <button
                             onClick={() => setAdminView('board')}
-                            className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition flex flex-col items-center text-center gap-4 group"
+                            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition flex flex-col items-center text-center gap-4 group h-64 justify-center"
                         >
-                            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center group-hover:scale-110 transition">
-                                <Truck size={40} />
+                            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center group-hover:scale-110 transition">
+                                <Truck size={32} />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-800">配車盤 (Board)</h2>
-                                <p className="text-gray-500 mt-2">配車計画・リアルタイム状況</p>
+                                <h2 className="text-xl font-bold text-gray-800">配車盤</h2>
+                                <p className="text-gray-500 mt-2 text-sm">配車計画・状況</p>
+                            </div>
+                        </button>
+
+                        {/* New SDR Dashboard Button */}
+                        <button
+                            onClick={() => setAdminView('sdr')}
+                            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition flex flex-col items-center text-center gap-4 group h-64 justify-center"
+                        >
+                            <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center group-hover:scale-110 transition">
+                                <Activity size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">SDR監査</h2>
+                                <p className="text-gray-500 mt-2 text-sm">提案・決定ログ</p>
                             </div>
                         </button>
                     </div>
@@ -165,6 +179,14 @@ export default function App() {
             return (
                 <div className="relative">
                     <BoardCanvas />
+                    <BackButton onClick={() => setAdminView('menu')} />
+                </div>
+            );
+        }
+        if (adminView === 'sdr') {
+            return (
+                <div className="relative h-screen p-4 bg-gray-100">
+                    <SDRDashboard />
                     <BackButton onClick={() => setAdminView('menu')} />
                 </div>
             );

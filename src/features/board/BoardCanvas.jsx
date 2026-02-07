@@ -19,9 +19,11 @@ import {
 import { supabase } from '../../lib/supabase/client';
 import { timeToMinutes, minutesToTime, calculateTimeFromY } from './logic/timeUtils';
 import { calculateCollision, checkVehicleCompatibility } from './logic/collision';
-import { MASTER_CONFIG } from '../core/config/masters';
 import { generateJobColorMap, getPendingJobColor } from '../core/config/theme';
 import { BoardModals } from './components/BoardModals';
+import { ReasonModal } from './components/ReasonModal';
+import { useMasterData } from './hooks/useMasterData';
+import { createProposal, createDecision, ensureDefaultReason } from './logic/proposalLogic'; // Phase 4.0
 
 // ==========================================
 // 1. 定数 & ヘルパー
@@ -55,18 +57,16 @@ for (let h = 6; h < 18; h++) {
     });
 }
 
-// Initial Data = Empty (Repo First Pattern)
-const INITIAL_DRIVERS = []; // Will be loaded from DB or Master
-const INITIAL_JOBS = [];    // Will be loaded from DB
-
 // ==========================================
-// 3. メインコンポーネント
+// 2. メインコンポーネント (BoardCanvas)
 // ==========================================
-export default function BoardCanvas() {
+export default function BoardCanvas({ date }) {
+    // Phase 3.X: Hook for Master Data
+    const { drivers: masterDrivers, vehicles: masterVehicles, customers: masterCustomers, isLoading: isMasterLoading } = useMasterData();
 
     // --- State ---
-    const [drivers, setDrivers] = useState(INITIAL_DRIVERS);
-    const [jobs, setJobs] = useState(INITIAL_JOBS);
+    const [drivers, setDrivers] = useState([]); // Initialize empty, set from master
+    const [jobs, setJobs] = useState([]);
     const [pendingJobs, setPendingJobs] = useState([]);
     const [splits, setSplits] = useState([]);
 
@@ -74,13 +74,14 @@ export default function BoardCanvas() {
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [, setIsOffline] = useState(false); // Using offline state for internal logic fallback
     const [, setIsSyncing] = useState(false);
-    const [localUpdatedAt, setLocalUpdatedAt] = useState(null); // Phase 2: Optimistic Lock
+    const [localUpdatedAt, setLocalUpdatedAt] = useState(Date.now()); // Phase 2: Optimistic Lock
+    const [isSaving, setIsSaving] = useState(false);
 
     // Phase 2.2: Exclusive Edit Lock
     const [editMode, setEditMode] = useState(false); // true: 編集可能, false: 閲覧専用
     const [lockedBy, setLockedBy] = useState(null); // 他ユーザーが編集中の場合、そのユーザー名
     const [canEditBoard, setCanEditBoard] = useState(false); // Phase 2.3: 編集権限フラグ
-    const currentUserId = "admin1"; // TODO: App.jsxからpropsで受け取る（Phase 2.3で対応） - Changed to match profiles.id
+    const currentUserId = "admin1"; // TODO: App.jsxからpropsで受け取る（Phase 2.3で対応）
 
     // 履歴管理State
     const [history, setHistory] = useState({ past: [], future: [] });
@@ -140,15 +141,8 @@ export default function BoardCanvas() {
                     // Use saved drivers if exist, otherwise master defaults
                     if (data.drivers && data.drivers.length > 0) {
                         setDrivers(data.drivers);
-                    } else {
-                        // Fallback: If no drivers saved for this date, init from Master
-                        setDrivers(MASTER_CONFIG.drivers.map(d => ({
-                            id: d.id,
-                            name: d.name,
-                            currentVehicle: d.defaultVehicle,
-                            course: d.defaultCourse,
-                            color: 'bg-gray-50 border-gray-200'
-                        })));
+                        // Fallback: If no drivers saved for this date, let the Master Data Effect handle initialization
+                        // (Drivers state remains [] until master data is loaded)
                     }
 
                     if (data.splits) setSplits(data.splits);
@@ -156,13 +150,19 @@ export default function BoardCanvas() {
 
                     // Phase 2.3: Fetch user's edit permission
                     try {
+                        console.log("Checking permissions for:", currentUserId);
                         const { data: userProfile, error: profileError } = await supabase
                             .from('profiles')
                             .select('can_edit_board')
-                            .eq('id', currentUserId) // Phase 2.3: Changed from user_id to id
+                            .eq('id', currentUserId)
                             .single();
 
+                        if (profileError) {
+                            console.error("Profile fetch error DETAILED:", profileError);
+                        }
+
                         if (!profileError && userProfile) {
+                            console.log("Permission granted:", userProfile.can_edit_board);
                             setCanEditBoard(userProfile.can_edit_board || false);
                         } else {
                             console.warn("Could not fetch user permissions, defaulting to read-only");
@@ -205,24 +205,29 @@ export default function BoardCanvas() {
             }
         };
 
-        const generateInitialData = () => {
-            // Initialize Drivers from Master
-            setDrivers(MASTER_CONFIG.drivers.map(d => ({
-                id: d.id,
-                name: d.name,
-                currentVehicle: d.defaultVehicle,
-                course: d.defaultCourse,
-                color: 'bg-gray-50 border-gray-200'
-            })));
-
-            // Jobs logic: Empty for now (Admin builds them)
-            // Pending: Empty for now (Or fetch from Master if required)
-            setPendingJobs([]);
-            setSplits([]);
-        };
-
         initializeData();
     }, []);
+
+    // Phase 3.X: Master Data Synchronization
+    // If local drivers are empty (New Date or first load), populate from Global Master
+    useEffect(() => {
+        if (!isMasterLoading && masterDrivers.length > 0) {
+            setDrivers(prev => {
+                // Only initialize if currently empty to avoid overwriting saved edits
+                if (prev.length === 0) {
+                    console.log("Initializing drivers from Master Data");
+                    return masterDrivers.map(d => ({
+                        id: d.id,
+                        name: d.name,
+                        currentVehicle: d.defaultVehicle || '未定',
+                        course: d.defaultCourse,
+                        color: 'bg-gray-50 border-gray-200'
+                    }));
+                }
+                return prev;
+            });
+        }
+    }, [masterDrivers, isMasterLoading]);
 
     // ----------------------------------------
     // Phase 2.2: Edit Lock Management
@@ -550,6 +555,14 @@ export default function BoardCanvas() {
         });
     }, [jobs, pendingJobs, splits, drivers]);
 
+    // Phase 3.5: Reason Modal State
+    const [reasonModal, setReasonModal] = useState({
+        isOpen: false,
+        message: '',
+        pendingJob: null,
+        targetCell: null
+    });
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -822,13 +835,29 @@ export default function BoardCanvas() {
                 const preview = calculateDropTarget(e.clientX - dragOffset.x, e.clientY - dragOffset.y, draggingJobId);
                 if (preview && !preview.isOverlapError) {
                     recordHistory();
-                    setJobs(prev => prev.map(j => j.id === draggingJobId ? {
-                        ...j,
+
+                    // --- Phase 4.0: Proposal Flow (Dual Run) ---
+                    // 1. Calculate New State
+                    const newJobState = {
+                        ...jobs.find(j => j.id === draggingJobId),
                         startTime: preview.startTime,
                         driverId: preview.driverId,
                         duration: preview.duration,
                         isVehicleError: preview.isVehicleError
-                    } : j));
+                    };
+
+                    // 2. Async Proposal Creation (Non-blocking for UI responsiveness)
+                    (async () => {
+                        const defaultReasonId = await ensureDefaultReason();
+                        const proposalId = await createProposal('move_job', newJobState, currentUserId, 'Drag and Drop Move');
+                        if (proposalId) {
+                            await createDecision(proposalId, currentUserId, 'confirm', defaultReasonId);
+                            console.log('SDR Flow: Proposal -> Decision created', proposalId);
+                        }
+                    })();
+                    // -------------------------------------------
+
+                    setJobs(prev => prev.map(j => j.id === draggingJobId ? newJobState : j));
                 }
                 setDraggingJobId(null);
                 setDragButton(null);
@@ -857,47 +886,165 @@ export default function BoardCanvas() {
         };
     }, [resizingState, draggingJobId, draggingSplitId, dragOffset, jobs, splits, dragButton, dragMousePos, recordHistory]);
 
-    const handleAddJob = (jobTemplate) => {
-        if (!selectedCell) return;
-        const split = splits.find(s => s.driverId === selectedCell.driverId && s.time === selectedCell.time);
-        if (split) return;
+    // ----------------------------------------
+    // Phase 3.3: 制約検証ロジック
+    // ----------------------------------------
+    const getVehicleAt = (driverId, time) => {
+        const targetMin = timeToMinutes(time);
+        const driver = drivers.find(d => d.id === driverId);
+        if (!driver) return null;
 
+        let currentVeh = driver.currentVehicle;
+        const driverSplits = splits
+            .filter(s => s.driverId === driverId)
+            .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+
+        for (const s of driverSplits) {
+            if (timeToMinutes(s.time) <= targetMin) currentVeh = s.vehicle;
+            else break;
+        }
+        return currentVeh;
+    };
+
+    const validateVehicleLock = (job, driverId, time) => {
+        if (!job.vehicle_lock) return { valid: true };
+
+        const targetVehicle = getVehicleAt(driverId, time);
+        if (targetVehicle !== job.vehicle_lock) {
+            return {
+                valid: false,
+                message: `⛔ 車両指定エラー: この案件は「${job.vehicle_lock}」専用です（現在の車両: ${targetVehicle || '不明'}）`
+            };
+        }
+        return { valid: true };
+    };
+
+    const validateTimeConstraint = (job, targetTime) => {
+        if (!job.timeConstraint) return { valid: true };
+
+        const { type, range, fixed } = job.timeConstraint;
+        const targetMin = timeToMinutes(targetTime);
+
+        // RANGE (例: AM 6:00-12:00)
+        if (type === 'RANGE') {
+            const startMin = timeToMinutes(range.start);
+            const endMin = timeToMinutes(range.end);
+            if (targetMin < startMin || targetMin >= endMin) {
+                return {
+                    valid: false,
+                    message: `⚠️ 時間帯違反: ${range.label || '指定範囲'} (${range.start}-${range.end}) に配置すべきです`
+                };
+            }
+        }
+
+        // FIXED (例: 14:00)
+        if (type === 'FIXED') {
+            const fixedMin = timeToMinutes(fixed);
+            const diff = Math.abs(targetMin - fixedMin);
+            if (diff > 15) { // 許容範囲（例: ±15分）
+                return {
+                    valid: false,
+                    message: `⚠️ 時刻指定違反: ${fixed} 指定です（${diff}分のズレ）`
+                };
+            }
+        }
+        return { valid: true };
+    };
+
+    // --- Phase 3.5: Placement Logic with Reason Support ---
+    const executePlacement = (jobTemplate, cell, overrideReason = null) => {
         recordHistory();
-        const existingJob = jobs.find(job => job.driverId === selectedCell.driverId && job.startTime === selectedCell.time);
+        const existingJob = jobs.find(job => job.driverId === cell.driverId && job.startTime === cell.time);
         if (existingJob) {
             const restoredPending = { ...existingJob, bucket: existingJob.bucket || 'Free' };
             setPendingJobs(prev => [...prev, restoredPending]);
             setJobs(prev => prev.filter(j => j.id !== existingJob.id));
         }
 
-        const newStartMin = timeToMinutes(selectedCell.time);
-        const driver = drivers.find(d => d.id === selectedCell.driverId);
-        let currentVeh = driver?.currentVehicle;
-        const driverSplits = splits.filter(s => s.driverId === selectedCell.driverId).sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-        for (const s of driverSplits) {
-            if (timeToMinutes(s.time) <= newStartMin) currentVeh = s.vehicle;
-            else break;
-        }
-
+        // Refactored to use getVehicleAt
+        const currentVeh = getVehicleAt(cell.driverId, cell.time);
         let isVehicleError = jobTemplate.requiredVehicle && currentVeh && currentVeh !== jobTemplate.requiredVehicle;
 
         const newJob = {
             id: `new_${Date.now()}`,
             title: jobTemplate.title,
-            driverId: selectedCell.driverId,
-            startTime: selectedCell.time,
+            driverId: cell.driverId,
+            startTime: cell.time,
             duration: jobTemplate.duration,
             bucket: jobTemplate.bucket,
+            // Phase 3.2: Copy constraint data
+            isSpot: jobTemplate.isSpot,
+            timeConstraint: jobTemplate.timeConstraint,
+            taskType: jobTemplate.taskType,
+            vehicle_lock: jobTemplate.vehicle_lock,
+
             requiredVehicle: jobTemplate.requiredVehicle,
             isVehicleError: isVehicleError,
-            originalCustomerId: jobTemplate.originalCustomerId || jobTemplate.id
+            originalCustomerId: jobTemplate.originalCustomerId || jobTemplate.id,
+
+            // Phase 3.5: Record Reason
+            overrideReason: overrideReason
         };
 
         if (existingJob) setJobs(prev => [...prev.filter(j => j.id !== existingJob.id), newJob]);
         else setJobs(prev => [...prev, newJob]);
 
+        // --- Phase 4.0: Proposal Flow ---
+        (async () => {
+            const defaultReasonId = await ensureDefaultReason();
+            const proposalId = await createProposal('add_job', newJob, currentUserId, overrideReason || 'Manual Placement');
+            if (proposalId) {
+                await createDecision(proposalId, currentUserId, 'confirm', defaultReasonId);
+                console.log('SDR Flow: Proposal -> Decision created (Add)', proposalId);
+            }
+        })();
+        // --------------------------------
+
         setPendingJobs(prev => prev.filter(j => j.id !== jobTemplate.id));
         setSelectedCell(null);
+    };
+
+    const handleAddJob = (jobTemplate) => {
+        if (!selectedCell) return;
+        const split = splits.find(s => s.driverId === selectedCell.driverId && s.time === selectedCell.time);
+        if (split) return;
+
+        // --- Phase 3.4: Red Error Check (Vehicle Lock) -> BLOCK ---
+        const vehicleCheck = validateVehicleLock(jobTemplate, selectedCell.driverId, selectedCell.time);
+        if (!vehicleCheck.valid) {
+            showNotification(vehicleCheck.message, 'error');
+            setSelectedCell(null);
+            return;
+        }
+
+        // --- Phase 3.5: Yellow Warning Check (Time Constraint) -> MODAL ---
+        const constraintCheck = validateTimeConstraint(jobTemplate, selectedCell.time);
+        if (!constraintCheck.valid) {
+            // モーダルを開いてユーザー判断を仰ぐ
+            setReasonModal({
+                isOpen: true,
+                message: constraintCheck.message,
+                pendingJob: jobTemplate,
+                targetCell: selectedCell
+            });
+            return;
+        }
+
+        // 制約違反なし -> 通常配置
+        // Phase 4.0: executePlacement handles proposal internally if we refactor it, 
+        // but for now let's wrap logic there or here. 
+        // Actually executePlacement updates state. Let's add proposal creation inside executePlacement to allow 'overrideReason' from modal.
+        executePlacement(jobTemplate, selectedCell);
+    };
+
+    // Phase 3.5: Confirm Placement with Reason
+    const handleConfirmPlacement = (reason) => {
+        const { pendingJob, targetCell } = reasonModal;
+        if (pendingJob && targetCell) {
+            executePlacement(pendingJob, targetCell, reason);
+            showNotification('理由付きで配置しました', 'warning');
+        }
+        setReasonModal({ isOpen: false, message: '', pendingJob: null, targetCell: null });
     };
 
     const isCellOccupied = (driverId, time) => {
@@ -1405,6 +1552,27 @@ export default function BoardCanvas() {
                     </button>
                 </div>
             )}
+
+            {/* Notifications */}
+            {notification && (
+                <div className={`fixed top-20 right-4 z-[200] px-4 py-3 rounded shadow-lg text-white font-bold animate-in slide-in-from-right duration-200 flex items-center gap-2
+                    ${notification.type === 'error' ? 'bg-red-600' : notification.type === 'warning' ? 'bg-yellow-500' : 'bg-green-600'}
+                `}>
+                    {notification.type === 'warning' && <AlertTriangle size={20} />}
+                    {notification.message}
+                </div>
+            )}
+
+            {/* Phase 3.5: Reason Input Modal */}
+            <ReasonModal
+                isOpen={reasonModal.isOpen}
+                message={reasonModal.message}
+                onConfirm={handleConfirmPlacement}
+                onCancel={() => {
+                    setReasonModal({ isOpen: false, message: '', pendingJob: null, targetCell: null });
+                    setSelectedCell(null);
+                }}
+            />
 
             <BoardModals
                 modalState={modalState}
