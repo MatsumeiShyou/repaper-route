@@ -113,12 +113,22 @@
 - [x] **Project Link**: リモートプロジェクトとリンク (`mjaoolcjjlxwstlpdgrg`) <!-- id: 26 -->
 - [x] **Migration Execution**: CLI経由でSDRマイグレーションを適用 (PGRST205解消) <!-- id: 27 -->
 
-## フェーズ 4.2: 承認フローUI実装 (Approval Flow UI)
-- [ ] **SDR Dashboard**: 提案・決定ログを閲覧できる管理画面の実装 <!-- id: 28 -->
-  - [ ] UI: `SDRDashboard.jsx` 作成 (Proposals & Decisions Tabs)
-  - [ ] Logic: `useSDR.js` フック作成 (Fetch & Supabase Subscription)
-  - [ ] Action: 手動承認/却下ボタンの実装 (Pending提案用)
-- [ ] **Integration**: 管理メニューへのリンク追加 <!-- id: 29 -->
+## フェーズ 4.2: 承認フローUI実装 (Approval Flow UI - **COMPLETED**)
+- [x] **SDR Dashboard**: 提案・決定ログを閲覧できる管理画面の実装 <!-- id: 28 -->
+  - [x] UI: `SDRDashboard.jsx` 作成 (Proposals & Decisions Tabs)
+  - [x] Logic: `useSDR.js` フック作成 (Fetch & Supabase Subscription)
+  - [x] Action: 手動承認/却下ボタンの実装 (Pending提案用)
+- [x] **Integration**: 管理メニューへのリンク追加 <!-- id: 29 -->
+- [x] **Environment Fix**: CLIとアプリのプロジェクト不整合を解消し、`mjaool...` で統一。
+
+## フェーズ 4.3: UI日本語化 (Localization - **COMPLETED**)
+- [x] **SDR Dashboard**: 提案・決定ログ画面の日本語化 <!-- id: 30 -->
+  - [x] Labels: テーブルヘッダー、ボタン、ステータスバッジの日本語化
+  - [x] Messages: ローディング、エラー、空状態メッセージの日本語化
+  - [x] Date Format: 日時表示のJST/ロケール対応 (`toLocaleString('ja-JP')`)
+
+## フェーズ 4.4: 予備(Reserved)
+
 
 ## フェーズ 3.X: マスタデータ正規化 (Future - Completed Parts)
 - [ ] **Vehicle Lock Logic**: 指定車両以外への配置禁止 <!-- id: 18 -->

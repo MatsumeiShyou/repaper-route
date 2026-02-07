@@ -24,3 +24,4 @@
 | 2026-02-06 | Phase 3.2: Bucket System Redesign (Blueprint v2.1) | 4バケット制約ベース分類システム実装 | jobs テーブル拡張 (is_spot, time_constraint, task_type, vehicle_lock)、フィルタリングロジック更新、タブUI変更（全て/スポット/時間指定/特殊案件） | User (PW: ｙ) | 承認 |
 | 2026-02-07 | Phase 4.0/4.1: SDR Migration & CLI Setup | SDRアーキテクチャ移行とSupabase CLI環境構築 | `master_collection_points`等SDRテーブル作成、CLI連携、`useMasterData`アダプタ実装 | User (PW: ｙ) | 承認 |
 | 2026-02-07 | Phase 4.2: Approval Flow UI Implementation | SDR Dashboard (Audit UI) の実装 | `decision_proposals`, `decisions` テーブルの可視化、監査機能 (`SDRDashboard.jsx`, `useSDR.js`) 追加 | User (PW: ｙ) | 承認 |
+| 2026-02-08 | Phase 4.3: UI Localization | SDR Dashboardの完全日本語化 | 現場運用に合わせた用語統一 ("Proposals" -> "提案", "Decisions" -> "決定") とJST表示 | User (PW: ｙ) | 承認 |

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import DriverApp from './features/driver/DriverApp';
-import SDRDashboard from './features/admin/SDRDashboard'; // New Import
+import SDRDashboard from './features/admin/SDRDashboard';
 import BoardCanvas from './features/board/BoardCanvas';
 import { cn } from './lib/utils';
 import { User, Shield, Truck, LogOut, Activity } from 'lucide-react'; // Added Activity
@@ -163,6 +163,8 @@ export default function App() {
                                 <p className="text-gray-500 mt-2 text-sm">提案・決定ログ</p>
                             </div>
                         </button>
+
+
                     </div>
                 </div>
             );
