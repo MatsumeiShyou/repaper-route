@@ -58,12 +58,7 @@
   - [x] Manual verification: 権限あり/なしユーザーテスト
 
 ## フェーズ 3: 管理機能強化 (Admin Features)
-- [ ] **User Permission Management UI**: UIから編集権限を管理できる画面 <!-- id: 14 -->
-  - [ ] ユーザー一覧画面作成
-  - [ ] 権限トグル機能（ON/OFF切替）
-  - [ ] ロール別一括権限付与機能
-  - [ ] 権限変更監査ログ（誰がいつ変更したか）
-  - [ ] リアルタイム反映（権限変更後、即座にUIに反映）
+- [ ] **User Permission Management UI**: 詳細スペックは `DEBT_AND_FUTURE.md` へ移管 <!-- id: 14 -->
 
 ## フェーズ 3.1: 未配車リストバケット改良
 - [x] **Pending Jobs Bucket Improvement**: 定期/スポット明確化 <!-- id: 15 -->
@@ -81,7 +76,7 @@
   - [x] Manual verification: 4バケット表示確認
 
 ## フェーズ 3.3: 制約検証ロジック (Yellow Warning)
-- [ ] **Constraint Logic**: 時間制約違反の検知と警告 <!-- id: 17 -->
+- [x] **Constraint Logic**: 時間制約違反の検知と警告 <!-- id: 17 -->
   - [x] BoardCanvas: `validateTimeConstraint` 実装
   - [x] BoardCanvas: ドロップ時に検証実行 & 警告表示
   - [x] UI: Warning Notification (黄色トースト) 対応
@@ -102,8 +97,8 @@
 - [x] **Manual verification**: マスタデータが正しく読み込まれるか確認
 
 ## フェーズ 4.0: SDRアーキテクチャ移行 (SDR Migration)
-## フェーズ 4.0: SDRアーキテクチャ移行 (SDR Migration)
-- [/] **SDR Schema Implementation**: `manual_sdr_migration_full.sql` 作成完了 (一時停止: CLI設定へ移行) <!-- id: 21 -->
+
+- [x] **SDR Schema Implementation**: `manual_sdr_migration_full.sql` 作成完了 (一時停止: CLI設定へ移行) <!-- id: 21 -->
 - [x] **Master Data Migration**: `customers` -> `master_collection_points` 移行 (Remote既存確認済み) <!-- id: 22 -->
 - [x] **Application Adapter**: `useMasterData` をSDR対応版へ更新 <!-- id: 23 -->
 - [x] **Proposal Flow**: コード実装完了 (DBテーブル作成済み、CLI環境整備完了) <!-- id: 24 -->
@@ -127,11 +122,7 @@
   - [x] Messages: ローディング、エラー、空状態メッセージの日本語化
   - [x] Date Format: 日時表示のJST/ロケール対応 (`toLocaleString('ja-JP')`)
 
-## フェーズ 4.4: 予備(Reserved)
+## フェーズ 5: 技術的負債と将来機能 (Debt & Future)
+詳細な項目は `DEBT_AND_FUTURE.md` に移管されました。
+- **See**: [DEBT_AND_FUTURE.md](DEBT_AND_FUTURE.md)
 
-
-## フェーズ 3.X: マスタデータ正規化 (Future - Completed Parts)
-- [ ] **Vehicle Lock Logic**: 指定車両以外への配置禁止 <!-- id: 18 -->
-  - [x] BoardCanvas: `validateVehicleLock` 実装
-  - [x] BoardCanvas: ドロップ時に検証実行 & ブロック動作
-  - [x] Manual verification: 違反時のブロック確認

@@ -14,7 +14,8 @@ description: 自動コミット＆プッシュ（要承認PW）
 3. **反映実行**
    - パスワードが一致した場合のみ、以下のコマンドを実行します。
 
-   ```bash
-   git commit -am "[生成したメッセージ]"
-   git push
+   ```powershell
+   # PowerShell (Windows) compatible: use ; or separate lines
+   git commit -am "[生成したメッセージ]"; git push
    ```
+   *注意*: Windows PowerShellでは `&&` が使えないため、`;` で区切るか、別々の `run_command` で実行すること。

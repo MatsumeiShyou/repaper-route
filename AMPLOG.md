@@ -25,3 +25,4 @@
 | 2026-02-07 | Phase 4.0/4.1: SDR Migration & CLI Setup | SDRアーキテクチャ移行とSupabase CLI環境構築 | `master_collection_points`等SDRテーブル作成、CLI連携、`useMasterData`アダプタ実装 | User (PW: ｙ) | 承認 |
 | 2026-02-07 | Phase 4.2: Approval Flow UI Implementation | SDR Dashboard (Audit UI) の実装 | `decision_proposals`, `decisions` テーブルの可視化、監査機能 (`SDRDashboard.jsx`, `useSDR.js`) 追加 | User (PW: ｙ) | 承認 |
 | 2026-02-08 | Phase 4.3: UI Localization | SDR Dashboardの完全日本語化 | 現場運用に合わせた用語統一 ("Proposals" -> "提案", "Decisions" -> "決定") とJST表示 | User (PW: ｙ) | 承認 |
+| 2026-02-08 | Task & Governance Optimization | task.mdのクリーンアップとDEBT連携強化 | 完了フェーズの残骸整理、二重管理の解消、憲法第11条の厳格適用 | User (PW: ｙ) | 承認 |

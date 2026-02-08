@@ -104,3 +104,10 @@ Last Updated: 2026-02-05
 1. **Declare**: ユーザーが「後で書く」宣言。
 2. **Debt Issue**: `task.md` 最上部に `[ ] 🔴 DEBT: Update AMPLOG` を追加。
 3. **Lock**: DEBT返済まで**新規機能開発提案禁止**（バグ修正・検証は可）。
+
+## 11. Debt & Future Protocol
+**[Recording Obligation]**
+1. **Traceability**: 実装を「後回し (Future/Pending)」にする決定をした場合、即座にルートディレクトリの `DEBT_AND_FUTURE.md` に追記せよ。
+2. **Unified Registry**: `task.md` には詳細を書かず、`DEBT_AND_FUTURE.md` へのリンクのみを記し、情報の重複・分散を防ぐこと。
+3. **No Hidden Debt**: コード内に `TODO` / `FIXME` を残すことは許容されるが、それがアーキテクチャやセキュリティに関わる場合、必ず `DEBT_AND_FUTURE.md` にも項目として反映せよ。
+4. **Review**: 各フェーズ完了時に「登録されていない負債」がないか、コードベース (`grep TODO`) と台帳を突合監査せよ。
