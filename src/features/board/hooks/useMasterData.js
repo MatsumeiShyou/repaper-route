@@ -5,16 +5,20 @@ export const useMasterData = () => {
     const [drivers, setDrivers] = useState([]);
     const [vehicles, setVehicles] = useState([]);
     const [customers, setCustomers] = useState([]);
+    const [items, setItems] = useState([]);
+    const [customerItemDefaults, setCustomerItemDefaults] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchAll = async () => {
             try {
                 // Fetch all master data in parallel
-                const [d, v, c] = await Promise.all([
+                const [d, v, c, i, cid] = await Promise.all([
                     supabase.from('drivers').select('*').order('display_order', { ascending: true }).order('id', { ascending: true }),
                     supabase.from('vehicles').select('*').order('id'),
-                    supabase.from('master_collection_points').select('*').order('location_id') // Phase 4.0: Switch to SDR table
+                    supabase.from('master_collection_points').select('*').order('location_id'), // Phase 4.0: Switch to SDR table
+                    supabase.from('master_items').select('*').order('display_order'),
+                    supabase.from('customer_item_defaults').select('*')
                 ]);
 
                 // Process Drivers
@@ -32,6 +36,8 @@ export const useMasterData = () => {
                 setDrivers(processedDrivers);
                 if (v.data) setVehicles(v.data);
                 if (c.data) setCustomers(processedCustomers);
+                if (i.data) setItems(i.data);
+                if (cid.data) setCustomerItemDefaults(cid.data);
 
                 // Debug log
                 console.log('Master data loaded (SDR):', {
@@ -49,5 +55,5 @@ export const useMasterData = () => {
         fetchAll();
     }, []);
 
-    return { drivers, vehicles, customers, isLoading };
+    return { drivers, vehicles, customers, items, customerItemDefaults, isLoading };
 };

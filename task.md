@@ -122,6 +122,56 @@
   - [x] Messages: ローディング、エラー、空状態メッセージの日本語化
   - [x] Date Format: 日時表示のJST/ロケール対応 (`toLocaleString('ja-JP')`)
 
+## フェーズ 5.5: 構造改革 (Architecture Refactoring)
+- [x] **Component Split**: `BoardCanvas.jsx` (1600行) の分割 <!-- id: 31 -->
+  - [x] Logic Extraction: `useBoardData` フックの作成 (Supabase/Local Sync)
+  - [x] UI Extraction: `DriverColumn`, `TimeGrid`, `JobCard` コンポーネント化
+  - [x] Drag Logic: `useBoardDragDrop` フックへの分離
+- [x] **Type Definition**: 主要データ型 (Job, Driver, Split) のJSDoc/TypeScript定義整備 <!-- id: 32 -->
+
+## フェーズ 6: 複数品目管理 (Multi-Item Management)
+- [x] **Data Modeling**: 概念データモデル設計 (ER図) <!-- id: 33 -->
+  - [x] Plan Formulation: `implementation_plan.md` 更新
+  - [x] Schema Design: `master_items`, `customer_item_defaults` テーブル設計
+  - [x] Migration: SQLファイル作成
+- [x] **UI Prototyping**: 複数品目入力・表示UIのモックアップ作成 <!-- id: 34 -->
+  - [x] Logic Update: `useMasterData` hook 拡張
+  - [x] Logic Update: `useBoardData` / `proposalLogic` 拡張
+  - [x] UI Update: `BoardModals.jsx` (Job Edit) に品目管理機能追加
+- [x] **DB Implementation**: `job_items` (JSONB) 統合とデータ永続化 <!-- id: 35 -->
+
+## フェーズ 6.5: データ移行 (Data Migration)
+- [x] **CSV Import**: 既存マスタデータの取り込み <!-- id: 40 -->
+  - [x] Scripting: 変換スクリプト作成 (`generate_import_sql.js`)
+  - [x] SQL Generation: インポート用SQL生成
+  - [x] Schema Correction: 未定義テーブル作成とFK修正 (114000, 114500)
+  - [x] Execution: Supabaseへの適用 (121000)
+  - [x] Verification: データ件数確認完了 (`verify_import.js`)
+  - [x] Vehicles Seed: 車両マスタ5件投入 (`122000`)
+  - [x] Drivers Seed: ドライバーマスタ11件投入 (`160000`)
+
+## フェーズ 7: コース別配車管理 (Course-Based Dispatch)
+- [x] **Course Column Model**: コース主体カラムへのモデル移行 <!-- id: 41 -->
+  - [x] Logic: `useBoardData.js` 初期化ロジック変更 (Default A-E Courses)
+  - [x] UI: `DriverHeader.jsx` コース名強調・担当者割当表示への変更
+  - [x] UI: `BoardModals.jsx` ヘッダー編集モーダルのDriver/Vehicle選択UI化
+  - [x] Feature: コース追加・削除機能の実装
+
+## フェーズ 8: UI基本動作の洗練 (UI Refinement)
+- [x] **Job Creation Hook**: 盤上ダブルクリックで「案件追加」モーダルを開く <!-- id: 50 -->
+- [x] **Phase 6 Verification Support**: モーダルに顧客選択を追加し、デフォルト品目を自動入力 <!-- id: 51 -->
+- [x] **Drag & Drop Tuning**: 列間移動のロジック検証完了 (Unit Tests Pass) <!-- id: 52 -->
+- [x] **Automated Verification**: Headless統合テストによる動作保証 (Vitest) <!-- id: 53 -->
+
+
+
+
+## フェーズ 9: Business OS統一規格への完全移行 (Strict Compliance)
+- [x] **SDR Schema Implementation**: `migration_report.md` に基づくテーブル・RPC作成 <!-- id: 60 -->
+- [x] **RLS Enforcement**: `routes` テーブルへの直接書き込み禁止設定 <!-- id: 61 -->
+- [x] **Frontend Migration**: `useBoardData.js` の保存処理をRPC経由に変更 <!-- id: 62 -->
+- [x] **Verification**: Driver権限で直接書き込みが失敗し、RPC経由のみ成功することを確認 <!-- id: 63 -->
+
 ## フェーズ 5: 技術的負債と将来機能 (Debt & Future)
 詳細な項目は `DEBT_AND_FUTURE.md` に移管されました。
 - **See**: [DEBT_AND_FUTURE.md](DEBT_AND_FUTURE.md)

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import DriverApp from './features/driver/DriverApp';
 import SDRDashboard from './features/admin/SDRDashboard';
+import AdminDashboard from './features/admin/AdminDashboard';
 import BoardCanvas from './features/board/BoardCanvas';
 import { cn } from './lib/utils';
 import { User, Shield, Truck, LogOut, Activity } from 'lucide-react'; // Added Activity

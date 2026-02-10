@@ -1,0 +1,43 @@
+
+> repaper-route@1.0.0 test
+> vitest src/features/board/tests/BoardIntegration.test.jsx --no-color
+
+
+ DEV  v4.0.18 C:/Users/shiyo/開発中APP/RePaper Route
+
+ ❯ src/features/board/tests/BoardIntegration.test.jsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/board/tests/BoardIntegration.test.jsx [ src/features/board/tests/BoardIntegration.test.jsx ]
+Error: Transform failed with 1 error:
+C:/Users/shiyo/開発中APP/RePaper Route/src/features/board/BoardCanvas.jsx:129:11: ERROR: Unexpected "{"
+  Plugin: vite:esbuild
+  File: C:/Users/shiyo/開発中APP/RePaper Route/src/features/board/BoardCanvas.jsx:129:11
+  
+  Unexpected "{"
+  127 |      };
+  128 |  
+  129 |      import { PendingJobSidebar } from './components/PendingJobSidebar'; // Import added
+      |             ^
+  130 |  
+  131 |      // ... (existing imports)
+  
+ ❯ failureErrorWithLog node_modules/vitest/node_modules/esbuild/lib/main.js:1467:15
+ ❯ node_modules/vitest/node_modules/esbuild/lib/main.js:736:50
+ ❯ responseCallbacks.<computed> node_modules/vitest/node_modules/esbuild/lib/main.js:603:9
+ ❯ handleIncomingPacket node_modules/vitest/node_modules/esbuild/lib/main.js:658:12
+ ❯ Socket.readFromStdout node_modules/vitest/node_modules/esbuild/lib/main.js:581:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  05:27:49
+   Duration  927ms (transform 42ms, setup 99ms, import 0ms, tests 0ms, environment 584ms)
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+Cancelling test run. Press CTRL+c again to exit forcefully.
+

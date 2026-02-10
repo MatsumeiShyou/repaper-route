@@ -26,7 +26,7 @@ export const timeToMinutes = (timeStr) => {
 export const minutesToTime = (totalMinutes) => {
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
-    return `${h}:${m.toString().padStart(2, '0')}`;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
 /**

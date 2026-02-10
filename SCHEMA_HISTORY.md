@@ -108,17 +108,6 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 
 ---
 
-## 今後の拡張予定
-
-### Phase 3: 外部キー制約強化（予定）
-- `drivers.user_id → profiles.id` の外部キー制約追加
-- データ整合性のさらなる強化
-
-### Phase 4: ルート管理機能（予定）
-- `routes` テーブルの追加（配送ルート最適化）
-
----
-
 ## Phase 2.2: 排他的編集ロック（Exclusive Edit Lock）
 **日付**: 2026-02-06  
 **目的**: 編集競合の事前防止、緊急変更対応、新人研修対応
@@ -143,6 +132,33 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 
 ---
 
+## Phase 6: 複数品目管理（Multi-Item Management）
+**日付**: 2026-02-08  
+**目的**: 顧客ごとのきめ細やかな品目管理と、各回収案件ごとの実績追記
+
+### 追加テーブル
+- **master_items**: 品目マスタ（名称、単位、表示順）。Phase 1の`items`を再定義・UUID化。
+- **customer_item_defaults**: 顧客ごとの初期品目セット。Phase 1の`customer_items`をSDRアーキテクチャ(`master_collection_points`紐付け)に適合。
+
+### 変更点
+- `routes` テーブル (JSONB): `jobs` 内に `items` 配列を持たせ、リアルタイム性を維持しつつリレーショナルに管理。
+- **SDR準拠**: `customer_id` は `master_collection_points` を参照。
+
+**参考**: `supabase_migration_phase6.sql`
+
+---
+
+## 今後の拡張予定
+
+### Phase 3: 外部キー制約強化（予定）
+- `drivers.user_id → profiles.id` の外部キー制約追加
+- データ整合性のさらなる強化
+
+### Phase 4: ルート管理機能（予定）
+- `routes` テーブルの追加（配送ルート最適化）
+
+---
+
 ## 参考情報
 
 ### テーブル数の推移
@@ -150,6 +166,7 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 - Phase 1: +4テーブル（items, customers, customer_items, job_items） = 7テーブル
 - Phase 1.5: +1テーブル（profiles） = **8テーブル**
 - Phase 2.5: routes テーブル = **9テーブル**
+- Phase 6: +2テーブル（master_items, customer_item_defaults）= **11テーブル**
 
 ### アーカイブ
 旧スキーマファイルは `_archived/` ディレクトリに保管されています。詳細は `_archived/README.md` を参照してください。

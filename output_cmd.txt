@@ -1,0 +1,43 @@
+
+> repaper-route@1.0.0 test
+> vitest src/features/board/tests/BoardIntegration.test.jsx --no-color
+
+
+ DEV  v4.0.18 C:/Users/shiyo/開発中APP/RePaper Route
+
+ ❯ src/features/board/tests/BoardIntegration.test.jsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/board/tests/BoardIntegration.test.jsx [ src/features/board/tests/BoardIntegration.test.jsx ]
+Error: Transform failed with 1 error:
+C:/Users/shiyo/開発中APP/RePaper Route/src/features/board/components/BoardModals.jsx:51:4: ERROR: Expected ")" but found "}"
+  Plugin: vite:esbuild
+  File: C:/Users/shiyo/開発中APP/RePaper Route/src/features/board/components/BoardModals.jsx:51:4
+  
+  Expected ")" but found "}"
+  49 |          }
+  50 |      }
+  51 |      }, [modalState]);
+     |      ^
+  52 |  
+  53 |  const handleSave = () => {
+  
+ ❯ failureErrorWithLog node_modules/vitest/node_modules/esbuild/lib/main.js:1467:15
+ ❯ node_modules/vitest/node_modules/esbuild/lib/main.js:736:50
+ ❯ responseCallbacks.<computed> node_modules/vitest/node_modules/esbuild/lib/main.js:603:9
+ ❯ handleIncomingPacket node_modules/vitest/node_modules/esbuild/lib/main.js:658:12
+ ❯ Socket.readFromStdout node_modules/vitest/node_modules/esbuild/lib/main.js:581:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  18:01:06
+   Duration  1.02s (transform 104ms, setup 27ms, import 0ms, tests 0ms, environment 577ms)
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+Cancelling test run. Press CTRL+c again to exit forcefully.
+

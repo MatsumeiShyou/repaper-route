@@ -1,0 +1,513 @@
+/**
+ * @typedef {import('./types').Driver} Driver
+ * @typedef {import('./types').Job} Job
+ * @typedef {import('./types').Split} Split
+ */
+import React, { useState, useRef, useMemo } from 'react';
+import {
+    Calendar, Undo2, Redo2, Menu,
+    Check, X, AlertTriangle
+} from 'lucide-react';
+import { useBoardData } from './hooks/useBoardData';
+import { useBoardDragDrop } from './hooks/useBoardDragDrop';
+import { DriverHeader } from './components/DriverHeader';
+import { TimeGrid } from './components/TimeGrid';
+import { JobLayer } from './components/JobLayer';
+import { PendingJobSidebar } from './components/PendingJobSidebar';
+import { BoardModals } from './components/BoardModals';
+import { ReasonModal } from './components/ReasonModal';
+import { createProposal, createDecision, ensureDefaultReason } from './logic/proposalLogic';
+import { timeToMinutes } from './logic/timeUtils';
+
+// Helper: Get Date from URL or Default Today
+const getUrlDate = () => {
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    if (dateParam) return dateParam;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+const CURRENT_DATE_KEY = getUrlDate();
+
+// Main Component
+export default function BoardCanvas() {
+    const currentUserId = "admin1"; // TODO: From Auth Context in future
+    // 1. Data Logic Hook
+    const {
+        drivers, setDrivers,
+        jobs, setJobs,
+        pendingJobs, setPendingJobs,
+        splits, setSplits,
+        items, customerItemDefaults, // Phase 6: Master Data
+        isDataLoaded, isOffline, isSyncing,
+        editMode, lockedBy, canEditBoard,
+        notification, showNotification,
+        requestEditLock, releaseEditLock, handleSave,
+        history, recordHistory, undo, redo,
+        addColumn, deleteColumn, // Phase 7
+        masterDrivers, vehicles // Phase 7: Master Data for Modals
+    } = useBoardData(currentUserId, CURRENT_DATE_KEY);
+
+    // Refs
+    const driverColRefs = useRef({});
+
+    // 2. Drag Logic Hook
+    const {
+        draggingJobId, draggingSplitId,
+        dropPreview, dropSplitPreview,
+        dragMousePos,
+        resizingState,
+        handleMouseDownJob,
+        handleMouseDownSplit,
+        handleResizeStart,
+        handleWindowMouseMove,
+        handleWindowMouseUp
+    } = useBoardDragDrop(jobs, drivers, splits, driverColRefs, setJobs, setSplits, recordHistory, currentUserId, createProposal);
+
+    // 3. UI State (Modals, Selections)
+    const [selectedCell, setSelectedCell] = useState(null);
+    const [selectedJobId, setSelectedJobId] = useState(null);
+    const [modalState, setModalState] = useState({ isOpen: false, type: null });
+    const [reasonModal, setReasonModal] = useState({ isOpen: false, message: '', pendingJob: null, targetCell: null });
+    const [contextMenu, setContextMenu] = useState(null);
+    const [pendingFilter, setPendingFilter] = useState('全て');
+
+    // ----------------------------------------
+    // Handlers
+    // ----------------------------------------
+    // Permission Check Wrapper for Drag Start
+    const onJobMouseDownSafe = (e, job) => {
+        if (!editMode) {
+            showNotification("編集モードではありません", "error");
+            return;
+        }
+        handleMouseDownJob(e, job);
+    };
+
+    const onSplitMouseDownSafe = (e, split) => {
+        if (!editMode) {
+            showNotification("編集モードではありません", "error");
+            return;
+        }
+        handleMouseDownSplit(e, split);
+    };
+
+    const onResizeStartSafe = (e, job, direction) => {
+        if (!editMode) {
+            showNotification("編集モードではありません", "error");
+            return;
+        }
+        handleResizeStart(e, job, direction);
+    }
+
+    // Modal & Context Menu
+    const openJobEditModel = (jobId) => {
+        if (!editMode) return;
+        const job = jobs.find(j => j.id === jobId);
+        if (job) setModalState({ isOpen: true, type: 'job', targetId: jobId, job: { ...job } });
+    };
+
+    const openHeaderEdit = (driverId) => {
+        if (!editMode) return;
+        const driver = drivers.find(d => d.id === driverId);
+        if (driver) {
+            setModalState({
+                isOpen: true,
+                type: 'header',
+                targetId: driverId,
+                initialCourseName: driver.name,
+                initialDriverId: driver.driverName, // Using driverName for display/select
+                initialVehicle: driver.currentVehicle
+            });
+        }
+    };
+
+    const openSplitEdit = (e, driverId, time) => {
+        if (!editMode) return;
+        const split = splits.find(s => s.driverId === driverId && s.time === time);
+        const driver = drivers.find(d => d.id === driverId);
+        setModalState({
+            isOpen: true, type: 'split', targetId: driverId, time,
+            initialDriverName: split ? split.driverName : (driver?.name || ''),
+            initialVehicle: split ? split.vehicle : (driver?.currentVehicle || '')
+        });
+    };
+
+    const handleContextMenu = (e, job) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!editMode) return;
+        setContextMenu({ x: e.clientX, y: e.clientY, type: 'job', jobId: job.id });
+    };
+
+    // Close Context Menu
+    React.useEffect(() => {
+        const handleClick = () => setContextMenu(null);
+        window.addEventListener('click', handleClick);
+        return () => window.removeEventListener('click', handleClick);
+    }, []);
+
+    // ----------------------------------------
+    // Action Logic (Add, Delete, Save Modal)
+    // ----------------------------------------
+    const handleDeleteJob = (jobId) => {
+        if (!editMode) return;
+        recordHistory();
+        const targetJob = jobs.find(j => j.id === jobId);
+        if (targetJob) {
+            const restoredPending = { ...targetJob, bucket: targetJob.bucket || 'Free' };
+            setPendingJobs(prev => [...prev, restoredPending]);
+            setJobs(prev => prev.filter(j => j.id !== jobId));
+            setSelectedJobId(null);
+        }
+    };
+
+    // Helper: Logic from BoardCanvas (validateTimeConstraint etc)
+    const validateTimeConstraint = (job, targetTime) => {
+        if (!job.timeConstraint) return { valid: true };
+        const { type, range, fixed } = job.timeConstraint;
+        const targetMin = timeToMinutes(targetTime);
+        if (type === 'RANGE') {
+            const startMin = timeToMinutes(range.start);
+            const endMin = timeToMinutes(range.end);
+            if (targetMin < startMin || targetMin >= endMin) return { valid: false, message: `⚠️ 時間帯違反: ${range.label || '指定範囲'} (${range.start}-${range.end}) に配置すべきです` };
+        }
+        if (type === 'FIXED') {
+            const fixedMin = timeToMinutes(fixed);
+            const diff = Math.abs(targetMin - fixedMin);
+            if (diff > 15) return { valid: false, message: `⚠️ 時刻指定違反: ${fixed} 指定です（${diff}分のズレ）` };
+        }
+        return { valid: true };
+    };
+
+    const getVehicleAt = (driverId, time) => {
+        const targetMin = timeToMinutes(time);
+        const driver = drivers.find(d => d.id === driverId);
+        if (!driver) return null;
+        let currentVeh = driver.currentVehicle;
+        const driverSplits = splits
+            .filter(s => s.driverId === driverId)
+            .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+        for (const s of driverSplits) {
+            if (timeToMinutes(s.time) <= targetMin) currentVeh = s.vehicle;
+            else break;
+        }
+        return currentVeh;
+    };
+
+    const validateVehicleLock = (job, driverId, time) => {
+        if (!job.vehicle_lock) return { valid: true };
+        const targetVehicle = getVehicleAt(driverId, time);
+        if (targetVehicle !== job.vehicle_lock) return { valid: false, message: `⛔ 車両指定エラー: この案件は「${job.vehicle_lock}」専用です（現在の車両: ${targetVehicle || '不明'}）` };
+        return { valid: true };
+    };
+
+    const executePlacement = (jobTemplate, cell, overrideReason = null) => {
+        recordHistory();
+        const existingJob = jobs.find(job => job.driverId === cell.driverId && job.startTime === cell.time);
+        if (existingJob) {
+            const restoredPending = { ...existingJob, bucket: existingJob.bucket || 'Free' };
+            setPendingJobs(prev => [...prev, restoredPending]);
+            setJobs(prev => prev.filter(j => j.id !== existingJob.id));
+        }
+
+        const currentVeh = getVehicleAt(cell.driverId, cell.time);
+        let isVehicleError = jobTemplate.requiredVehicle && currentVeh && currentVeh !== jobTemplate.requiredVehicle;
+
+        // Phase 6: Populate default items if new and empty
+        let initialItems = jobTemplate.items || [];
+        if (initialItems.length === 0 && customerItemDefaults && items) {
+            const customerId = jobTemplate.originalCustomerId || jobTemplate.id; // Assuming id matches customer id for new jobs from defaults
+            // Find defaults for this customer
+            const defaults = customerItemDefaults.filter(d => d.customer_id === customerId);
+            initialItems = defaults.map(d => {
+                const itemMaster = items.find(i => i.id === d.item_id);
+                return itemMaster ? {
+                    itemId: itemMaster.id,
+                    name: itemMaster.name,
+                    unit: itemMaster.unit,
+                    expectedQuantity: 0,
+                    actualQuantity: 0
+                } : null;
+            }).filter(Boolean);
+        }
+
+        const newJob = {
+            id: `new_${Date.now()}`,
+            title: jobTemplate.title,
+            driverId: cell.driverId,
+            startTime: cell.time,
+            duration: jobTemplate.duration,
+            bucket: jobTemplate.bucket,
+            items: initialItems, // Phase 6
+            isSpot: jobTemplate.isSpot,
+            timeConstraint: jobTemplate.timeConstraint,
+            taskType: jobTemplate.taskType,
+            vehicle_lock: jobTemplate.vehicle_lock,
+            requiredVehicle: jobTemplate.requiredVehicle,
+            isVehicleError: isVehicleError,
+            originalCustomerId: jobTemplate.originalCustomerId || jobTemplate.id,
+            overrideReason: overrideReason
+        };
+
+        if (existingJob) setJobs(prev => [...prev.filter(j => j.id !== existingJob.id), newJob]);
+        else setJobs(prev => [...prev, newJob]);
+
+        // Proposal
+        (async () => {
+            const defaultReasonId = await ensureDefaultReason();
+            await createProposal('add_job', newJob, currentUserId, overrideReason || 'Manual Placement')
+                .then(proposalId => proposalId && createDecision(proposalId, currentUserId, 'confirm', defaultReasonId));
+        })();
+
+        setPendingJobs(prev => prev.filter(j => j.id !== jobTemplate.id));
+        setSelectedCell(null);
+    };
+
+    const handleAddJob = (jobTemplate) => {
+        if (!editMode || !selectedCell) {
+            if (!editMode) showNotification("編集モードではありません", "error");
+            return;
+        }
+        const split = splits.find(s => s.driverId === selectedCell.driverId && s.time === selectedCell.time);
+        if (split) return;
+
+        const vehicleCheck = validateVehicleLock(jobTemplate, selectedCell.driverId, selectedCell.time);
+        if (!vehicleCheck.valid) {
+            showNotification(vehicleCheck.message, 'error');
+            setSelectedCell(null);
+            return;
+        }
+        const constraintCheck = validateTimeConstraint(jobTemplate, selectedCell.time);
+        if (!constraintCheck.valid) {
+            setReasonModal({ isOpen: true, message: constraintCheck.message, pendingJob: jobTemplate, targetCell: selectedCell });
+            return;
+        }
+        executePlacement(jobTemplate, selectedCell);
+    };
+
+    const handleConfirmPlacement = (reason) => {
+        const { pendingJob, targetCell } = reasonModal;
+        if (pendingJob && targetCell) {
+            executePlacement(pendingJob, targetCell, reason);
+            showNotification('理由付きで配置しました', 'warning');
+        }
+        setReasonModal({ isOpen: false, message: '', pendingJob: null, targetCell: null });
+    };
+
+    // Modal Saves
+    const handleSaveHeader = (courseName, assignedDriverName, assignedVehicle) => {
+        recordHistory();
+        setDrivers(prev => prev.map(d => d.id === modalState.targetId ? {
+            ...d,
+            name: courseName,
+            course: courseName.replace(/コース$/, ''), // Update short code too
+            driverName: assignedDriverName,
+            currentVehicle: assignedVehicle
+        } : d));
+        setModalState({ isOpen: false });
+        handleSave();
+    };
+    const handleSaveSplit = (newName, newVehicle) => {
+        recordHistory();
+        setSplits(prev => {
+            const idx = prev.findIndex(s => s.driverId === modalState.targetId && s.time === modalState.time);
+            if (idx >= 0) {
+                const newSplits = [...prev];
+                newSplits[idx] = { ...newSplits[idx], driverName: newName, vehicle: newVehicle };
+                return newSplits;
+            } else {
+                return [...prev, { id: `split_${modalState.targetId}_${Date.now()}`, driverId: modalState.targetId, time: modalState.time, driverName: newName, vehicle: newVehicle }];
+            }
+        });
+        setModalState({ isOpen: false });
+        handleSave();
+    };
+    const handleSaveJob = (jobId, newData) => {
+        recordHistory();
+        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...newData } : j));
+        setModalState({ isOpen: false });
+        handleSave();
+    };
+    const handleDeleteSplit = () => {
+        recordHistory();
+        setSplits(prev => prev.filter(s => !(s.driverId === modalState.targetId && s.time === modalState.time)));
+        setModalState({ isOpen: false });
+        handleSave();
+    };
+
+    // Global Events
+    React.useEffect(() => {
+        if (resizingState || draggingJobId || draggingSplitId) {
+            window.addEventListener('mousemove', handleWindowMouseMove);
+            window.addEventListener('mouseup', handleWindowMouseUp);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleWindowMouseMove);
+            window.removeEventListener('mouseup', handleWindowMouseUp);
+        };
+    }, [resizingState, draggingJobId, draggingSplitId, handleWindowMouseMove, handleWindowMouseUp]);
+
+    // Keyboard (Undo/Redo/Delete)
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+            if (((e.ctrlKey || e.metaKey) && e.key === 'y') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) { e.preventDefault(); redo(); return; }
+            if (modalState.isOpen || selectedCell) return;
+            if (!selectedJobId) return;
+            if (e.key === 'Delete' || e.key === 'Backspace') { if (selectedJobId) handleDeleteJob(selectedJobId); }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedJobId, jobs, modalState, selectedCell, undo, redo]);
+
+
+    // ----------------------------------------
+    // RENDER
+    // ----------------------------------------
+    return (
+        <div className="flex flex-col h-screen bg-white text-sm font-sans text-gray-800 select-none">
+            {/* 1. Header */}
+            <header className="bg-gray-900 text-white p-2 flex justify-between items-center shadow-md z-50 relative">
+                <div className="flex items-center gap-2">
+                    <button className="p-1 hover:bg-gray-700 rounded transition-colors"><Menu size={20} /></button>
+                    <h1 className="font-bold text-lg">回収シフト管理 (Refactored)</h1>
+                    {/* Mode Status */}
+                    {!canEditBoard ? (
+                        <span className="ml-4 px-3 py-1 bg-red-500 text-white rounded text-sm font-bold flex items-center gap-1">🔒 閲覧専用</span>
+                    ) : editMode ? (
+                        <span className="ml-4 px-3 py-1 bg-green-600 rounded text-sm font-bold flex items-center gap-1">✅ 編集モード</span>
+                    ) : (
+                        <span className="ml-4 px-3 py-1 bg-yellow-500 text-black rounded text-sm font-bold flex items-center gap-1">👁️ 閲覧モード {lockedBy && `（${lockedBy}が編集中）`}</span>
+                    )}
+                </div>
+                {/* Actions */}
+                <div className="flex items-center gap-4">
+                    <div className="flex gap-1 mr-4">
+                        <button onClick={undo} disabled={!editMode || history.past.length === 0} className={`p-1.5 rounded transition ${(!editMode || history.past.length === 0) ? 'text-gray-600' : 'text-white hover:bg-gray-700'}`}><Undo2 size={18} /></button>
+                        <button onClick={redo} disabled={!editMode || history.future.length === 0} className={`p-1.5 rounded transition ${(!editMode || history.future.length === 0) ? 'text-gray-600' : 'text-white hover:bg-gray-700'}`}><Redo2 size={18} /></button>
+                    </div>
+                    <div className="bg-gray-700 px-3 py-1 rounded flex items-center gap-2"><Calendar size={16} /><span>{CURRENT_DATE_KEY}</span></div>
+
+                    {editMode ? (
+                        <>
+                            <button onClick={handleSave} className="bg-white text-gray-900 px-3 py-1 rounded font-bold hover:bg-gray-100 transition">保存する</button>
+                            <button onClick={releaseEditLock} className="bg-gray-700 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition">編集権を解放</button>
+                        </>
+                    ) : (
+                        <>
+                            <button disabled className="bg-gray-500 text-gray-300 px-3 py-1 rounded font-bold cursor-not-allowed">保存する</button>
+                            {!lockedBy && <button onClick={requestEditLock} className="bg-blue-500 text-white px-3 py-1 rounded text-sm font-bold hover:bg-blue-600 transition">編集モードに切替</button>}
+                        </>
+                    )}
+                </div>
+            </header>
+
+            {/* 2. Notifications */}
+            {notification && (
+                <div className={`absolute top-16 right-4 z-[100] px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-right fade-in duration-300 ${notification.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+                    {notification.type === 'success' ? <Check size={20} /> : <X size={20} />}
+                    <span className="font-bold">{notification.message}</span>
+                </div>
+            )}
+
+            {/* 3. Main Board */}
+            <div className="flex-1 overflow-auto relative bg-white" onClick={() => setSelectedJobId(null)}>
+                <div className="min-w-max">
+                    {/* 3.1 Driver Header */}
+                    <DriverHeader
+                        drivers={drivers}
+                        onEditHeader={openHeaderEdit}
+                        onAddColumn={addColumn}
+                        canEditBoard={editMode} // Only allow add if in edit mode
+                    />
+
+                    {/* 3.2 Board Body (Grid + Jobs) */}
+                    <div className="relative">
+                        <TimeGrid
+                            drivers={drivers}
+                            jobs={jobs}
+                            splits={splits}
+                            selectedCell={selectedCell}
+                            dropPreview={dropPreview}
+                            draggingJobId={draggingJobId}
+                            draggingSplitId={draggingSplitId}
+                            onCellClick={(driverId, time) => { if (editMode) setSelectedCell({ driverId, time }); }}
+                            driverColRefs={driverColRefs}
+                            isCellOccupied={() => false} // Passed internally in TimeGrid if logic moved there, or pass logic. 
+                        // Note: TimeGrid implements isCellOccupiedInternal.
+                        />
+
+                        {/* 3.3 Job Layer (Overlay) */}
+                        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                            <JobLayer
+                                jobs={jobs}
+                                splits={splits}
+                                drivers={drivers}
+                                draggingJobId={draggingJobId}
+                                draggingSplitId={draggingSplitId}
+                                selectedJobId={selectedJobId}
+                                resizingState={resizingState}
+                                dropPreview={dropPreview}
+                                dropSplitPreview={dropSplitPreview}
+                                dragMousePos={dragMousePos}
+                                onJobMouseDown={onJobMouseDownSafe}
+                                onSplitMouseDown={onSplitMouseDownSafe}
+                                onResizeStart={onResizeStartSafe}
+                                onJobContextMenu={handleContextMenu}
+                                onJobDoubleClick={(e, id) => { e.stopPropagation(); openJobEditModel(id); }}
+                                onJobClick={(e, id) => { e.stopPropagation(); setSelectedJobId(id); }}
+                                onSplitEdit={openSplitEdit}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 4. Sidebar */}
+            <PendingJobSidebar
+                pendingJobs={pendingJobs}
+                pendingFilter={pendingFilter}
+                setPendingFilter={setPendingFilter}
+                selectedCell={selectedCell}
+                selectedJobId={selectedJobId}
+                onAddJob={handleAddJob}
+                drivers={drivers}
+            />
+
+            {/* 5. Modals */}
+            <ReasonModal
+                isOpen={reasonModal.isOpen}
+                message={reasonModal.message}
+                onConfirm={handleConfirmPlacement}
+                onCancel={() => { setReasonModal({ isOpen: false, message: '', pendingJob: null, targetCell: null }); setSelectedCell(null); }}
+            />
+            <BoardModals
+                modalState={modalState}
+                onClose={() => setModalState({ isOpen: false })}
+                onSaveHeader={handleSaveHeader}
+                onSaveSplit={handleSaveSplit}
+                onDeleteSplit={handleDeleteSplit}
+                onSaveJob={handleSaveJob}
+                onDeleteJob={(id) => { handleDeleteJob(id); setModalState({ isOpen: false }); }}
+                masterItems={items} // Phase 6
+                onDeleteColumn={deleteColumn} // Phase 7
+                masterDrivers={masterDrivers} // Phase 7
+                masterVehicles={vehicles}     // Phase 7
+            />
+            {contextMenu && contextMenu.type === 'job' && (
+                <div
+                    className="fixed bg-white border border-gray-200 shadow-xl rounded-md z-[110] py-1 text-sm font-bold min-w-[120px] animate-in fade-in duration-100"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    onClick={e => e.stopPropagation()}
+                >
+                    <button className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2" onClick={() => { openJobEditModel(contextMenu.jobId); setContextMenu(null); }}><Edit3 size={14} /> 編集</button>
+                    <div className="border-t border-gray-100 my-1" />
+                    <button className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2" onClick={() => { handleDeleteJob(contextMenu.jobId); setContextMenu(null); }}><Trash2 size={14} /> 削除</button>
+                </div>
+            )}
+        </div>
+    );
+}

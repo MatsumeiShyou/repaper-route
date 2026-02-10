@@ -18,6 +18,7 @@
 | 2026-02-05 | AGENTS.md Version 2.2 Update | Database Governance Protocol (DGP-DB) 追加 | スキーマ変更とコード変更の同期原則、履歴記録義務を明文化 | User (PW: ｙ) | 承認 |
 | 2026-02-05 | Actual Schema Reflection (Phase 2.5) | 実際のSupabase構造を反映した統合スキーマ作成 | routes テーブル追加、テーブル名/ID型修正、冪等性対応、履歴可視化 | User (PW: ｙ + 制約) | 承認 |
 | 2026-02-05 | Verification File Update (Phase 2.5) | supabase_schema_verification.sql をPhase 2.5対応に更新 | テーブル名修正（customer_item_defaults, job_contents）、routes テーブル検証追加、カラム名を実構造に修正 | User (PW: ｙ) | 承認 |
+| 2026-02-08 | Course-Based Dispatch (Phase 7) | 配車盤モデルの刷新 (Driver軸 -> Course軸) | 現場運用（コース固定・担当者日替わり）への適合 | User (PW: ｙ) | 承認 |
 | 2026-02-05 | Project Cleanup (Phase 2.5) | プロジェクト整合性監査に基づくクリーンアップ実施 | 試作品を_archived/prototypes/へ移動、src/の古いスキーマ削除、original_BoardCanvas.jsx削除、task.md更新 | User (PW: ｙ + 制約) | 承認 |
 | 2026-02-06 | Phase 2: Concurrency Implementation | 編集競合防止ロジック実装とプロジェクト衛生管理 | 複数ユーザー同時編集時のデータ破壊防止、.gitignore最適化、プロダクション運用の前提条件達成 | User (PW: ｙ) | 承認 |
 | 2026-02-06 | Phase 2.2: Exclusive Edit Lock Implementation | 排他的編集ロック実装（Option E） | 編集権トークン方式、15分タイムアウト、閲覧モード追加、緊急変更対応、新人研修対応 | User (PW: ｙ) | 承認 |
@@ -26,3 +27,6 @@
 | 2026-02-07 | Phase 4.2: Approval Flow UI Implementation | SDR Dashboard (Audit UI) の実装 | `decision_proposals`, `decisions` テーブルの可視化、監査機能 (`SDRDashboard.jsx`, `useSDR.js`) 追加 | User (PW: ｙ) | 承認 |
 | 2026-02-08 | Phase 4.3: UI Localization | SDR Dashboardの完全日本語化 | 現場運用に合わせた用語統一 ("Proposals" -> "提案", "Decisions" -> "決定") とJST表示 | User (PW: ｙ) | 承認 |
 | 2026-02-08 | Task & Governance Optimization | task.mdのクリーンアップとDEBT連携強化 | 完了フェーズの残骸整理、二重管理の解消、憲法第11条の厳格適用 | User (PW: ｙ) | 承認 |
+| 2026-02-08 | Phase 6: Multi-Item Management Plan | フェーズ6実装計画(Schema/Logic/UI)の策定 | 複数品目管理機能の実現に向けた設計承認 | User (PW: ｙ) | 承認 |
+| 2026-02-08 | Phase 6: Schema Implementation | master_items, customer_item_defaults テーブル作成 | 複数品目管理のための基盤データ構造構築 | User (PW: ｙ) | 承認 |
+| 2026-02-11 | Business OS Compliance Migration (Phase 9) | SDRテーブル作成、RPC実装、RLS厳格化、Frontend wrapper実装 | 監査ログの完全化とセキュリティ強化 (Target Architecture適合) | User (PW: ｙ) | 承認 |
