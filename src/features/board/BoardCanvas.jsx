@@ -5,8 +5,9 @@
  */
 import React, { useState, useRef, useMemo } from 'react';
 import {
-    Calendar, Undo2, Redo2, Menu,
-    Check, X, AlertTriangle, Edit3, Trash2
+    Calendar, Undo2, Redo2, Menu, Save,
+    Check, X, AlertTriangle, Edit3, Trash2,
+    SidebarClose, SidebarOpen // Icons for sidebar toggle
 } from 'lucide-react';
 import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
@@ -19,10 +20,18 @@ import { BoardContextMenu } from './components/BoardContextMenu';
 import { PendingJobSidebar } from './components/PendingJobSidebar';
 import { timeToMinutes } from './logic/timeUtils';
 import { ensureDefaultReason, createProposal, createDecision } from './logic/proposalLogic';
+import { useAuth } from '../../contexts/AuthContext'; // Import Auth
 
 export default function BoardCanvas() {
-    const currentUserId = 'admin-001';
-    const currentDateKey = '2023-10-27';
+    const { currentUser } = useAuth(); // Use Auth
+    const currentUserId = currentUser.id; // Dynamic User ID
+    // Use today's date for production/demo (De-mocking Phase)
+    // In a real app, this might come from a URL param or DatePicker
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const currentDateKey = `${yyyy}-${mm}-${dd}`;
 
     // 1. Data & Logic Hook
     const {
@@ -67,6 +76,9 @@ export default function BoardCanvas() {
     const [reasonModal, setReasonModal] = useState({ isOpen: false, message: '', pendingJob: null, targetCell: null });
     const [contextMenu, setContextMenu] = useState(null);
     const [pendingFilter, setPendingFilter] = useState('全て');
+
+    // New Sidebar State
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // ----------------------------------------
     // Handlers (Moved from original BoardCanvas)
@@ -152,8 +164,9 @@ export default function BoardCanvas() {
         // Record History
         recordHistory();
 
-        // Reset selection
+        // Reset selection & Close Sidebar (UX Improvement)
         setSelectedCell(null);
+        setIsSidebarOpen(false); // Auto-close logic
     };
 
     if (!isDataLoaded) {
@@ -165,32 +178,55 @@ export default function BoardCanvas() {
             onMouseMove={handleBackgroundMouseMove}
             onMouseUp={handleBackgroundMouseUp}
             onClick={() => {
+                // Background Click: Close details
                 setSelectedCell(null);
                 setSelectedJobId(null);
                 setContextMenu(null);
+                // Optional: Close Sidebar on background click if desired, but might be annoying.
+                // leaving it open is better for repeated tasks.
             }}
         >
             {/* Header */}
-            <DriverHeader
-                drivers={drivers}
-                onEditHeader={openHeaderEdit}
-                onAddColumn={addColumn}
-                canEditBoard={canEditBoard}
-            />
-
-            <div className="flex flex-1 overflow-hidden">
-                {/* Pending Jobs Sidebar (Restored) */}
-                <PendingJobSidebar
-                    pendingJobs={pendingJobs}
-                    pendingFilter={pendingFilter}
-                    setPendingFilter={setPendingFilter}
-                    selectedCell={selectedCell}
-                    selectedJobId={selectedJobId}
-                    onAddJob={handleAssignPendingJob}
+            <div className="flex justify-between items-center pr-4 bg-white border-b border-gray-200 shadow-sm z-20 relative">
+                <DriverHeader
+                    drivers={drivers}
+                    onEditHeader={openHeaderEdit}
+                    onAddColumn={addColumn}
+                    canEditBoard={canEditBoard}
                 />
 
-                {/* Main Canvas */}
-                <div className="flex-1 overflow-auto relative select-none" style={{ height: 'calc(100vh - 160px)' }}>
+                {/* Save Button */}
+                {editMode && (
+                    <button
+                        onClick={() => handleSave()}
+                        disabled={isSyncing}
+                        className={`ml-auto mr-2 p-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
+                            ${isSyncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
+                        `}
+                    >
+                        <Save size={18} />
+                        {isSyncing ? '保存中...' : '保存'}
+                    </button>
+                )}
+
+                {/* Sidebar Toggle Button (Top Right) */}
+                <button
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    className={`ml-2 p-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold
+                        ${isSidebarOpen ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}
+                    `}
+                >
+                    {isSidebarOpen ? <SidebarClose size={18} /> : <SidebarOpen size={18} />}
+                    {isSidebarOpen ? 'リストを閉じる' : '未配車リスト'}
+                    <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                        {pendingJobs.length}
+                    </span>
+                </button>
+            </div>
+
+            <div className="flex flex-1 overflow-hidden relative">
+                {/* Main Canvas Area */}
+                <div className="flex-1 overflow-auto relative select-none h-full">
                     <div style={{ minWidth: 'max-content', position: 'relative' }}>
                         <TimeGrid
                             drivers={drivers}
@@ -203,6 +239,10 @@ export default function BoardCanvas() {
                             onCellClick={(driverId, time) => {
                                 if (editMode) {
                                     setSelectedCell({ driverId, time });
+                                    // Auto-Open Sidebar Logic (UX Improvement)
+                                    if (!isSidebarOpen) {
+                                        setIsSidebarOpen(true);
+                                    }
                                 } else {
                                     setSelectedCell({ driverId, time });
                                 }
@@ -223,10 +263,28 @@ export default function BoardCanvas() {
                             onJobClick={(id, e) => {
                                 e.stopPropagation();
                                 setSelectedJobId(id);
+                                // Don't open sidebar on job click, maybe show job details instead
                             }}
                             selectedJobId={selectedJobId}
                         />
                     </div>
+                </div>
+
+                {/* Pending Jobs Sidebar (Overlay Mode) */}
+                {/* Condition: Render always but translate-x for animation */}
+                <div className={`
+                    absolute top-0 right-0 h-full w-80 bg-white shadow-2xl z-30 transform transition-transform duration-300 ease-in-out border-l border-gray-200
+                    ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
+                `}>
+                    <PendingJobSidebar
+                        pendingJobs={pendingJobs}
+                        pendingFilter={pendingFilter}
+                        setPendingFilter={setPendingFilter}
+                        selectedCell={selectedCell}
+                        selectedJobId={selectedJobId}
+                        onAddJob={handleAssignPendingJob}
+                        onClose={() => setIsSidebarOpen(false)} // Pass close handler
+                    />
                 </div>
             </div>
 
@@ -247,9 +305,9 @@ export default function BoardCanvas() {
             />
 
             {/* Debug / Status Footer */}
-            <div className="p-2 bg-gray-100 border-t border-gray-300 text-xs flex gap-4 text-gray-500">
+            <div className="p-2 bg-gray-100 border-t border-gray-300 text-xs flex gap-4 text-gray-500 z-40 relative">
                 <span>Mode: {editMode ? 'Editing' : 'View Only'}</span>
-                <span>Drivers: {drivers.length}</span>
+                <span>User: {currentUser.name} ({currentUser.role})</span>
                 <span>Jobs: {jobs.length}</span>
                 <span>Pending: {pendingJobs.length}</span>
             </div>

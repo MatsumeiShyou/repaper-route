@@ -170,3 +170,35 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 
 ### アーカイブ
 旧スキーマファイルは `_archived/` ディレクトリに保管されています。詳細は `_archived/README.md` を参照してください。
+
+---
+
+## Phase 11: 安定化 (Stabilization)
+**日付**: 2026-02-11
+**目的**: バグ修正とスキーマ整合性の確保
+
+### 変更内容
+- **drivers テーブル修正**: `display_order` カラム (INTEGER) を追加。
+- **理由**: Frontend (`useMasterData.js`) が `display_order` でソートを行っており、カラム欠落により 400 Bad Request が発生していたため。
+
+
+### Phase 11.1: Persistence Fix (Schema/RPC Recovery)
+**日付**: 2026-02-11
+**目的**: 保存機能の400エラー解消（`routes`テーブルと`rpc_execute_board_update`の復元）
+
+### 変更内容
+- **Create Table**: `routes` (date, jobs, drivers, splits, pending, lock columns)
+- **Create RPC**: `rpc_execute_board_update` (JSONBによるUpsertロジック)
+
+
+### Phase 11.2: Jobs RLS Fix
+**日付**: 2026-02-11
+**目的**: `jobs`テーブルの400エラー解消（認証ユーザーのSELECT権限復旧）
+
+### 変更内容
+- **Policy Reset**: 既存のポリシーを削除し、`authenticated` 向けのSELECT/ALL許可ポリシーを再作成。
+- **Grant**: `authenticated` ロールへのアクセス権を明示的に付与。
+
+**参考**: `20260211100000_fix_jobs_rls.sql`
+
+

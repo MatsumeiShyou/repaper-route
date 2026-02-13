@@ -11,15 +11,28 @@
 ## 1. Technical Debt (技術的負債)
 *機能は動作しているが、保守性・拡張性・セキュリティの観点で修正が必要なコード箇所のリスト。*
 
-- [ ] **Hardcoded Auth (BoardCanvas)**
+- [x] **Hardcoded Auth (BoardCanvas)** - 完了 (2026-02-11 Phase 10)
   - **現状**: `src/features/board/BoardCanvas.jsx` にて `const currentUserId = "admin1";` とハードコードされている。
   - **あるべき姿**: `App.jsx` から `props` で受け取るか、`useAuth` フックを作成して動的に取得する。
   - **リスク**: 監査ログの正確性が損なわれる（常に "admin1" の操作として記録される）。
+  - **解決方法**: `AuthContext` 導入により `useAuth` フック経由で動的取得に変更済み。
+  - **結果**: 監査ログの整合性が確保され、実際のユーザーIDが記録されるようになった。
 
-- [ ] **Hardcoded Auth (AdminDashboard)**
+- [x] **Hardcoded Auth (AdminDashboard)** - 完了 (2026-02-11 Phase 10)
   - **現状**: `src/features/admin/AdminDashboard.jsx` にて `admin_user: 'AdminUser'` とハードコードされている。
   - **あるべき姿**: ログイン中のユーザー情報を利用する。
   - **リスク**: 監査ログにおいて、誰が承認したかが区別できない。
+  - **解決方法**: `AuthContext` 導入により動的ユーザー情報取得に変更済み。
+  - **結果**: 承認者の正確な追跡が可能になった。
+
+- [x] **Schema Inconsistency (drivers)**
+  - **対応完了**: 2026-02-11 Phase 11にて `display_order` カラムを追加済み (Manual SQL Execution)。
+
+
+- [ ] **Routes Initialization Logic Flaw**
+  - **現状**: `routes` テーブルに行が存在すると、`pending` が空であっても `jobs` テーブルからのフォールバックが行われない。
+  - **リスク**: 初回アクセス時に空データで保存されると、以降未割り当てジョブが表示されなくなる (今回発生した事象)。
+  - **あるべき姿**: `initializeData` 内で、`routes.pending` が空の場合に再同期を試みるロジックを追加する。
 
 ---
 

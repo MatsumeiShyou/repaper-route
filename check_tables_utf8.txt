@@ -1,7 +1,0 @@
-Table Check Results:
-✅ drivers: Exists (Rows: 11)
-✅ vehicles: Exists (Rows: 5)
-✅ jobs: Exists (Rows: 4)
-✅ splits: Exists (Rows: 0)
-✅ routes: Exists (Rows: 2)
-✅ profiles: Exists (Rows: 3)

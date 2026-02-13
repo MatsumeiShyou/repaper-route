@@ -1,0 +1,84 @@
+name: Governance Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 毎週月曜 00:00 UTC (= JST 09:00) に自動実行
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # 手動実行ボタンを有効化
+
+jobs:
+  governance-audit:
+    name: 統治プロトコル検証
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # 検証のみなので読み取り権限でOK
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run Seal Verification (check_seal.js)
+        run: node .agent/scripts/check_seal.js
+
+      - name: Run Self-Reflection Protocol (reflect.js)
+        run: node .agent/scripts/reflect.js
+
+      - name: Upload Governance Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-report
+          path: GOVERNANCE_REPORT.md
+
+  weekly-debt-check:
+    name: 週次DEBTメンテナンス
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write # 自動コミットのために書き込み権限を明示
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # すべての履歴を取得
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run DEBT Lifecycle Check (check_debt.js)
+        run: node .agent/scripts/check_debt.js
+
+      - name: Commit and Push changes
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add DEBT_AND_FUTURE.md DEBT_ARCHIVE.md 2>/dev/null || true
+          
+          # 変更がある場合のみコミット
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "[Governance] Weekly DEBT archive (auto-processed)"
+            git push
+          fi

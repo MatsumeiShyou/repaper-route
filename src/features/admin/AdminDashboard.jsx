@@ -6,11 +6,13 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase/client';
 import { cn } from '../../lib/utils';
+import { useAuth } from '../../contexts/AuthContext';
 
 // --- Configuration ---
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbztzbQGp7FTQ2t0qlBgY0qz3uOuRed6ec8QseGtbE69pHmjHZy_x6Y2ATNu-DKomCFygA/exec";
 
 export default function AdminDashboard() {
+    const { currentUser } = useAuth();
     const [jobs, setJobs] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [filterStatus, setFilterStatus] = useState('完了'); // '完了' = Pending Review
@@ -82,7 +84,7 @@ export default function AdminDashboard() {
                         decision: decisionStatus,
                         original_weight: job.weight_kg,
                         reason: reason, // The "Reason" in SDR
-                        admin_user: 'AdminUser' // TODO: Auth
+                        admin_user: currentUser.name // From AuthContext
                     },
                     items: [] // No new items
                 };

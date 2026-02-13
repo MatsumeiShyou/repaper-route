@@ -4,58 +4,28 @@ import SDRDashboard from './features/admin/SDRDashboard';
 import AdminDashboard from './features/admin/AdminDashboard';
 import BoardCanvas from './features/board/BoardCanvas';
 import { cn } from './lib/utils';
-import { User, Shield, Truck, LogOut, Activity } from 'lucide-react'; // Added Activity
-
-import { supabase } from './lib/supabase/client';
+import { User, Shield, Truck, LogOut, Activity, MapPin, Box } from 'lucide-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AdminLayout } from './components/AdminLayout';
+import { MasterPlaceholder } from './components/MasterPlaceholder';
+import { ThemeProvider } from './contexts/ThemeContext';
+import SettingsPage from './features/admin/SettingsPage';
 
 /**
  * アプリケーションのルートコンポーネント (Role Portal)
  * ユーザー認証(Login via DB)を行い、適切な画面へ振り分ける
  */
 export default function App() {
-    const [currentUser, setCurrentUser] = useState(null); // { id, name, role, ... }
-    const [adminView, setAdminView] = useState('menu'); // 'menu' | 'dashboard' | 'board' | 'sdr'
-    const [profiles, setProfiles] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    return (
+        <AuthProvider>
+            <AppContent />
+        </AuthProvider>
+    );
+}
 
-    // --- Load Users from DB ---
-    React.useEffect(() => {
-        const fetchProfiles = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .order('role', { ascending: true }) // ADMIN first
-                    .order('name');
-
-                if (data) setProfiles(data);
-                if (error) console.error("Profile Fetch Error:", error);
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchProfiles();
-    }, []);
-
-    // --- Login ---
-    const handleLogin = (user) => {
-        const userData = {
-            id: user.id || user.user_id, // Normalize ID
-            name: user.name,
-            role: user.role,
-            vehicle: user.vehicle_info || user.vehicle // Normalize Vehicle
-        };
-        setCurrentUser(userData);
-        setAdminView('menu'); // Reset admin view on login
-    };
-
-    const handleLogout = () => {
-        if (confirm('ログアウトしますか？')) {
-            setCurrentUser(null);
-        }
-    };
+function AppContent() {
+    const { currentUser, profiles, isLoading, login, logout } = useAuth();
+    const [adminView, setAdminView] = useState('board'); // Default to Board
 
     // --- Render Logic ---
 
@@ -75,14 +45,16 @@ export default function App() {
                     <div className="p-6 space-y-3">
                         {profiles.map(user => {
                             // Assign Color based on Role/Index manually for UI consistency
-                            // In real app, color could be in DB or hashed from name
                             const isDriver = user.role === 'DRIVER';
                             const bgColor = isDriver ? 'bg-blue-600' : 'bg-slate-800';
 
                             return (
                                 <button
                                     key={user.id || user.user_id}
-                                    onClick={() => handleLogin(user)}
+                                    onClick={() => {
+                                        login(user); // Use unified login logic
+                                        setAdminView('menu'); // Reset view on login
+                                    }}
                                     className={cn(
                                         "w-full p-4 rounded-xl flex items-center gap-4 transition-all hover:bg-gray-50 active:scale-95 shadow-sm border border-gray-100",
                                         !isDriver ? "border-l-4 border-l-slate-800" : ""
@@ -100,7 +72,7 @@ export default function App() {
                         })}
                     </div>
                     <div className="bg-gray-50 p-4 text-center text-xs text-gray-400">
-                        Production Mode v2.0
+                        Production Mode v2.1 (AuthContext)
                     </div>
                 </div>
             </div>
@@ -109,91 +81,58 @@ export default function App() {
 
     // 2. Admin Portal
     if (currentUser.role === 'ADMIN') {
-        if (adminView === 'menu') {
-            return (
-                <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-                    <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Changed grid cols */}
-                        {/* Header */}
-                        <div className="md:col-span-2 lg:col-span-3 flex justify-between items-center mb-4">
-                            <div>
-                                <h1 className="text-3xl font-bold text-slate-800">管理メニュー</h1>
-                                <p className="text-slate-500">管理者: {currentUser.name}</p>
-                            </div>
-                            <button onClick={handleLogout} className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition font-bold">
-                                <LogOut size={20} /> ログアウト
-                            </button>
-                        </div>
+        const handleViewChange = (viewId) => {
+            setAdminView(viewId);
+        };
 
-                        {/* Options */}
-                        <button
-                            onClick={() => setAdminView('dashboard')}
-                            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition flex flex-col items-center text-center gap-4 group h-64 justify-center"
-                        >
-                            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition">
-                                <Shield size={32} />
+        return (
+            <ThemeProvider>
+                <div className="h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+                    <AdminLayout activeView={adminView} onViewChange={handleViewChange}>
+                        {adminView === 'menu' && ( // "Home" dashboard logic
+                            <div className="p-8 h-full overflow-y-auto">
+                                <h1 className="text-2xl font-bold mb-6">管理者ホーム</h1>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {/* Dashboard Shortcut */}
+                                    <button onClick={() => setAdminView('dashboard')} className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 hover:shadow-md transition">
+                                        <Shield size={32} className="text-blue-600 dark:text-cyan-400 mb-4" />
+                                        <h3 className="font-bold">管理ボード</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">回収実績の承認・管理</p>
+                                    </button>
+                                    {/* Board Shortcut */}
+                                    <button onClick={() => setAdminView('board')} className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 hover:shadow-md transition">
+                                        <Truck size={32} className="text-emerald-600 dark:text-emerald-400 mb-4" />
+                                        <h3 className="font-bold">配車盤</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">本日の配車状況確認</p>
+                                    </button>
+                                    {/* SDR Shortcut */}
+                                    <button onClick={() => setAdminView('sdr')} className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700 hover:shadow-md transition">
+                                        <Activity size={32} className="text-purple-600 dark:text-purple-400 mb-4" />
+                                        <h3 className="font-bold">SDR監査</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">システムログ・監査</p>
+                                    </button>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-800">管理ボード</h2>
-                                <p className="text-gray-500 mt-2 text-sm">回収実績の承認</p>
-                            </div>
-                        </button>
+                        )}
 
-                        <button
-                            onClick={() => setAdminView('board')}
-                            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition flex flex-col items-center text-center gap-4 group h-64 justify-center"
-                        >
-                            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center group-hover:scale-110 transition">
-                                <Truck size={32} />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-800">配車盤</h2>
-                                <p className="text-gray-500 mt-2 text-sm">配車計画・状況</p>
-                            </div>
-                        </button>
+                        {adminView === 'dashboard' && <div className="h-full overflow-y-auto p-6"><AdminDashboard /></div>}
 
-                        {/* New SDR Dashboard Button */}
-                        <button
-                            onClick={() => setAdminView('sdr')}
-                            className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition flex flex-col items-center text-center gap-4 group h-64 justify-center"
-                        >
-                            <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center group-hover:scale-110 transition">
-                                <Activity size={32} />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-800">SDR監査</h2>
-                                <p className="text-gray-500 mt-2 text-sm">提案・決定ログ</p>
-                            </div>
-                        </button>
+                        {adminView === 'board' && <BoardCanvas />} {/* Board handles its own scroll */}
 
+                        {adminView === 'sdr' && <div className="h-full overflow-y-auto"><SDRDashboard /></div>}
 
-                    </div>
+                        {adminView === 'settings' && <div className="h-full overflow-y-auto"><SettingsPage /></div>}
+
+                        {/* Master Pages Placeholders */}
+                        {adminView === 'master_drivers' && <MasterPlaceholder title="ドライバー" icon={User} />}
+                        {adminView === 'master_vehicles' && <MasterPlaceholder title="車両" icon={Truck} />}
+                        {adminView === 'master_points' && <MasterPlaceholder title="回収先" icon={MapPin} />}
+                        {adminView === 'master_items' && <MasterPlaceholder title="品目" icon={Box} />}
+                        {adminView === 'users' && <MasterPlaceholder title="ユーザー管理" icon={Shield} />}
+                    </AdminLayout>
                 </div>
-            );
-        }
-        if (adminView === 'dashboard') {
-            return (
-                <div className="relative">
-                    <AdminDashboard />
-                    <BackButton onClick={() => setAdminView('menu')} />
-                </div>
-            );
-        }
-        if (adminView === 'board') {
-            return (
-                <div className="relative">
-                    <BoardCanvas />
-                    <BackButton onClick={() => setAdminView('menu')} />
-                </div>
-            );
-        }
-        if (adminView === 'sdr') {
-            return (
-                <div className="relative h-screen p-4 bg-gray-100">
-                    <SDRDashboard />
-                    <BackButton onClick={() => setAdminView('menu')} />
-                </div>
-            );
-        }
+            </ThemeProvider>
+        );
     }
 
     // 3. Driver App
@@ -201,7 +140,7 @@ export default function App() {
         return (
             <div className="relative">
                 <DriverApp initialDriverName={currentUser.name} initialVehicle={currentUser.vehicle} />
-                <BackButton onClick={handleLogout} label="ログアウト" />
+                <BackButton onClick={logout} label="ログアウト" />
             </div>
         );
     }

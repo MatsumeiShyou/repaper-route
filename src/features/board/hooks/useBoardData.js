@@ -114,7 +114,46 @@ export const useBoardData = (currentUserId, currentDateKey) => {
                     setLocalUpdatedAt(data.updated_at);
                     setIsOffline(false);
                 } else {
-                    generateInitialData();
+                    // generateInitialData(); // OLD: Clears data
+
+
+                    // Fallback: Load unassigned jobs from 'jobs' table
+                    console.log("[Debug] Fetching unassigned jobs for fallback...");
+                    const { data: unassignedJobs, error: jobsError } = await supabase
+                        .from('jobs')
+                        .select('*')
+                        .is('driver_id', null);
+
+                    console.log("[Debug] Unassigned Jobs Result:", { data: unassignedJobs, error: jobsError });
+
+                    if (jobsError) {
+                        console.error('Failed to load unassigned jobs:', jobsError);
+                        generateInitialData();
+                    } else {
+                        // Transform DB fields to Frontend Model
+                        const mappedJobs = (unassignedJobs || []).map(j => ({
+
+                            id: j.id,
+                            title: j.job_title,
+                            bucket: j.bucket_type,
+                            duration: j.duration_minutes,
+                            area: j.area || j.customer_name, // Fallback area to customer name if empty
+                            requiredVehicle: j.required_vehicle,
+                            note: j.special_notes || j.note,
+
+                            // Essential for filtering
+                            isSpot: j.bucket_type === 'スポット',
+                            timeConstraint: j.start_time, // e.g. "09:00"
+                            taskType: j.bucket_type === '特殊' ? 'special' : 'collection'
+                        }));
+
+                        setJobs([]);
+                        setDrivers([]);
+                        setSplits([]);
+                        setPendingJobs(mappedJobs);
+                        setLocalUpdatedAt(new Date().toISOString());
+                        setIsOffline(false);
+                    }
                 }
 
                 // 2. Fetch User Permissions
@@ -342,9 +381,13 @@ export const useBoardData = (currentUserId, currentDateKey) => {
 
                 // Data Internalize (ReadOnly Mode) or Conflict Detect (Edit Mode)
                 if (newData.updated_at) {
-                    if (editMode && localUpdatedAt && newData.updated_at !== localUpdatedAt) {
+                    // Ignore updates if I am the locker (My own saves)
+                    const isMyUpdate = newData.edit_locked_by === currentUserId;
+
+                    if (editMode && !isMyUpdate && localUpdatedAt && newData.updated_at !== localUpdatedAt) {
                         showNotification("競合を検知しました。リロードします", "error");
-                        setTimeout(() => window.location.reload(), 2000);
+                        // setTimeout(() => window.location.reload(), 2000);
+                        console.warn("RELOAD BLOCKED FOR DEBUGGING: Conflict detected", newData.updated_at, localUpdatedAt);
                     } else if (!editMode) {
                         // Auto-update in read-only
                         if (newData.jobs) setJobs(newData.jobs);
