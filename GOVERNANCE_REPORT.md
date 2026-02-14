@@ -1,6 +1,6 @@
 # Governance Self-Reflection Report
 
-**Generated**: 2026-02-14T00:55:07.398Z
+**Generated**: 2026-02-14T06:27:49.285Z
 **Period**: Last 7 days
 **Checks**: AMPLOG Protocol, Strict Seal, Resource Governance, Retry Pattern Detection
 
@@ -15,13 +15,3 @@
 - **Resource Control**: All log files are within acceptable size limits (<100KB).
 
 All governance protocols are being followed correctly.
-
-### Recent Changes (Auto-Snapshot)
-```
- AGENTS.md            | 21 +++++++++++++--------
- DEBT_AND_FUTURE.md   |  5 +++++
- GOVERNANCE_REPORT.md |  2 +-
- package.json         |  9 +++++++--
- 4 files changed, 26 insertions(+), 11 deletions(-)
-
-```

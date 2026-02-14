@@ -128,17 +128,22 @@ export default function BoardCanvas() {
     };
 
     // Modal Saves
-    const handleSaveHeader = (courseName, assignedDriverName, assignedVehicle) => {
+    const handleSaveHeader = (courseName, assignedDriverName, assignedVehicleValue) => {
         recordHistory();
+
+        // Find vehicle in master to get callsign
+        const vehicleInfo = masterVehicles.find(v => (v.callsign || v.number) === assignedVehicleValue);
+        const vehicleCallsign = vehicleInfo?.callsign || assignedVehicleValue;
+
         setDrivers(prev => prev.map(d => d.id === modalState.targetId ? {
             ...d,
             name: courseName,
             course: courseName.replace(/コース$/, ''),
             driverName: assignedDriverName,
-            currentVehicle: assignedVehicle
+            currentVehicle: assignedVehicleValue, // Value used for selection
+            vehicleCallsign: vehicleCallsign // Added for display
         } : d));
         setModalState({ isOpen: false });
-        // handleSave(); // Trigger save?
     };
 
 

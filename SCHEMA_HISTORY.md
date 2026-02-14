@@ -221,4 +221,73 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 
 **参考**: `20260211100000_fix_jobs_rls.sql`
 
+---
+
+## Phase 3: データ整合性強化（Data Integrity）
+**日付**: 2026-02-14
+**目的**: 外部キー制約の強化および論理削除（アーカイブ）基盤の構築
+
+### 変更内容
+- **drivers テーブル**: `user_id` から `profiles.id` への外部キー制約 `fk_drivers_profiles` を追加。
+- **is_active カラム追加 (BOOLEAN, default true)**:
+    - `master_collection_points`
+    - `vehicles`
+    - `master_items`
+- **理由**: 物理削除による「歴史（証跡）の抹消」を防止し、SDRモデルにおける判断の追跡可能性を担保するため。
+
+**参考**: `20260214110000_phase3_integrity.sql`
+
+---
+
+## Phase 4: 基盤・拡張分離モデル (Core/Extension Separation)
+**日付**: 2026-02-14
+**目的**: 将来の全社OS統合を見据えた車両マスタの再設計
+
+### 変更内容
+- **Core レイヤー**: `master_vehicles` テーブル（全アプリ共通ID/車番/アクティブフラグ）。
+- **Extension レイヤー**: `logistics_vehicle_attrs` テーブル（配車アプリ特有の属性：積載量、燃料、車種）。
+- **互換性 View**: `vehicles` ビューを提供し、既存の読み取りコードの修正を回避。
+- **SDR RPC**: `rpc_execute_master_update` を実装。マスタ変更時に理由の入力をシステムレベルで強制し、`decisions` へ証跡を自動刻印。
+
+**理由**: 単一の巨大なテーブル（神クラス）化を防ぎ、将来の車両管理アプリ等が干渉せずにマスタを共有できるようにするため。
+
+**参考**: `20260214120000_core_ext_separation.sql`
+
+---
+
+## Phase 4.1: 車両名の導入 (Vehicle Name / Callsign)
+**日付**: 2026-02-14
+**目的**: 現場の運用（略称）と正式な車籍管理の分離・統合
+
+### 変更内容
+- **Core 層拡張**: `master_vehicles` テーブルに `callsign` カラムを追加。UI上は「車両名」として扱う。
+- **View 更新**: `vehicles` ビューを更新し、`callsign` を含める。
+- **SDR RPC 拡張**: `rpc_execute_master_update` を修正。車両名の更新をサポート。
+
+**理由**: 配車盤などの視認性が重要な場面で、「車両名（2267PK等）」を優先表示しつつ、DB上で正式な登録番号を管理できるようにするため。
+
+**参考**: `20260214130000_vehicle_callsign.sql`
+
+---
+
+## Phase 5: 汎用マスタRPC & スキーマ整理 (Generalized Master RPC & Schema Polish)
+**日付**: 2026-02-14
+**目的**: マスタ管理の標準化と一貫した監査証跡の確保
+
+### 変更内容
+- **スキーマ調整**: 以下の各テーブルに `updated_at` カラムを追加。
+    - `profiles`
+    - `drivers`
+    - `master_items`
+    - `master_collection_points`
+- **汎用 RPC 導入**: `rpc_execute_master_update` を拡張。
+    - 車両、品目、回収先、ドライバー、ユーザーの 5 大マスタに対応。
+    - テーブルごとの ID 型（UUID/TEXT）の相違を自動吸収。
+    - 常に `decision_proposals` および `decisions` へ SDR 証跡を記録。
+- **UI 統合**: 全てのマスタ管理画面から共通の RPC を使用する仕組みを確立。
+
+**理由**: マスタごとにバラバラだった更新ロジックを統合し、全社的な「ガバナンスとしての OS」の品質を向上させるため。
+
+**参考**: `20260214150000_general_master_rpc.sql`
+
 

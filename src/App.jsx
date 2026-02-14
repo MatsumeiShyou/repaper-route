@@ -10,6 +10,11 @@ import { AdminLayout } from './components/AdminLayout';
 import { MasterPlaceholder } from './components/MasterPlaceholder';
 import { ThemeProvider } from './contexts/ThemeContext';
 import SettingsPage from './features/admin/SettingsPage';
+import MasterVehicleList from './features/admin/MasterVehicleList';
+import MasterItemList from './features/admin/MasterItemList';
+import MasterPointList from './features/admin/MasterPointList';
+import MasterDriverList from './features/admin/MasterDriverList';
+import UserManagementList from './features/admin/UserManagementList';
 
 /**
  * アプリケーションのルートコンポーネント (Role Portal)
@@ -123,12 +128,12 @@ function AppContent() {
 
                         {adminView === 'settings' && <div className="h-full overflow-y-auto"><SettingsPage /></div>}
 
-                        {/* Master Pages Placeholders */}
-                        {adminView === 'master_drivers' && <MasterPlaceholder title="ドライバー" icon={User} />}
-                        {adminView === 'master_vehicles' && <MasterPlaceholder title="車両" icon={Truck} />}
-                        {adminView === 'master_points' && <MasterPlaceholder title="回収先" icon={MapPin} />}
-                        {adminView === 'master_items' && <MasterPlaceholder title="品目" icon={Box} />}
-                        {adminView === 'users' && <MasterPlaceholder title="ユーザー管理" icon={Shield} />}
+                        {/* Master Pages */}
+                        {adminView === 'master_drivers' && <MasterDriverList />}
+                        {adminView === 'master_vehicles' && <MasterVehicleList />}
+                        {adminView === 'master_points' && <MasterPointList />}
+                        {adminView === 'master_items' && <MasterItemList />}
+                        {adminView === 'users' && <UserManagementList />}
                     </AdminLayout>
                 </div>
             </ThemeProvider>

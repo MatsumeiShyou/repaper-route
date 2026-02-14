@@ -109,9 +109,13 @@ export const BoardModals = ({
                             onChange={e => setFormData({ ...formData, vehicle: e.target.value })}
                         >
                             <option value="">未定</option>
-                            {masterVehicles.map(v => (
-                                <option key={v.id} value={v.name}>{v.name}</option>
-                            ))}
+                            {masterVehicles.map(v => {
+                                const displayName = v.callsign ? `${v.callsign} (${v.number})` : v.number;
+                                const value = v.callsign || v.number;
+                                return (
+                                    <option key={v.id} value={value}>{displayName}</option>
+                                );
+                            })}
                         </select>
                     </div>
                 </div>
