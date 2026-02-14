@@ -1,150 +1,75 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Package, Plus, Edit2, Trash2, Search, Loader2, Save, AlertTriangle, Info } from 'lucide-react';
-import { supabase } from '../../lib/supabase/client';
 import { Modal } from '../../components/Modal';
-import { useAuth } from '../../contexts/AuthContext';
+import { useMasterCRUD } from '../../hooks/useMasterCRUD';
 
 export default function MasterItemList() {
-    const { currentUser } = useAuth();
-    const [items, setItems] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState(null);
+    const {
+        data: items,
+        isLoading,
+        searchTerm,
+        setSearchTerm,
+        isModalOpen,
+        setIsModalOpen,
+        isDeleteModalOpen,
+        setIsDeleteModalOpen,
+        selectedItem: selectedItem,
+        reason,
+        setReason,
+        isSubmitting,
+        handleOpenAdd: baseOpenAdd,
+        handleOpenEdit: baseOpenEdit,
+        handleOpenDelete,
+        handleSave,
+        handleArchive
+    } = useMasterCRUD({
+        viewName: 'master_items',
+        rpcTableName: 'items',
+        searchFields: ['name'],
+        initialSort: { column: 'display_order', ascending: true }
+    });
+
     const [formData, setFormData] = useState({
         name: '',
         unit: 'kg',
         display_order: 10
     });
-    const [reason, setReason] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    useEffect(() => {
-        fetchItems();
-    }, []);
-
-    const fetchItems = async () => {
-        setIsLoading(true);
-        try {
-            const { data, error } = await supabase
-                .from('master_items')
-                .select('*')
-                .eq('is_active', true)
-                .order('display_order', { ascending: true })
-                .order('name', { ascending: true });
-
-            if (error) throw error;
-            setItems(data || []);
-        } catch (e) {
-            console.error("Fetch Items Error:", e);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleOpenAdd = () => {
-        setSelectedItem(null);
+        const nextOrder = (items.length + 1) * 10;
         setFormData({
             name: '',
             unit: 'kg',
-            display_order: (items.length + 1) * 10
+            display_order: nextOrder
         });
-        setReason('');
-        setIsModalOpen(true);
+        baseOpenAdd();
     };
 
     const handleOpenEdit = (item) => {
-        setSelectedItem(item);
         setFormData({
             name: item.name || '',
             unit: item.unit || 'kg',
             display_order: item.display_order || 0
         });
-        setReason('');
-        setIsModalOpen(true);
+        baseOpenEdit(item);
     };
 
-    const handleOpenDelete = (item) => {
-        setSelectedItem(item);
-        setReason('');
-        setIsDeleteModalOpen(true);
-    };
-
-    const handleSubmit = async (e) => {
+    const onSave = async (e) => {
         e.preventDefault();
-        if (!formData.name || !reason) {
-            alert("「品目名」と「変更理由」は必須です。");
+        if (!formData.name) {
+            alert("「品目名」は必須です。");
             return;
         }
 
-        setIsSubmitting(true);
-        try {
-            const isEdit = !!selectedItem;
+        const coreDataFactory = (fd) => ({
+            name: fd.name,
+            unit: fd.unit,
+            display_order: parseInt(fd.display_order),
+            is_active: true
+        });
 
-            const coreData = {
-                name: formData.name,
-                unit: formData.unit,
-                display_order: parseInt(formData.display_order),
-                is_active: true
-            };
-
-            const { error } = await supabase.rpc('rpc_execute_master_update', {
-                p_table_name: 'items',
-                p_id: selectedItem?.id || null,
-                p_core_data: coreData,
-                p_ext_data: {},
-                p_decision_type: isEdit ? 'MASTER_UPDATE' : 'MASTER_REGISTRATION',
-                p_reason: reason,
-                p_user_id: currentUser.id
-            });
-
-            if (error) throw error;
-
-            await fetchItems();
-            setIsModalOpen(false);
-        } catch (e) {
-            alert("エラー: " + e.message);
-        } finally {
-            setIsSubmitting(false);
-        }
+        await handleSave(formData, coreDataFactory, null);
     };
-
-    const handleDelete = async () => {
-        if (!reason) {
-            alert("削除の理由を入力してください。");
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            const { error } = await supabase.rpc('rpc_execute_master_update', {
-                p_table_name: 'items',
-                p_id: selectedItem.id,
-                p_core_data: {
-                    ...selectedItem,
-                    is_active: false
-                },
-                p_ext_data: {},
-                p_decision_type: 'MASTER_ARCHIVE',
-                p_reason: reason,
-                p_user_id: currentUser.id
-            });
-
-            if (error) throw error;
-
-            await fetchItems();
-            setIsDeleteModalOpen(false);
-        } catch (e) {
-            alert("エラー: " + e.message);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const filteredItems = items.filter(i =>
-        i.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     return (
         <div className="p-8 max-w-4xl mx-auto h-full overflow-y-auto font-sans">
@@ -153,7 +78,7 @@ export default function MasterItemList() {
                     <h1 className="text-2xl font-bold flex items-center gap-3">
                         <Package className="text-blue-600" />
                         品目マスタ管理
-                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-mono font-normal">SDR-Compliant</span>
+                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-mono font-normal">SDR-Refined</span>
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">回収品目、単位、表示順の管理を行います</p>
                 </div>
@@ -183,7 +108,7 @@ export default function MasterItemList() {
                         <Loader2 className="animate-spin" size={32} />
                         <span>データを読み込み中...</span>
                     </div>
-                ) : filteredItems.length === 0 ? (
+                ) : items.length === 0 ? (
                     <div className="p-12 text-center text-gray-400">
                         該当する品目が見つかりません
                     </div>
@@ -198,7 +123,7 @@ export default function MasterItemList() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                            {filteredItems.map(item => (
+                            {items.map(item => (
                                 <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/30 transition">
                                     <td className="px-6 py-4 font-mono text-gray-400">{item.display_order}</td>
                                     <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200">{item.name}</td>
@@ -230,7 +155,6 @@ export default function MasterItemList() {
                 )}
             </div>
 
-            {/* Modal */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -239,7 +163,7 @@ export default function MasterItemList() {
                     <>
                         <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 rounded-lg">キャンセル</button>
                         <button
-                            onClick={handleSubmit}
+                            onClick={onSave}
                             disabled={isSubmitting || !formData.name || !reason}
                             className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50 flex items-center gap-2"
                         >
@@ -255,7 +179,7 @@ export default function MasterItemList() {
                             <label className="block text-sm font-bold mb-1">品目名</label>
                             <input
                                 type="text"
-                                className="w-full p-3 border rounded-xl dark:bg-slate-800"
+                                className="w-full p-3 border rounded-xl dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                             />
@@ -285,7 +209,9 @@ export default function MasterItemList() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold mb-1 text-purple-600">変更理由 (SDR)</label>
+                        <label className="block text-sm font-bold mb-1 text-purple-600 flex items-center gap-1">
+                            <Info size={14} /> 変更理由 (SDR義務)
+                        </label>
                         <textarea
                             className="w-full p-3 border rounded-xl dark:bg-slate-800 min-h-[80px]"
                             value={reason}
@@ -296,7 +222,6 @@ export default function MasterItemList() {
                 </div>
             </Modal>
 
-            {/* Delete Modal */}
             <Modal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
@@ -305,7 +230,7 @@ export default function MasterItemList() {
                     <>
                         <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 text-gray-600">キャンセル</button>
                         <button
-                            onClick={handleDelete}
+                            onClick={() => handleArchive()}
                             disabled={isSubmitting || !reason}
                             className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50"
                         >
@@ -320,7 +245,7 @@ export default function MasterItemList() {
                         <p>「{selectedItem?.name}」を非表示にします。過去の記録は保持されます。</p>
                     </div>
                     <textarea
-                        className="w-full p-3 border rounded-xl dark:bg-slate-800"
+                        className="w-full p-3 border rounded-xl dark:bg-slate-800 min-h-[100px]"
                         placeholder="削除理由を入力..."
                         value={reason}
                         onChange={e => setReason(e.target.value)}

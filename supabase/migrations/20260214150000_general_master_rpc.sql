@@ -36,7 +36,7 @@ BEGIN
 
     -- [B] SDR Auditing
     INSERT INTO decision_proposals (proposal_type, status, proposed_value, reason, proposer_id, target_id)
-    VALUES (p_decision_type, 'APPROVED', p_core_data || p_ext_data, p_reason, p_user_id, v_target_id_text)
+    VALUES (p_decision_type, 'APPROVED', (COALESCE(p_core_data, '{}'::JSONB) || COALESCE(p_ext_data, '{}'::JSONB)), p_reason, p_user_id, v_target_id_text)
     RETURNING id INTO v_proposal_id;
 
     INSERT INTO decisions (proposal_id, decision, decider_id)
@@ -130,12 +130,19 @@ BEGIN
 
     -- 5. USERS (Profiles)
     ELSIF p_table_name = 'users' THEN
-        UPDATE profiles SET
-            name = p_core_data->>'name',
-            role = p_core_data->>'role',
-            vehicle_info = p_core_data->>'vehicle_info',
-            updated_at = NOW()
-        WHERE id::TEXT = v_target_id_text;
+        INSERT INTO profiles (id, name, role, vehicle_info, updated_at)
+        VALUES (
+            v_target_id_uuid,
+            p_core_data->>'name',
+            p_core_data->>'role',
+            p_core_data->>'vehicle_info',
+            NOW()
+        )
+        ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            role = EXCLUDED.role,
+            vehicle_info = EXCLUDED.vehicle_info,
+            updated_at = NOW();
     END IF;
 END;
 $$;

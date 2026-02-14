@@ -55,16 +55,12 @@
   - **現状**: 検証ロジック (`validateVehicleLock`) は実装済みだが、UI側の厳密なブロック動作は検証待ち/未適用。
   - **理由**: 現場の柔軟な運用を優先するため、警告 (Warning) レベルに留めている可能性あり。
 
-- [ ] **Master Management UI** (DX Consideration - 検討中)
+- [x] **Master Management UI** (Phase 5 - 2026-02-14)
   - **概要**: 顧客 (`master_collection_points`) や車両 (`vehicles`) を管理画面から編集・追加する機能。
-  - **現状**: DX運用全体の中で、どのような設計（Excel連携派？完全Web化派？）にするか検討中のため保留。
-  - **ステータス**: 必須機能だが、運用設計待ち (Design Pending)。
+  - **解決方法**: 汎用RPC `rpc_execute_master_update` を実装し、各マスタ画面 (Vehicle/Item/Point/Driver/User) をSDR準拠で実装完遂。
+  - **結果**: 運用設計（SDR）に基づいた監査可能なマスタ管理体制が確立。
 
----
-
-## 3. Future Considerations (将来の検討事項)
-*コンセプト段階のアイデアや、長期的なロードマップ。*
-
-- [ ] **Rule-based Automation** (Algorithmic Generation)
-  - **概要**: AI（LLM）ではなく、厳格なロジックに基づく配車計画の自動提案機能。
-  - **方針**: 現在は「人間の判断＋SDR監査」のフローを確立することを最優先とし、自動化は時期尚早として除外。
+- [x] **Physical Governance Gateway Activation** (Phase 5 - 2026-02-14)
+  - **概要**: `.agent/scripts/pre_flight.js` を Husky などのフックに登録し、物理的に統治を強制する。
+  - **解決方法**: Husky `pre-commit` への登録を完了し、全ての変更においてプリフライトチェックを物理的に強制する体制を確立。
+  - **結果**: 人為的なエラーや統治のバイパスがシステム的に遮断されるようになった。

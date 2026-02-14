@@ -290,4 +290,36 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 
 **参考**: `20260214150000_general_master_rpc.sql`
 
+---
 
+---
+
+## Phase 17: ドライバー・イベント・コントラクト (Driver Event Contract)
+**日付**: 2026-02-14
+**目的**: ドライバーアプリ（Hands）と管理画面（Brain）の疎結合な状態同期の確立
+
+### 変更内容
+- **新規 RPC**: `rpc_apply_driver_event`
+    - ドライバーからのイベント（到着・完了・重量入力等）を単一窓口で受理。
+    - **SDR同期**: `decision_proposals` および `decisions` テーブルへ証跡を自動記録。
+    - **State同期**: `routes` テーブル内の JSONB データを、イベント内容に基づきアトミックに部分更新。
+- **仕様更新**: `SHARED_SPECS.md` の改訂。物理DB構造と型定義を完全アライメント。
+
+**理由**: ドライバーアプリが外部環境（AI Studio）で開発中であることを考慮し、DB側に堅牢な「アンカー（契約）」を設置することで、並行開発と将来の統合を安全に行うため。
+
+**参考**: `20260214170000_driver_event_contract.sql`
+
+---
+
+## Phase 18: 緊急RPC修復と基盤・拡張モデルの標準化 (Emergency RPC & Schema Repair)
+**日付**: 2026-02-14
+**目的**: 開発途上で発生したRPC定義の不整合およびCore/Extensionモデルの不完全な状態の緊急修復
+
+### 変更内容
+- **不整合修復**: `rpc_execute_master_update` のシグネチャ重複を解消し、堅牢な統一RPCとして再定義。
+- **Core/Extモデルの物理的一貫性**: `master_vehicles` と `logistics_vehicle_attrs` の関係性を再構築し、互換Viewを再定義。
+- **証跡の標準化**: `decision_proposals` および `decisions` テーブルへの書き込みを完全にSDRスキーマにアライメント。
+
+**理由**: 連続的な機能追加に伴い発生した「技術的ドリフト」を解消し、システム全体の整合性と稼働継続性を確保するため。
+
+**参考**: `20260214990000_repair_rpc.sql`

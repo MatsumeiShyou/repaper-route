@@ -2,17 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Edit2, Trash2, Search, Loader2, Save, AlertTriangle, Info, Building2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase/client';
 import { Modal } from '../../components/Modal';
-import { useAuth } from '../../contexts/AuthContext';
+import { useMasterCRUD } from '../../hooks/useMasterCRUD';
 
 export default function MasterPointList() {
-    const { currentUser } = useAuth();
-    const [points, setPoints] = useState([]);
     const [contractors, setContractors] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedPoint, setSelectedPoint] = useState(null);
+
+    const {
+        data: points,
+        isLoading,
+        searchTerm,
+        setSearchTerm,
+        isModalOpen,
+        setIsModalOpen,
+        isDeleteModalOpen,
+        setIsDeleteModalOpen,
+        selectedItem: selectedPoint,
+        reason,
+        setReason,
+        isSubmitting,
+        handleOpenAdd: baseOpenAdd,
+        handleOpenEdit: baseOpenEdit,
+        handleOpenDelete,
+        handleSave,
+        handleArchive
+    } = useMasterCRUD({
+        viewName: 'master_collection_points',
+        rpcTableName: 'points',
+        searchFields: ['name', 'address'],
+        initialSort: { column: 'name', ascending: true }
+    });
+
     const [formData, setFormData] = useState({
         location_id: '',
         name: '',
@@ -20,46 +39,19 @@ export default function MasterPointList() {
         contractor_id: '',
         note: ''
     });
-    const [reason, setReason] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        fetchPoints();
         fetchContractors();
     }, []);
 
-    const fetchPoints = async () => {
-        setIsLoading(true);
-        try {
-            const { data, error } = await supabase
-                .from('master_collection_points')
-                .select('*, master_contractors(name)')
-                .eq('is_active', true)
-                .order('name', { ascending: true });
-
-            if (error) throw error;
-            setPoints(data || []);
-        } catch (e) {
-            console.error("Fetch Points Error:", e);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     const fetchContractors = async () => {
         try {
-            const { data, error } = await supabase
-                .from('master_contractors')
-                .select('contractor_id, name')
-                .order('name');
+            const { data } = await supabase.from('master_contractors').select('contractor_id, name').order('name');
             if (data) setContractors(data);
-        } catch (e) {
-            console.error(e);
-        }
+        } catch (e) { console.error(e); }
     };
 
     const handleOpenAdd = () => {
-        setSelectedPoint(null);
         setFormData({
             location_id: '',
             name: '',
@@ -67,12 +59,10 @@ export default function MasterPointList() {
             contractor_id: contractors[0]?.contractor_id || '',
             note: ''
         });
-        setReason('');
-        setIsModalOpen(true);
+        baseOpenAdd();
     };
 
     const handleOpenEdit = (point) => {
-        setSelectedPoint(point);
         setFormData({
             location_id: point.location_id || '',
             name: point.name || '',
@@ -80,93 +70,31 @@ export default function MasterPointList() {
             contractor_id: point.contractor_id || '',
             note: point.note || ''
         });
-        setReason('');
-        setIsModalOpen(true);
+        baseOpenEdit(point);
     };
 
-    const handleOpenDelete = (point) => {
-        setSelectedPoint(point);
-        setReason('');
-        setIsDeleteModalOpen(true);
-    };
-
-    const handleSubmit = async (e) => {
+    const onSave = async (e) => {
         e.preventDefault();
-        if (!formData.name || !reason) {
-            alert("「回収先名」と「変更理由」は必須です。");
+        if (!formData.name) {
+            alert("「回収先名」は必須です。");
             return;
         }
 
-        setIsSubmitting(true);
-        try {
-            const isEdit = !!selectedPoint;
+        const coreDataFactory = (fd) => ({
+            location_id: fd.location_id || (selectedPoint ? selectedPoint.location_id : null),
+            name: fd.name,
+            address: fd.address,
+            contractor_id: fd.contractor_id,
+            note: fd.note,
+            is_active: true
+        });
 
-            const coreData = {
-                location_id: formData.location_id || (isEdit ? selectedPoint.location_id : null),
-                name: formData.name,
-                address: formData.address,
-                contractor_id: formData.contractor_id,
-                note: formData.note,
-                is_active: true
-            };
-
-            const { error } = await supabase.rpc('rpc_execute_master_update', {
-                p_table_name: 'points',
-                p_id: selectedPoint?.location_id || formData.location_id || null,
-                p_core_data: coreData,
-                p_ext_data: {},
-                p_decision_type: isEdit ? 'MASTER_UPDATE' : 'MASTER_REGISTRATION',
-                p_reason: reason,
-                p_user_id: currentUser.id
-            });
-
-            if (error) throw error;
-
-            await fetchPoints();
-            setIsModalOpen(false);
-        } catch (e) {
-            alert("エラー: " + e.message);
-        } finally {
-            setIsSubmitting(false);
-        }
+        await handleSave(formData, coreDataFactory, null);
     };
 
-    const handleDelete = async () => {
-        if (!reason) {
-            alert("削除の理由を入力してください。");
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            const { error } = await supabase.rpc('rpc_execute_master_update', {
-                p_table_name: 'points',
-                p_id: selectedPoint.location_id,
-                p_core_data: {
-                    ...selectedPoint,
-                    is_active: false
-                },
-                p_ext_data: {},
-                p_decision_type: 'MASTER_ARCHIVE',
-                p_reason: reason,
-                p_user_id: currentUser.id
-            });
-
-            if (error) throw error;
-
-            await fetchPoints();
-            setIsDeleteModalOpen(false);
-        } catch (e) {
-            alert("エラー: " + e.message);
-        } finally {
-            setIsSubmitting(false);
-        }
+    const onArchive = async () => {
+        await handleArchive('location_id');
     };
-
-    const filteredPoints = points.filter(p =>
-        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.address?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     return (
         <div className="p-8 max-w-5xl mx-auto h-full overflow-y-auto font-sans">
@@ -175,7 +103,7 @@ export default function MasterPointList() {
                     <h1 className="text-2xl font-bold flex items-center gap-3">
                         <MapPin className="text-blue-600" />
                         回収先マスタ管理
-                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-mono font-normal">SDR-Compliant</span>
+                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-mono font-normal">SDR-Refined</span>
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">回収場所、住所、仕入先情報の管理を行います</p>
                 </div>
@@ -205,7 +133,7 @@ export default function MasterPointList() {
                         <Loader2 className="animate-spin" size={32} />
                         <span>データを読み込み中...</span>
                     </div>
-                ) : filteredPoints.length === 0 ? (
+                ) : points.length === 0 ? (
                     <div className="p-12 text-center text-gray-400">
                         該当する回収先が見つかりません
                     </div>
@@ -219,7 +147,7 @@ export default function MasterPointList() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                            {filteredPoints.map(point => (
+                            {points.map(point => (
                                 <tr key={point.location_id} className="hover:bg-gray-50 dark:hover:bg-slate-800/30 transition">
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-slate-700 dark:text-slate-200">{point.name}</div>
@@ -256,7 +184,6 @@ export default function MasterPointList() {
                 )}
             </div>
 
-            {/* Modal */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -265,7 +192,7 @@ export default function MasterPointList() {
                     <>
                         <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 rounded-lg">キャンセル</button>
                         <button
-                            onClick={handleSubmit}
+                            onClick={onSave}
                             disabled={isSubmitting || !formData.name || !reason}
                             className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50 flex items-center gap-2"
                         >
@@ -341,7 +268,6 @@ export default function MasterPointList() {
                 </div>
             </Modal>
 
-            {/* Delete Modal */}
             <Modal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
@@ -350,7 +276,7 @@ export default function MasterPointList() {
                     <>
                         <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 text-gray-600">キャンセル</button>
                         <button
-                            onClick={handleDelete}
+                            onClick={onArchive}
                             disabled={isSubmitting || !reason}
                             className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50"
                         >

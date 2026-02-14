@@ -21,3 +21,9 @@
 | 2026-02-14 | Core/Ext Separation Model | MasterVehicleList.jsx / 20260214120000_core_ext_separation.sql | 車両マスタをCore（基盤）とExt（拡張）に分離。将来の全社統合を見据えたOS型アーキテクチャの確立。 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-14 | Vehicle Name (Callsign) Support | MasterVehicleList.jsx / BoardCanvas.jsx / 20260214130000_vehicle_callsign.sql | UI上の表示を「車両名」に統一。内部的には「通称」として管理し、現場の運用と正式データの管理を両立。 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-14 | General Master RPC & Remaining UIs | MasterItemList.jsx / MasterPointList.jsx / MasterDriverList.jsx / UserManagementList.jsx / 20260214150000_general_master_rpc.sql | 品目・回収先・ドライバー・ユーザーの各マスタ画面をSDR化。1つの汎用RPCで全マスタの監査記録・アーカイブ更新を統合管理。 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | Brain-Hands (Admin-Driver) 統合仕様の確定 | .agent/reference/driver-app/ 共有仕様および設計方針 | 管理と現場の役割分担の明確化、SDRプロトコルベースの疎結合連携の確立 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | RePaper Route Driver App 開発背景と統治上の注意事項 | .agent/reference/driver-app/ 資産および開発プロセス | Google AI Studio での開発に起因する非標準構造（node_modules欠落等）の許容、および外部AI連携による高効率開発の正当化 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | Driver Event Contract (Anchor) | supabase/migrations/ / SHARED_SPECS.md | Brain-Hands間の疎結合連携を支える不変のアンカー（RPC）の確立。 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | Emergency RPC & Schema Repair | 20260214990000_repair_rpc.sql | RPC不具合およびCore/Extモデルの不整合に対する緊急修復と標準化。 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | Governance Protocol Evolution | AGENTS.md | 二段階提案プロトコル (§2.1) の導入、および自動進行抑制・クリーンアップ強化。 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | Governance Protocol Evolution | AGENTS.md, AMPLOG.md, DEBT_AND_FUTURE.md | 二段階提案プロトコル (2.1) の導入による自動進行抑制、およびクリーンアップ強化。 | User (Approved) | 承認 (PW: ｙ) |

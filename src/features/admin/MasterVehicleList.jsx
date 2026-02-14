@@ -1,54 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { Truck, Plus, Edit2, Trash2, Search, X, Loader2, Save, AlertTriangle, Info } from 'lucide-react';
-import { supabase } from '../../lib/supabase/client';
+import React, { useState } from 'react';
+import { Truck, Plus, Edit2, Trash2, Search, Loader2, Save, AlertTriangle, Info } from 'lucide-react';
 import { Modal } from '../../components/Modal';
-import { useAuth } from '../../contexts/AuthContext';
-import { cn } from '../../lib/utils';
+import { useMasterCRUD } from '../../hooks/useMasterCRUD';
 
 export default function MasterVehicleList() {
-    const { currentUser } = useAuth();
-    const [vehicles, setVehicles] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const {
+        data: vehicles,
+        isLoading,
+        searchTerm,
+        setSearchTerm,
+        isModalOpen,
+        setIsModalOpen,
+        isDeleteModalOpen,
+        setIsDeleteModalOpen,
+        selectedItem: selectedVehicle,
+        reason,
+        setReason,
+        isSubmitting,
+        handleOpenAdd: baseOpenAdd,
+        handleOpenEdit: baseOpenEdit,
+        handleOpenDelete,
+        handleSave,
+        handleArchive
+    } = useMasterCRUD({
+        viewName: 'vehicles',
+        rpcTableName: 'vehicles',
+        searchFields: ['number', 'callsign'],
+        initialSort: { column: 'callsign', ascending: true }
+    });
+
     const [formData, setFormData] = useState({
         number: '',
-        callsign: '', // Added
+        callsign: '',
         max_payload: '',
         fuel_type: '軽油',
         vehicle_type: 'パッカー'
     });
-    const [reason, setReason] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    useEffect(() => {
-        fetchVehicles();
-    }, []);
-
-    const fetchVehicles = async () => {
-        setIsLoading(true);
-        try {
-            // View 'vehicles' (joins master_vehicles & logistics_vehicle_attrs)
-            const { data, error } = await supabase
-                .from('vehicles')
-                .select('*')
-                .eq('is_active', true)
-                .order('callsign', { ascending: true }) // Sort by callsign
-                .order('number', { ascending: true });
-
-            if (error) throw error;
-            setVehicles(data || []);
-        } catch (e) {
-            console.error("Fetch Vehicles Error:", e);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleOpenAdd = () => {
-        setSelectedVehicle(null);
         setFormData({
             number: '',
             callsign: '',
@@ -56,12 +45,10 @@ export default function MasterVehicleList() {
             fuel_type: '軽油',
             vehicle_type: 'パッカー'
         });
-        setReason('');
-        setIsModalOpen(true);
+        baseOpenAdd();
     };
 
     const handleOpenEdit = (vehicle) => {
-        setSelectedVehicle(vehicle);
         setFormData({
             number: vehicle.number || '',
             callsign: vehicle.callsign || '',
@@ -69,105 +56,30 @@ export default function MasterVehicleList() {
             fuel_type: vehicle.fuel_type || '軽油',
             vehicle_type: vehicle.vehicle_type || 'パッカー'
         });
-        setReason('');
-        setIsModalOpen(true);
+        baseOpenEdit(vehicle);
     };
 
-    const handleOpenDelete = (vehicle) => {
-        setSelectedVehicle(vehicle);
-        setReason('');
-        setIsDeleteModalOpen(true);
-    };
-
-    const handleSubmit = async (e) => {
+    const onSave = async (e) => {
         e.preventDefault();
-        if (!formData.number || !reason) {
-            alert("「車番」と「変更理由」は必須です。");
+        if (!formData.number) {
+            alert("「車番」は必須です。");
             return;
         }
 
-        setIsSubmitting(true);
-        try {
-            const isEdit = !!selectedVehicle;
+        const coreDataFactory = (fd) => ({
+            number: fd.number,
+            callsign: fd.callsign,
+            is_active: true
+        });
 
-            // Core Data (master_vehicles)
-            const coreData = {
-                number: formData.number,
-                callsign: formData.callsign, // Added
-                is_active: true
-            };
+        const extDataFactory = (fd) => ({
+            max_payload: fd.max_payload ? parseFloat(fd.max_payload) : null,
+            fuel_type: fd.fuel_type,
+            vehicle_type: fd.vehicle_type
+        });
 
-            // Extension Data (logistics_vehicle_attrs)
-            const extData = {
-                max_payload: formData.max_payload ? parseFloat(formData.max_payload) : null,
-                fuel_type: formData.fuel_type,
-                vehicle_type: formData.vehicle_type
-            };
-
-            // SDR: 専任RPC経由でアトミックに更新（提案・決裁・反映を統合）
-            const { error } = await supabase.rpc('rpc_execute_master_update', {
-                p_table_name: 'vehicles',
-                p_id: selectedVehicle?.id || null, // null for INSERT
-                p_core_data: coreData,
-                p_ext_data: extData,
-                p_decision_type: isEdit ? 'MASTER_UPDATE' : 'MASTER_REGISTRATION',
-                p_reason: reason,
-                p_user_id: currentUser.id
-            });
-
-            if (error) throw error;
-
-            await fetchVehicles();
-            setIsModalOpen(false);
-        } catch (e) {
-            alert("エラー: " + e.message);
-        } finally {
-            setIsSubmitting(false);
-        }
+        await handleSave(formData, coreDataFactory, extDataFactory);
     };
-
-    const handleDelete = async () => {
-        if (!reason) {
-            alert("削除（アーカイブ）の理由を入力してください。");
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            // SDR: 物理削除ではなくアーカイブ。RPC経由で記録
-            const { error } = await supabase.rpc('rpc_execute_master_update', {
-                p_table_name: 'vehicles',
-                p_id: selectedVehicle.id,
-                p_core_data: {
-                    number: selectedVehicle.number,
-                    callsign: selectedVehicle.callsign,
-                    is_active: false
-                },
-                p_ext_data: {
-                    max_payload: selectedVehicle.max_payload,
-                    fuel_type: selectedVehicle.fuel_type,
-                    vehicle_type: selectedVehicle.vehicle_type
-                },
-                p_decision_type: 'MASTER_ARCHIVE',
-                p_reason: reason,
-                p_user_id: currentUser.id
-            });
-
-            if (error) throw error;
-
-            await fetchVehicles();
-            setIsDeleteModalOpen(false);
-        } catch (e) {
-            alert("エラー: " + e.message);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const filteredVehicles = vehicles.filter(v =>
-        v.number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.callsign?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     return (
         <div className="p-8 max-w-5xl mx-auto h-full overflow-y-auto">
@@ -176,7 +88,7 @@ export default function MasterVehicleList() {
                     <h1 className="text-2xl font-bold flex items-center gap-3">
                         <Truck className="text-blue-600" />
                         車両マスタ管理
-                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-mono font-normal">OS-Compliant Model v1.2</span>
+                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-mono font-normal">Refined Model v2.0</span>
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">基盤OSのマスタ設計に準拠し、物流特有の属性を Extension 層で統合管理します</p>
                 </div>
@@ -190,7 +102,6 @@ export default function MasterVehicleList() {
             </header>
 
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
-                {/* Search Bar */}
                 <div className="p-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-950/20 flex items-center gap-3">
                     <Search size={18} className="text-gray-400" />
                     <input
@@ -207,7 +118,7 @@ export default function MasterVehicleList() {
                         <Loader2 className="animate-spin" size={32} />
                         <span>データを読み込み中...</span>
                     </div>
-                ) : filteredVehicles.length === 0 ? (
+                ) : vehicles.length === 0 ? (
                     <div className="p-12 text-center text-gray-400">
                         該当する車両が見つかりません
                     </div>
@@ -222,7 +133,7 @@ export default function MasterVehicleList() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                            {filteredVehicles.map(vehicle => (
+                            {vehicles.map(vehicle => (
                                 <tr key={vehicle.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/30 transition">
                                     <td className="px-6 py-4 font-bold text-lg text-blue-600">{vehicle.callsign || '-'}</td>
                                     <td className="px-6 py-4 font-medium">{vehicle.number}</td>
@@ -270,7 +181,7 @@ export default function MasterVehicleList() {
                             キャンセル
                         </button>
                         <button
-                            onClick={handleSubmit}
+                            onClick={onSave}
                             disabled={isSubmitting || !formData.number || !reason}
                             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-bold disabled:opacity-50"
                         >
@@ -281,7 +192,6 @@ export default function MasterVehicleList() {
                 }
             >
                 <div className="space-y-6">
-                    {/* Core Section */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 text-blue-600 font-bold mb-2">
                             <Info size={16} />
@@ -315,7 +225,6 @@ export default function MasterVehicleList() {
 
                     <div className="h-px bg-gray-100 dark:bg-slate-800" />
 
-                    {/* Extension Section */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 text-emerald-600 font-bold mb-2">
                             <Info size={16} />
@@ -364,7 +273,6 @@ export default function MasterVehicleList() {
 
                     <div className="h-px bg-gray-100 dark:bg-slate-800" />
 
-                    {/* SDR Section */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 text-purple-600 font-bold mb-2">
                             <Info size={16} />
@@ -397,7 +305,7 @@ export default function MasterVehicleList() {
                             キャンセル
                         </button>
                         <button
-                            onClick={handleDelete}
+                            onClick={() => handleArchive()}
                             disabled={isSubmitting || !reason}
                             className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2 font-bold disabled:opacity-50"
                         >
