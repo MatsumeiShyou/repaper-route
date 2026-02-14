@@ -35,6 +35,11 @@
   - **解決方法**: A案+B案+realtime subscription修正の3箇所対応。(1) pending空配列時にjobsテーブルから再同期 (2) 保存時にpending+jobs両方空ならブロック (3) realtime更新で空配列上書き防止。
   - **結果**: 誤操作で空保存してもデータが永久に失われなくなった。
 
+- [x] **Governance System Physical Enforcement** - 完了 (2026-02-14)
+  - **現状**: ガバナンスがスクリプトファイル単体に依存し、package.json や憲法の条文と不整合。
+  - **解決方法**: AGENTS.md v3.2への刷新、package.json へのガバナンスコマンド統合、Husky hookの再定義。
+  - **結果**: ガバナンスが「記憶」ではなく「システム」として物理的に強制されるようになった。
+
 ---
 
 ## 2. Future Features (実装保留機能)

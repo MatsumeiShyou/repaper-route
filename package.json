@@ -10,7 +10,11 @@
         "preview": "vite preview",
         "test": "vitest",
         "test:ui": "vitest --ui",
-        "test:coverage": "vitest --coverage"
+        "test:coverage": "vitest --coverage",
+        "governance:check": "node .agent/scripts/check_seal.js",
+        "governance:audit": "node .agent/scripts/reflect.js",
+        "governance:preflight": "node .agent/scripts/pre_flight.js",
+        "prepare": "husky install"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.93.3",
@@ -31,6 +35,7 @@
         "@vitejs/plugin-react": "^4.2.1",
         "@vitest/ui": "^4.0.18",
         "autoprefixer": "^10.4.16",
+        "husky": "^8.0.3",
         "jsdom": "^28.0.0",
         "postcss": "^8.4.32",
         "supabase": "^2.76.7",
