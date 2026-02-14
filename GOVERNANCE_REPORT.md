@@ -1,6 +1,6 @@
 # Governance Self-Reflection Report
 
-**Generated**: 2026-02-14T20:38:46.671Z
+**Generated**: 2026-02-14T23:47:39.184Z
 **Period**: Last 7 days
 **Checks**: AMPLOG Protocol, Strict Seal, Resource Governance, Retry Pattern Detection
 
@@ -18,23 +18,9 @@ All governance protocols are being followed correctly.
 
 ### Recent Changes (Auto-Snapshot)
 ```
- AGENTS.md                                    |   11 +
- AMPLOG.md                                    |    5 +
- GOVERNANCE_REPORT.md                         |   12 +-
- package-lock.json                            | 3006 +++++++++++++++++---------
- package.json                                 |   10 +-
- src/App.jsx                                  |   42 +-
- src/components/Sidebar.jsx                   |   31 +-
- src/contexts/AuthContext.jsx                 |    2 +-
- src/features/admin/MasterDriverList.jsx      |  296 +--
- src/features/admin/MasterItemList.jsx        |  258 +--
- src/features/admin/MasterPointList.jsx       |  304 +--
- src/features/admin/MasterVehicleList.jsx     |  340 +--
- src/features/board/BoardCanvas.jsx           |   11 +-
- src/features/board/hooks/useBoardData.js     |   12 +-
- src/features/board/hooks/useBoardDragDrop.js |   34 +-
- src/features/board/logic/proposalLogic.js    |   57 +-
- vite.config.js                               |   10 +
- 17 files changed, 2085 insertions(+), 2356 deletions(-)
+ AGENTS.md            | 81 +++++++++++++++++++++++++---------------------------
+ AMPLOG.md            |  2 ++
+ GOVERNANCE_REPORT.md | 25 +---------------
+ 3 files changed, 42 insertions(+), 66 deletions(-)
 
 ```

@@ -54,3 +54,6 @@
 | 2026-02-14 | Node.js v22 Switch & esbuild Fix | Node.js Version / vite.config.js | Node.js v24 の不安定性解消および esbuild スキャナークラッシュの回避による開発環境の安定化。 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-14 | Whiteout & Node.js Env Fix | BoardCanvas.jsx / vite.config.js / AuthContext.jsx | �C���|�[�g�~�X�����AVite�œK���ėL�����A���݂��Ȃ�staffs�e�[�u���Q�ƏC���ɂ���ʕ����B | User (Approved) | ���� |
 | 2026-02-14 | ホワイトアウト問題の解消とVite環境の正常化 | BoardCanvas.jsx, vite.config.js, AuthContext.jsx, masterSchema.js | UI描画の復旧、Vite開発環境の安定化、およびDB不整合の解消 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | HuskyフックのWindows互換性修正 | .husky/pre-commit | Windows環境におけるGitコミット自動化（Pre-flight）の安定稼働を保証 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | DXOS Blueprint Extraction & Generalization | Governance Logic (AGENTS.md, .agent/scripts, Master UI Components) | Established a portable DXOS Framework for rapid, context-aware deployment in other projects. | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-15 | Supabase Project Name Update | Project Metadata / AMPLOG.md | Supabaseプロジェクト名を「TBNY-DX-OS」に更新。プロジェクトIDおよび接続情報は変更なし。 | User (Approved) | 承認 (PW: ｙ) |
