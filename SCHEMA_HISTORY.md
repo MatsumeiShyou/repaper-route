@@ -36,8 +36,7 @@
 ---
 
 ## Phase 1.5: 認証機能追加（Authentication）
-**日付**: 2026-02-06 | Phase 2.3: Edit Permission Control (RBAC) | profiles テーブルに can_edit_board カラム追加 | 特定ユーザーのみボード編集可能にする RBAC 実装
-2026-02-06 | Phase 3.2: Bucket System Redesign (Blueprint v2.1) | jobs テーブルに is_spot, time_constraint, task_type, vehicle_lock カラム追加 | 制約ベースの4バケット分類システム（全て/スポット/時間指定/特殊案件）に対応
+**日付**: 2026-02-06  
 **目的**: ユーザー認証とログイン機能の実装
 
 ### 追加テーブル
@@ -132,6 +131,30 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 
 ---
 
+## Phase 2.3: 編集権限制御（Edit Permission Control / RBAC）
+**日付**: 2026-02-06  
+**目的**: 特定ユーザーのみボード編集可能にする RBAC 実装
+
+### 変更内容
+- **profiles テーブル**: `can_edit_board` カラム追加
+
+### 理由
+管理者権限による編集制御の実現。新人研修時の閲覧専用モードと併用。
+
+---
+
+## Phase 3.2: バケットシステム再設計（Bucket System Redesign / Blueprint v2.1）
+**日付**: 2026-02-06  
+**目的**: 制約ベースの4バケット分類システム（全て/スポット/時間指定/特殊案件）に対応
+
+### 変更内容
+- **jobs テーブル**: `is_spot`, `time_constraint`, `task_type`, `vehicle_lock` カラム追加
+
+### 理由
+要件定義書に基づく高度な案件分類の実現。単純なリストから制約ベースの動的分類へ移行。
+
+---
+
 ## Phase 6: 複数品目管理（Multi-Item Management）
 **日付**: 2026-02-08  
 **目的**: 顧客ごとのきめ細やかな品目管理と、各回収案件ごとの実績追記
@@ -153,9 +176,6 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 ### Phase 3: 外部キー制約強化（予定）
 - `drivers.user_id → profiles.id` の外部キー制約追加
 - データ整合性のさらなる強化
-
-### Phase 4: ルート管理機能（予定）
-- `routes` テーブルの追加（配送ルート最適化）
 
 ---
 

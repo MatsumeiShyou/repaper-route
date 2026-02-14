@@ -8,9 +8,10 @@
  * Generates GOVERNANCE_REPORT.md with violations and recommendations.
  * 
  * Checks:
- *   1. AMPLOG Protocol compliance (PW seal, recent entries)
- *   2. Large log file detection (>100KB)
- *   3. Retry pattern detection (git log analysis for "当てずっぽう" retries)
+ *   1. AMPLOG Protocol compliance (§2 Traceability)
+ *   2. Resource governance (§5 Clean-up / Log size)
+ *   3. Retry pattern detection (§4 SVP)
+ *   4. Self-Reflection adherence (§6 SRP)
  */
 
 import fs from 'fs';
@@ -96,9 +97,44 @@ function checkAMPLOGViolations() {
     if (unsealed.length > 0) {
         violations.push({
             severity: 'HIGH',
-            category: 'Strict Seal Protocol',
+            category: '§1 Strict Seal Protocol',
             issue: `${unsealed.length} AMPLOG entries without (PW: ｙ) seal`,
             recommendation: 'Add (PW: ｙ) to unsealed entries'
+        });
+    }
+
+    return violations;
+}
+
+function checkCleanupViolations() {
+    const violations = [];
+    const offenders = [];
+
+    function scan(dir) {
+        try {
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+                    scan(fullPath);
+                } else if (entry.isFile()) {
+                    if (entry.name.endsWith('.bak') || entry.name.startsWith('debug_') || entry.name.startsWith('fix_')) {
+                        offenders.push(fullPath.replace(PROJECT_ROOT, '.'));
+                    }
+                }
+            }
+        } catch (err) { }
+    }
+
+    scan(PROJECT_ROOT);
+
+    if (offenders.length > 0) {
+        violations.push({
+            severity: 'MEDIUM',
+            category: '§5 Resource & Clean-up Governance',
+            issue: `${offenders.length} temporary/backup files detected`,
+            details: offenders.join('\n'),
+            recommendation: 'Delete these files immediately. Use Git for history, not .bak files.'
         });
     }
 
@@ -233,10 +269,10 @@ function checkRetryPatterns() {
 
         violations.push({
             severity: 'HIGH',
-            category: 'SVP / Retry Pattern (§ 6, § 13)',
+            category: '§4 Stop & Retry Protocol (SVP)',
             issue: `${rapidRetries.length} file(s) with rapid consecutive modifications detected (potential "当てずっぽう" retry)`,
             details,
-            recommendation: 'AGENTS.md § 6: 2回で失格。同一エラーへのリトライは Stop Protocol を発動し、原因を調査せよ。'
+            recommendation: 'AGENTS.md §4: 2回で失格。同一エラーへのリトライは Stop Protocol を発動し、原因を調査せよ。'
         });
     }
 
@@ -294,10 +330,10 @@ function checkRetryPatterns() {
         if (repeatedErrors.length > 0) {
             violations.push({
                 severity: 'MEDIUM',
-                category: 'Anti-Shadow Debugging (§ 11)',
+                category: '§4 Stop & Retry Protocol (SVP)',
                 issue: `${repeatedErrors.length} repeated error pattern(s) found across debug outputs`,
                 details: repeatedErrors.join('\n'),
-                recommendation: 'Investigate root cause. Do not retry — analyze the State (§ 11-3: Fact over Logic).'
+                recommendation: 'Investigate root cause. Do not retry — analyze the State (§4: Fact over Logic).'
             });
         }
     }
@@ -315,6 +351,11 @@ function generateReport(violations) {
 
     if (violations.length === 0) {
         report += `## ✅ Status: COMPLIANT\n\n`;
+        report += `### Verification Evidence\n`;
+        report += `- **§2 Traceability**: AMPLOG.md exists and contains recent sealed entries.\n`;
+        report += `- **§4 SVP**: Git log analysis detected no rapid retry patterns.\n`;
+        report += `- **§5 Clean-up**: No .bak, debug_*, or fix_* files found in project root/src.\n`;
+        report += `- **Resource Control**: All log files are within acceptable size limits (<100KB).\n\n`;
         report += `All governance protocols are being followed correctly.\n`;
         return report;
     }
@@ -366,13 +407,14 @@ function main() {
     console.log('📊 [1/3] Checking AMPLOG Protocol compliance...');
     const amplogViolations = checkAMPLOGViolations();
 
-    console.log('📊 [2/3] Checking resource governance (log file sizes)...');
+    console.log('📊 [2/4] Checking resource governance (log size / clean-up)...');
     const logViolations = checkLogFileSize();
+    const cleanupViolations = checkCleanupViolations();
 
-    console.log('📊 [3/3] Checking retry patterns (§ 6 SVP / § 13 SRP)...');
+    console.log('📊 [3/4] Checking retry patterns (§4 SVP)...');
     const retryViolations = checkRetryPatterns();
 
-    const allViolations = [...amplogViolations, ...logViolations, ...retryViolations];
+    const allViolations = [...amplogViolations, ...logViolations, ...cleanupViolations, ...retryViolations];
 
     const report = generateReport(allViolations);
     fs.writeFileSync(REPORT_PATH, report, 'utf8');

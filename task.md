@@ -9,9 +9,9 @@
 ### フェーズ 3: 管理機能強化 (Admin Features)
 - [ ] **User Permission Management UI**: 詳細スペックは `DEBT_AND_FUTURE.md` へ移管
 
-### フェーズ 11: 安定化とバグ修正 (Stabilization & Bug Fixes)
-- [ ] **Rigorous Assignment Verification**: DOM座標計算とDBレコード確認による「100%保証」テスト (DGP準拠)
-- [ ] **Data Correction**: 必要に応じて標準化
+### フェーズ 12: 統治品質強化 (Governance Hardening)
+- [ ] **コアロジックテスト追加**: `useBoardData`, `useBoardDragDrop` のスモークテスト → `DEBT_AND_FUTURE.md` にも記録
+- [ ] **Master Management UI 運用設計**: Excel連携 vs 完全Web化の方針決定
 
 ---
 

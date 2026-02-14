@@ -122,3 +122,10 @@ lint_log.txt
 lint_results.txt
 lint_manual.json
 test_output.txt
+
+# Backup files (use Git instead)
+*.bak
+
+# Debug script outputs (ephemeral)
+.agent/scripts/debug_*.txt
+.agent/scripts/verification_result.txt

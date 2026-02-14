@@ -29,10 +29,11 @@
   - **対応完了**: 2026-02-11 Phase 11にて `display_order` カラムを追加済み (Manual SQL Execution)。
 
 
-- [ ] **Routes Initialization Logic Flaw**
-  - **現状**: `routes` テーブルに行が存在すると、`pending` が空であっても `jobs` テーブルからのフォールバックが行われない。
-  - **リスク**: 初回アクセス時に空データで保存されると、以降未割り当てジョブが表示されなくなる (今回発生した事象)。
-  - **あるべき姿**: `initializeData` 内で、`routes.pending` が空の場合に再同期を試みるロジックを追加する。
+- [x] **Routes Initialization Logic Flaw** - 完了 (2026-02-14)
+  - **現状**: ~~`routes` テーブルに行が存在すると、`pending` が空であっても `jobs` テーブルからのフォールバックが行われない。~~
+  - **リスク**: ~~初回アクセス時に空データで保存されると、以降未割り当てジョブが表示されなくなる (今回発生した事象)。~~
+  - **解決方法**: A案+B案+realtime subscription修正の3箇所対応。(1) pending空配列時にjobsテーブルから再同期 (2) 保存時にpending+jobs両方空ならブロック (3) realtime更新で空配列上書き防止。
+  - **結果**: 誤操作で空保存してもデータが永久に失われなくなった。
 
 ---
 

@@ -7,7 +7,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import {
     Calendar, Undo2, Redo2, Menu, Save,
     Check, X, AlertTriangle, Edit3, Trash2,
-    SidebarClose, SidebarOpen // Icons for sidebar toggle
+    SidebarClose, SidebarOpen, Clipboard
 } from 'lucide-react';
 import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
@@ -58,7 +58,9 @@ export default function BoardCanvas() {
         draggingJobId, draggingSplitId,
         dropPreview, dropSplitPreview,
         dragMousePos,
+        resizingState,
         handleJobMouseDown, handleSplitMouseDown,
+        handleResizeStart,
         handleBackgroundMouseMove, handleBackgroundMouseUp
     } = useBoardDragDrop(
         jobs, drivers, splits,
@@ -66,7 +68,7 @@ export default function BoardCanvas() {
         setJobs, setSplits,
         recordHistory,
         currentUserId,
-        createProposal // Pass createProposal if needed by D&D? No, logic moved.
+        createProposal
     );
 
     // 3. UI State (Modals, Selections)
@@ -186,47 +188,52 @@ export default function BoardCanvas() {
                 // leaving it open is better for repeated tasks.
             }}
         >
-            {/* Header */}
-            <div className="flex justify-between items-center pr-4 bg-white border-b border-gray-200 shadow-sm z-20 relative">
-                <DriverHeader
-                    drivers={drivers}
-                    onEditHeader={openHeaderEdit}
-                    onAddColumn={addColumn}
-                    canEditBoard={canEditBoard}
-                />
+            {/* 配車盤専用アクションバー: サイドバーブランド領域と同じ高さ (h-14) */}
+            <div className="h-14 flex justify-end items-center px-4 bg-white border-b border-gray-200 shadow-sm z-30 sticky top-0">
+                <div className="flex items-center gap-2">
+                    {/* Save Button */}
+                    {editMode && (
+                        <button
+                            onClick={() => handleSave()}
+                            disabled={isSyncing}
+                            className={`p-2 h-10 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
+                                ${isSyncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
+                            `}
+                        >
+                            <Save size={18} />
+                            {isSyncing ? '保存中...' : '保存'}
+                        </button>
+                    )}
 
-                {/* Save Button */}
-                {editMode && (
+                    {/* Sidebar Toggle Button (未配車リスト) */}
                     <button
-                        onClick={() => handleSave()}
-                        disabled={isSyncing}
-                        className={`ml-auto mr-2 p-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
-                            ${isSyncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className={`relative w-10 h-10 rounded-lg transition-all flex items-center justify-center
+                            ${isSidebarOpen ? 'bg-blue-50 text-blue-600 shadow-inner' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 shadow-sm'}
                         `}
+                        title={isSidebarOpen ? 'リストを閉じる' : '未配車リスト'}
                     >
-                        <Save size={18} />
-                        {isSyncing ? '保存中...' : '保存'}
+                        <Clipboard size={20} />
+                        {pendingJobs.length > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm ring-2 ring-white">
+                                未{pendingJobs.length}
+                            </span>
+                        )}
                     </button>
-                )}
-
-                {/* Sidebar Toggle Button (Top Right) */}
-                <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className={`ml-2 p-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold
-                        ${isSidebarOpen ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}
-                    `}
-                >
-                    {isSidebarOpen ? <SidebarClose size={18} /> : <SidebarOpen size={18} />}
-                    {isSidebarOpen ? 'リストを閉じる' : '未配車リスト'}
-                    <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                        {pendingJobs.length}
-                    </span>
-                </button>
+                </div>
             </div>
 
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Main Canvas Area */}
                 <div className="flex-1 overflow-auto relative select-none h-full">
+                    {/* DriverHeader はスクロール領域内に配置し、sticky で固定 */}
+                    <DriverHeader
+                        drivers={drivers}
+                        onEditHeader={openHeaderEdit}
+                        onAddColumn={addColumn}
+                        canEditBoard={canEditBoard}
+                        stickyTop="top-0"
+                    />
                     <div style={{ minWidth: 'max-content', position: 'relative' }}>
                         <TimeGrid
                             drivers={drivers}
@@ -258,12 +265,13 @@ export default function BoardCanvas() {
                             draggingJobId={draggingJobId}
                             draggingSplitId={draggingSplitId}
                             dropSplitPreview={dropSplitPreview}
+                            resizingState={resizingState}
                             onJobMouseDown={handleJobMouseDown}
                             onSplitMouseDown={handleSplitMouseDown}
+                            onResizeStart={handleResizeStart}
                             onJobClick={(id, e) => {
                                 e.stopPropagation();
                                 setSelectedJobId(id);
-                                // Don't open sidebar on job click, maybe show job details instead
                             }}
                             selectedJobId={selectedJobId}
                         />

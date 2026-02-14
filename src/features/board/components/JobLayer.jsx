@@ -47,7 +47,7 @@ export const JobLayer = ({
     };
 
     return (
-        <div className="flex pointer-events-none">
+        <div className="absolute inset-0 flex pointer-events-none">
             {/* Spacer for Sticky Time Axis to maintain alignment */}
             <div className="w-16 flex-shrink-0 sticky left-0 z-30" />
 

@@ -3,7 +3,7 @@
  * @typedef {import('../types').Job} Job
  * @typedef {import('../types').Split} Split
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { timeToMinutes, minutesToTime, calculateTimeFromY } from '../logic/timeUtils';
 import { calculateCollision, checkVehicleCompatibility } from '../logic/collision';
 
@@ -267,6 +267,20 @@ export const useBoardDragDrop = (jobs, drivers, splits, driverColRefs, setJobs, 
         }
     };
 
+    // ----------------------------------------
+    // Window Event Registration (like prototype)
+    // ----------------------------------------
+    useEffect(() => {
+        if (resizingState || draggingJobId || draggingSplitId) {
+            window.addEventListener('mousemove', handleWindowMouseMove);
+            window.addEventListener('mouseup', handleWindowMouseUp);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleWindowMouseMove);
+            window.removeEventListener('mouseup', handleWindowMouseUp);
+        };
+    }, [resizingState, draggingJobId, draggingSplitId]);
+
     return {
         // State
         draggingJobId, draggingSplitId,
@@ -274,11 +288,13 @@ export const useBoardDragDrop = (jobs, drivers, splits, driverColRefs, setJobs, 
         dragMousePos, dragCurrent, dragOffset,
         resizingState,
 
-        // Handlers
-        handleMouseDownJob,
-        handleMouseDownSplit,
+        // Handlers (exposed for component binding)
+        handleJobMouseDown: handleMouseDownJob,
+        handleSplitMouseDown: handleMouseDownSplit,
         handleResizeStart,
-        handleWindowMouseMove,
-        handleWindowMouseUp
+        // Window events are now auto-registered via useEffect,
+        // but expose for backward compat if needed:
+        handleBackgroundMouseMove: handleWindowMouseMove,
+        handleBackgroundMouseUp: handleWindowMouseUp
     };
 };

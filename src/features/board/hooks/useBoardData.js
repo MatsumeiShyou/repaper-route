@@ -106,54 +106,58 @@ export const useBoardData = (currentUserId, currentDateKey) => {
 
                 if (error && error.code !== 'PGRST116') throw error;
 
-                if (data) {
-                    if (data.jobs) setJobs(data.jobs);
-                    if (data.drivers && data.drivers.length > 0) setDrivers(data.drivers);
-                    if (data.splits) setSplits(data.splits);
-                    if (data.pending) setPendingJobs(data.pending);
-                    setLocalUpdatedAt(data.updated_at);
-                    setIsOffline(false);
-                } else {
-                    // generateInitialData(); // OLD: Clears data
-
-
-                    // Fallback: Load unassigned jobs from 'jobs' table
-                    console.log("[Debug] Fetching unassigned jobs for fallback...");
+                // Helper: jobsテーブルから未割り当てジョブを取得する共通フォールバック
+                const fetchUnassignedJobsFallback = async () => {
+                    console.log("[Init] Fetching unassigned jobs from 'jobs' table (fallback)...");
                     const { data: unassignedJobs, error: jobsError } = await supabase
                         .from('jobs')
                         .select('*')
                         .is('driver_id', null);
 
-                    console.log("[Debug] Unassigned Jobs Result:", { data: unassignedJobs, error: jobsError });
-
                     if (jobsError) {
                         console.error('Failed to load unassigned jobs:', jobsError);
-                        generateInitialData();
-                    } else {
-                        // Transform DB fields to Frontend Model
-                        const mappedJobs = (unassignedJobs || []).map(j => ({
-
-                            id: j.id,
-                            title: j.job_title,
-                            bucket: j.bucket_type,
-                            duration: j.duration_minutes,
-                            area: j.area || j.customer_name, // Fallback area to customer name if empty
-                            requiredVehicle: j.required_vehicle,
-                            note: j.special_notes || j.note,
-
-                            // Essential for filtering
-                            isSpot: j.bucket_type === 'スポット',
-                            timeConstraint: j.start_time, // e.g. "09:00"
-                            taskType: j.bucket_type === '特殊' ? 'special' : 'collection'
-                        }));
-
-                        setJobs([]);
-                        setDrivers([]);
-                        setSplits([]);
-                        setPendingJobs(mappedJobs);
-                        setLocalUpdatedAt(new Date().toISOString());
-                        setIsOffline(false);
+                        return [];
                     }
+
+                    return (unassignedJobs || []).map(j => ({
+                        id: j.id,
+                        title: j.job_title,
+                        bucket: j.bucket_type,
+                        duration: j.duration_minutes,
+                        area: j.area || j.customer_name,
+                        requiredVehicle: j.required_vehicle,
+                        note: j.special_notes || j.note,
+                        isSpot: j.bucket_type === 'スポット',
+                        timeConstraint: j.start_time,
+                        taskType: j.bucket_type === '特殊' ? 'special' : 'collection'
+                    }));
+                };
+
+                if (data) {
+                    if (data.jobs) setJobs(data.jobs);
+                    if (data.drivers && data.drivers.length > 0) setDrivers(data.drivers);
+                    if (data.splits) setSplits(data.splits);
+
+                    // [FIX] A案: pending が空配列の場合、jobsテーブルから再同期
+                    if (data.pending && data.pending.length > 0) {
+                        setPendingJobs(data.pending);
+                    } else {
+                        console.warn('[Init] pending is empty in routes table. Re-syncing from jobs table...');
+                        const fallbackJobs = await fetchUnassignedJobsFallback();
+                        setPendingJobs(fallbackJobs);
+                    }
+
+                    setLocalUpdatedAt(data.updated_at);
+                    setIsOffline(false);
+                } else {
+                    // routesテーブルに行がない場合もフォールバック
+                    const fallbackJobs = await fetchUnassignedJobsFallback();
+                    setJobs([]);
+                    setDrivers([]);
+                    setSplits([]);
+                    setPendingJobs(fallbackJobs);
+                    setLocalUpdatedAt(new Date().toISOString());
+                    setIsOffline(false);
                 }
 
                 // 2. Fetch User Permissions
@@ -323,6 +327,13 @@ export const useBoardData = (currentUserId, currentDateKey) => {
     const handleSave = async (reason = 'Manual Save') => {
         setIsSyncing(true);
         try {
+            // [FIX] B案: pending と jobs が両方空の場合に警告
+            if (pendingJobs.length === 0 && jobs.length === 0) {
+                showNotification("⚠️ 未割り当て案件と配車済み案件が両方空です。保存すると次回アクセス時にデータが失われる可能性があります。", "error");
+                setIsSyncing(false);
+                return;
+            }
+
             // Optimistic Concurrency Check (Client-side pre-check)
             const { data: latest } = await supabase.from('routes').select('updated_at').eq('date', currentDateKey).maybeSingle();
 
@@ -340,8 +351,8 @@ export const useBoardData = (currentUserId, currentDateKey) => {
                     drivers,
                     splits,
                     pending: pendingJobs,
-                    edit_locked_by: lockedBy, // Pass lock info to preserve it
-                    edit_locked_at: new Date().toISOString() // or maintain current lock time
+                    edit_locked_by: lockedBy,
+                    edit_locked_at: new Date().toISOString()
                 },
                 p_decision_type: 'MANUAL_SAVE',
                 p_reason: reason
@@ -393,7 +404,8 @@ export const useBoardData = (currentUserId, currentDateKey) => {
                         if (newData.jobs) setJobs(newData.jobs);
                         if (newData.drivers) setDrivers(newData.drivers);
                         if (newData.splits) setSplits(newData.splits);
-                        if (newData.pending) setPendingJobs(newData.pending);
+                        // [FIX] 空配列による上書き防止: 実データがある場合のみ反映
+                        if (newData.pending && newData.pending.length > 0) setPendingJobs(newData.pending);
                         setLocalUpdatedAt(newData.updated_at);
                     }
                 }

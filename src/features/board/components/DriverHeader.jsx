@@ -1,9 +1,9 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 
-export const DriverHeader = ({ drivers, onEditHeader, onAddColumn, canEditBoard }) => {
+export const DriverHeader = ({ drivers, onEditHeader, onAddColumn, canEditBoard, stickyTop = 'top-0' }) => {
     return (
-        <div className="flex border-b border-white bg-black text-white sticky top-0 z-40 shadow-sm min-w-max">
+        <div className={`flex border-b border-white bg-black text-white sticky ${stickyTop} z-40 shadow-sm min-w-max`}>
             <div className="w-16 flex-shrink-0 border-r border-white bg-gray-900 flex items-center justify-center font-bold sticky left-0 z-50">時間</div>
             <div className="flex">
                 {drivers.map(driver => (

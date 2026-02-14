@@ -1,4 +1,0 @@
---- Routes Table Check (2026-02-11) ---
-Count: 1
-First Route Pending Jobs Count: 5
-Assigned Jobs JSON: []

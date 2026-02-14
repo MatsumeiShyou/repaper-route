@@ -1,5 +1,0 @@
---- Detailed Data Verification ---
-Target Date Key: 2026-02-11
-Routes Found: 0
-Total Jobs in DB: 5
-Unassigned Jobs Error: {"code":"42703","details":null,"hint":null,"message":"column jobs.status does not exist"}
