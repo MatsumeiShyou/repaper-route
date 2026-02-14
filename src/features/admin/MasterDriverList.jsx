@@ -29,12 +29,9 @@ export default function MasterDriverList() {
     const fetchDrivers = async () => {
         setIsLoading(true);
         try {
-            // No is_active in drivers yet, but we'll use display_order to hide? 
-            // Actually drivers table doesn't have is_active from seed. 
-            // We should add it if we want archiving. For now, we'll just show all.
             const { data, error } = await supabase
                 .from('drivers')
-                .select('*, profiles(name, role)')
+                .select('*, staffs(name, role)') // profiles -> staffs
                 .order('display_order', { ascending: true })
                 .order('driver_name', { ascending: true });
 
@@ -50,7 +47,7 @@ export default function MasterDriverList() {
     const fetchProfiles = async () => {
         try {
             const { data, error } = await supabase
-                .from('profiles')
+                .from('staffs') // profiles -> staffs
                 .select('id, name, role')
                 .order('name');
             if (data) setProfiles(data);
@@ -98,20 +95,21 @@ export default function MasterDriverList() {
         try {
             const isEdit = !!selectedDriver;
 
-            const coreData = {
+            const payload = {
                 driver_name: formData.driver_name,
                 display_order: parseInt(formData.display_order),
                 user_id: formData.user_id || null
             };
 
-            const { error } = await supabase.rpc('rpc_execute_master_update', {
-                p_table_name: 'drivers',
-                p_id: selectedDriver?.id || null, // Drivers uses TEXT UUID from gen_random_uuid
-                p_core_data: coreData,
-                p_ext_data: {},
-                p_decision_type: isEdit ? 'MASTER_UPDATE' : 'MASTER_REGISTRATION',
-                p_reason: reason,
-                p_user_id: currentUser.id
+            // Using unified SDR log RPC (Base OS Standard)
+            const { error } = await supabase.rpc('rpc_log_sdr_event', {
+                p_decision_code: isEdit ? 'MASTER_UPDATE' : 'MASTER_CREATE',
+                p_reason_code: isEdit ? 'MODIFICATION' : 'REGISTRATION',
+                p_reason_note: reason,
+                p_target_table: 'drivers',
+                p_target_id: selectedDriver?.id || null,
+                p_payload: payload,
+                p_is_admin_forced: false
             });
 
             if (error) throw error;
@@ -191,12 +189,12 @@ export default function MasterDriverList() {
                                     <td className="px-6 py-4 font-mono text-gray-400">{driver.display_order}</td>
                                     <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200 text-lg">{driver.driver_name}</td>
                                     <td className="px-6 py-4">
-                                        {driver.profiles ? (
+                                        {driver.staffs ? (
                                             <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
                                                 <User size={14} />
-                                                {driver.profiles.name}
+                                                {driver.staffs.name}
                                                 <span className="text-[10px] bg-emerald-50 dark:bg-emerald-900/20 px-1 rounded uppercase tracking-tighter">
-                                                    {driver.profiles.role === 'ADMIN' ? '管理' : '乗務'}
+                                                    {driver.staffs.role === 'ADMIN' ? '管理' : '乗務'}
                                                 </span>
                                             </div>
                                         ) : (

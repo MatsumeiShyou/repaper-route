@@ -16,25 +16,25 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [profiles, setProfiles] = useState([]);
 
-    // Profiles Fetch
+    // Staffs Fetch (Revised for Base OS)
     useEffect(() => {
-        const fetchProfiles = async () => {
+        const fetchStaffs = async () => {
             try {
                 const { data, error } = await supabase
-                    .from('profiles')
+                    .from('staffs')
                     .select('*')
                     .order('role', { ascending: true }) // ADMIN first
                     .order('name');
 
-                if (data) setProfiles(data);
-                if (error) console.error("Profile Fetch Error:", error);
+                if (data) setProfiles(data); // Keeping variable name 'profiles' for minimal impact on consumers
+                if (error) console.error("Staff Fetch Error:", error);
             } catch (e) {
                 console.error(e);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchProfiles();
+        fetchStaffs();
     }, []);
 
     // Session Persistence (Optional - for now just memory as per current App.jsx)
@@ -45,6 +45,7 @@ export const AuthProvider = ({ children }) => {
             id: user.id || user.user_id, // Normalize ID
             name: user.name,
             role: user.role,
+            allowedApps: user.allowed_apps || [], // Added for Base OS
             vehicle: user.vehicle_info || user.vehicle // Normalize Vehicle
         };
         setCurrentUser(userData);

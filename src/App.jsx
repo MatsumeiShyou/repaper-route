@@ -16,6 +16,8 @@ import MasterPointList from './features/admin/MasterPointList';
 import MasterDriverList from './features/admin/MasterDriverList';
 import UserManagementList from './features/admin/UserManagementList';
 
+import LoginPortal from './features/auth/LoginPortal';
+
 /**
  * アプリケーションのルートコンポーネント (Role Portal)
  * ユーザー認証(Login via DB)を行い、適切な画面へ振り分ける
@@ -29,59 +31,14 @@ export default function App() {
 }
 
 function AppContent() {
-    const { currentUser, profiles, isLoading, login, logout } = useAuth();
+    const { currentUser, logout } = useAuth(); // profiles and login are used in LoginPortal
     const [adminView, setAdminView] = useState('board'); // Default to Board
 
     // --- Render Logic ---
 
     // 1. Login Screen
     if (!currentUser) {
-        if (isLoading) {
-            return <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-500">Loading Users...</div>;
-        }
-
-        return (
-            <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 text-gray-800 font-sans">
-                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
-                    <div className="bg-slate-900 p-8 text-white text-center">
-                        <h1 className="text-3xl font-bold mb-2">RePaper Route</h1>
-                        <p className="opacity-70 text-sm">ユーザーを選択してください (DB Connected)</p>
-                    </div>
-                    <div className="p-6 space-y-3">
-                        {profiles.map(user => {
-                            // Assign Color based on Role/Index manually for UI consistency
-                            const isDriver = user.role === 'DRIVER';
-                            const bgColor = isDriver ? 'bg-blue-600' : 'bg-slate-800';
-
-                            return (
-                                <button
-                                    key={user.id || user.user_id}
-                                    onClick={() => {
-                                        login(user); // Use unified login logic
-                                        setAdminView('menu'); // Reset view on login
-                                    }}
-                                    className={cn(
-                                        "w-full p-4 rounded-xl flex items-center gap-4 transition-all hover:bg-gray-50 active:scale-95 shadow-sm border border-gray-100",
-                                        !isDriver ? "border-l-4 border-l-slate-800" : ""
-                                    )}
-                                >
-                                    <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md", bgColor)}>
-                                        {!isDriver ? <Shield size={20} /> : <User size={20} />}
-                                    </div>
-                                    <div className="text-left flex-1">
-                                        <h2 className="text-lg font-bold">{user.name}</h2>
-                                        {user.vehicle_info && <p className="text-xs text-gray-500 flex items-center gap-1"><Truck size={12} /> {user.vehicle_info}</p>}
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                    <div className="bg-gray-50 p-4 text-center text-xs text-gray-400">
-                        Production Mode v2.1 (AuthContext)
-                    </div>
-                </div>
-            </div>
-        );
+        return <LoginPortal />;
     }
 
     // 2. Admin Portal
@@ -145,7 +102,10 @@ function AppContent() {
         return (
             <div className="relative">
                 <DriverApp initialDriverName={currentUser.name} initialVehicle={currentUser.vehicle} />
-                <BackButton onClick={logout} label="ログアウト" />
+                <BackButton onClick={() => {
+                    logout();
+                    setAdminView('board');
+                }} label="ログアウト" />
             </div>
         );
     }

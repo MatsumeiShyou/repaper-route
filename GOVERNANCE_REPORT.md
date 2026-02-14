@@ -1,6 +1,6 @@
 # Governance Self-Reflection Report
 
-**Generated**: 2026-02-14T09:05:20.731Z
+**Generated**: 2026-02-14T09:54:10.148Z
 **Period**: Last 7 days
 **Checks**: AMPLOG Protocol, Strict Seal, Resource Governance, Retry Pattern Detection
 
@@ -18,16 +18,10 @@ All governance protocols are being followed correctly.
 
 ### Recent Changes (Auto-Snapshot)
 ```
- AGENTS.md                                          |  85 ++++-----
- AMPLOG.md                                          |   5 +
- DEBT_AND_FUTURE.md                                 |  18 +-
- GOVERNANCE_REPORT.md                               |   2 +-
- SCHEMA_HISTORY.md                                  |  32 ++++
- src/features/admin/MasterItemList.jsx              | 177 +++++-------------
- src/features/admin/MasterPointList.jsx             | 174 +++++------------
- src/features/admin/MasterVehicleList.jsx           | 192 +++++--------------
- src/features/admin/UserManagementList.jsx          | 205 +++++++--------------
- .../20260214150000_general_master_rpc.sql          |  21 ++-
- 10 files changed, 310 insertions(+), 601 deletions(-)
+ GOVERNANCE_REPORT.md                    | 18 +----------
+ src/App.jsx                             | 56 +++++----------------------------
+ src/contexts/AuthContext.jsx            | 13 ++++----
+ src/features/admin/MasterDriverList.jsx | 32 +++++++++----------
+ 4 files changed, 31 insertions(+), 88 deletions(-)
 
 ```
