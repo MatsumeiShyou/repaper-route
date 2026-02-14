@@ -1,10 +1,12 @@
 import React from 'react';
 import {
     LayoutDashboard, Truck, Users, Settings, Database,
-    FileText, MapPin, Box, Shield, Activity, BarChart3
+    FileText, MapPin, Box, Shield, Activity, BarChart3, LogOut
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Sidebar = ({ activeView, onViewChange }) => {
+    const { currentUser, logout } = useAuth();
 
     const menuGroups = [
         {
@@ -28,7 +30,7 @@ export const Sidebar = ({ activeView, onViewChange }) => {
             items: [
                 { id: 'sdr', label: 'SDR監査ログ', icon: Activity },
                 { id: 'users', label: 'ユーザー管理', icon: Shield },
-                { id: 'settings', label: '設定', icon: Settings }, // Added Settings
+                { id: 'settings', label: '設定', icon: Settings },
             ]
         }
     ];
@@ -44,7 +46,7 @@ export const Sidebar = ({ activeView, onViewChange }) => {
                 h-16 flex items-center px-6 border-b transition-colors duration-200
                 border-gray-100
                 dark:border-slate-800/50 dark:bg-slate-950/20
-            ">
+            " onClick={() => onViewChange('menu')} style={{ cursor: 'pointer' }}>
                 <div className="mr-3 transition-all hover:scale-105">
                     <img
                         src="/logo.png"
@@ -129,20 +131,25 @@ export const Sidebar = ({ activeView, onViewChange }) => {
                 border-gray-100 bg-gray-50/50
                 dark:border-slate-800 dark:bg-slate-950/30
             ">
-                <div className="flex items-center gap-3 px-2 opacity-80 hover:opacity-100 transition-opacity cursor-pointer">
+                <div className="flex items-center gap-3 px-2">
                     <div className="
-                        w-8 h-8 rounded border flex items-center justify-center text-xs font-bold shadow-sm
-                        bg-white border-gray-200 text-slate-600
-                        dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300
+                        w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold shadow-sm
+                        bg-white border-gray-200 text-blue-600
+                        dark:bg-slate-800 dark:border-slate-700 dark:text-cyan-400
                     ">
-                        OP
+                        {currentUser?.name?.substring(0, 1) || 'U'}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold truncate text-slate-700 dark:text-slate-300">Operator</p>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500">ID: 8821-X</p>
+                        <p className="text-xs font-bold truncate text-slate-700 dark:text-slate-300">{currentUser?.name || 'Unknown'}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-tighter font-mono">{currentUser?.role || 'GUEST'}</p>
                     </div>
-                    {/* Settings Icon is redundant here now that we have it in menu, but keeping as profile access */}
-                    <Settings size={14} className="text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300" />
+                    <button
+                        onClick={() => logout()}
+                        title="ログアウト"
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                    >
+                        <LogOut size={16} />
+                    </button>
                 </div>
             </div>
         </aside>

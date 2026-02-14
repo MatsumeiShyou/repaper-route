@@ -19,12 +19,14 @@ import { ReasonModal } from './components/ReasonModal';
 import { BoardContextMenu } from './components/BoardContextMenu';
 import { PendingJobSidebar } from './components/PendingJobSidebar';
 import { timeToMinutes } from './logic/timeUtils';
-import { ensureDefaultReason, createProposal, createDecision } from './logic/proposalLogic';
-import { useAuth } from '../../contexts/AuthContext'; // Import Auth
+import { createProposal, createDecision } from './logic/proposalLogic';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 export default function BoardCanvas() {
-    const { currentUser } = useAuth(); // Use Auth
-    const currentUserId = currentUser.id; // Dynamic User ID
+    const { currentUser } = useAuth();
+    const { showNotification } = useNotification();
+    const currentUserId = currentUser.id;
     // Use today's date for production/demo (De-mocking Phase)
     // In a real app, this might come from a URL param or DatePicker
     const today = new Date();
@@ -46,7 +48,6 @@ export default function BoardCanvas() {
         customerItemDefaults,
         isDataLoaded, isOffline, isSyncing,
         editMode, lockedBy, canEditBoard,
-        notification, showNotification,
         requestEditLock, releaseEditLock, handleSave,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn

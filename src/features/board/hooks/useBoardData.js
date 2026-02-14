@@ -8,10 +8,12 @@ import { supabase } from '../../../lib/supabase/client';
 import { useMasterData } from './useMasterData';
 import { generateJobColorMap } from '../../core/config/theme';
 import { timeToMinutes } from '../logic/timeUtils';
+import { useNotification } from '../../../contexts/NotificationContext';
 
 export const useBoardData = (currentUserId, currentDateKey) => {
     // --- Master Data ---
     const { drivers: masterDrivers, vehicles, customers, items, customerItemDefaults, isLoading: isMasterLoading } = useMasterData();
+    const { showNotification } = useNotification();
 
     // --- State ---
     const [drivers, setDrivers] = useState([]);
@@ -32,14 +34,6 @@ export const useBoardData = (currentUserId, currentDateKey) => {
 
     // History State
     const [history, setHistory] = useState({ past: [], future: [] });
-
-    // Notification State
-    const [notification, setNotification] = useState(null);
-
-    const showNotification = useCallback((message, type = 'success') => {
-        setNotification({ message, type });
-        setTimeout(() => setNotification(null), 3000);
-    }, []);
 
     // ----------------------------------------
     // 1. Logic Helpers
@@ -450,7 +444,7 @@ export const useBoardData = (currentUserId, currentDateKey) => {
         splits, setSplits,
         isDataLoaded, isOffline, isSyncing,
         editMode, lockedBy, canEditBoard,
-        notification, showNotification,
+        showNotification,
         requestEditLock, releaseEditLock, handleSave,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn

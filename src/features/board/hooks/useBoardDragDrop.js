@@ -234,19 +234,24 @@ export const useBoardDragDrop = (jobs, drivers, splits, driverColRefs, setJobs, 
             const currentY = e.clientY - dragOffset.y;
             const preview = calculateDropTargetRef(e.clientX, currentY, draggingJobId);
             if (preview && !preview.isOverlapError) {
-                recordHistory();
+                // recordHistory(); // Move to confirmation
 
-                // Proposal Logic (Phase 4)
-                // We should move this out or handle it via callback if needed.
-                // For now, keep it simple state update.
-                const newJobState = {
+                const proposedState = {
                     ...jobs.find(j => j.id === draggingJobId),
                     startTime: preview.startTime,
                     driverId: preview.driverId,
                     duration: preview.duration,
-                    isVehicleError: preview.isVehicleError
+                    isVehicleError: preview.isVehicleError,
+                    type: 'move'
                 };
-                setJobs(prev => prev.map(j => j.id === draggingJobId ? newJobState : j));
+
+                // If createProposal acts as a callback for "Request Change"
+                if (createProposal) {
+                    createProposal(proposedState);
+                } else {
+                    setJobs(prev => prev.map(j => j.id === draggingJobId ? proposedState : j));
+                    recordHistory();
+                }
             }
             setDraggingJobId(null);
             setDragButton(null);
@@ -258,8 +263,19 @@ export const useBoardDragDrop = (jobs, drivers, splits, driverColRefs, setJobs, 
             const currentY = e.clientY - dragOffset.y;
             const preview = calculateSplitDropTargetRef(e.clientX, currentY, draggingSplitId);
             if (preview && !preview.isOverlapError) {
-                recordHistory();
-                setSplits(prev => prev.map(s => s.id === draggingSplitId ? { ...s, driverId: preview.driverId, time: preview.time } : s));
+                const proposedState = {
+                    ...splits.find(s => s.id === draggingSplitId),
+                    driverId: preview.driverId,
+                    time: preview.time,
+                    type: 'split'
+                };
+
+                if (createProposal) {
+                    createProposal(proposedState);
+                } else {
+                    setSplits(prev => prev.map(s => s.id === draggingSplitId ? proposedState : s));
+                    recordHistory();
+                }
             }
             setDraggingSplitId(null);
             setDragCurrent({ x: 0, y: 0 });

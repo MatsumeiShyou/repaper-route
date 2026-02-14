@@ -77,6 +77,16 @@ export default defineConfig({
             }
         })
     ],
+    optimizeDeps: {
+        include: [
+            'react',
+            'react-dom',
+            'lucide-react',
+            '@supabase/supabase-js',
+            'clsx',
+            'tailwind-merge'
+        ],
+    },
     test: {
         globals: true,
         environment: 'jsdom',

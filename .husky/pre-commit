@@ -1,1 +1,2 @@
+#!/bin/sh
 node .agent/scripts/pre_flight.js

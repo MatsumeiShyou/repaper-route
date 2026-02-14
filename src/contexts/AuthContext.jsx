@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
         const fetchStaffs = async () => {
             try {
                 const { data, error } = await supabase
-                    .from('staffs')
+                    .from('profiles')
                     .select('*')
                     .order('role', { ascending: true }) // ADMIN first
                     .order('name');

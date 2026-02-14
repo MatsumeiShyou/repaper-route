@@ -24,6 +24,17 @@
 - [cite_start]**SVP**: 同一エラーのリトライは1回まで。2回失敗で思考停止し上申せよ [cite: 30]。
 - [cite_start]**Fact over Logic**: 捏造・当てずっぽうを厳禁し、不明な点は「不明」と回答せよ [cite: 17, 31]。
 
+## # 運用三原則 (Operation Protocols)
+1. **不変マイグレーション (Immutable Migration)**:
+   - **適時実行**: データベース変更を行う際は、例外なく `npx supabase db diff` を介して SQL ファイルを生成せよ。
+   - 手動の `ALTER TABLE` は厳禁。全ての変更は `supabase/migrations` 配下の不変な資産として管理・追跡可能にせよ。
+2. **多層統合監査 (Integrated Audit Suite)**:
+   - **適時実行**: 実装開始前、およびコミット/マージの直前に必ず `npm run governance:preflight` / `audit` / `check` を完遂せよ。
+   - 監査スクリプトをパスしないコードの結合は「統治違反」と見なし、物理的に遮断せよ。
+3. **スキーマ駆動開発 (Schema-Driven UI)**:
+   - **適時実行**: `masterSchema.js` を変更した際は、メインアプリへの結合前に必ず Storybook プレビュー環境で挙動を検証せよ。
+   - 定義情報の変更が UI に正しく反映されているかを独立環境で保証してから結合せよ。
+
 ## # リソース・クリーンアップ
 - [cite_start]**即時削除**: 一時ファイル (debug_*, fix_*, *.bak, *.txt) はタスク完了時に消去 [cite: 33]。
 - [cite_start]**効率化**: 20ファイル超の操作、画像解析前には見積もり提示と承認を要する [cite: 34]。

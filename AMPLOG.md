@@ -49,3 +49,8 @@
 | 2026-02-14 | Governance Protocol Evolution | AGENTS.md | 二段階提案プロトコル (§2.1) の導入、および自動進行抑制・クリーンアップ強化。 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-14 | Governance Protocol Evolution | AGENTS.md, AMPLOG.md, DEBT_AND_FUTURE.md | 二段階提案プロトコル (2.1) の導入による自動進行抑制、およびクリーンアップ強化。 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-14 | 基盤OS (TBNY DXOS) への完全統合 | 認証フローの二段階化、SDR対応マスタスキーマ導入、統合SDR-RPCの実装 | システム全体が不変の業務OS基盤へと進化し、監査耐性と拡張性が大幅に向上 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | UI Refinement & Master Unification | src/config/masterSchema.js, src/components/MasterDataLayout.jsx, src/App.jsx, src/components/Sidebar.jsx, src/features/admin/AdminHome.jsx | マスタ管理画面のアーキテクチャ統合によるコード重複(80%)排除、SidebarのAuthContext同期、ホーム画面の分離によりメンテナンス性とUXを大幅向上。 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | UI Refinement & Notification Standard | src/contexts/NotificationContext.jsx, src/App.jsx, src/config/masterSchema.js, src/hooks/useMasterCRUD.js | グローバル通知基盤の導入、テーマの統一、およびマスタ監査ヒントの実装によるUXと統治精度の向上。 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | Node.js v22 Switch & esbuild Fix | Node.js Version / vite.config.js | Node.js v24 の不安定性解消および esbuild スキャナークラッシュの回避による開発環境の安定化。 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-14 | Whiteout & Node.js Env Fix | BoardCanvas.jsx / vite.config.js / AuthContext.jsx | �C���|�[�g�~�X�����AVite�œK���ėL�����A���݂��Ȃ�staffs�e�[�u���Q�ƏC���ɂ���ʕ����B | User (Approved) | ���� |
+| 2026-02-14 | ホワイトアウト問題の解消とVite環境の正常化 | BoardCanvas.jsx, vite.config.js, AuthContext.jsx, masterSchema.js | UI描画の復旧、Vite開発環境の安定化、およびDB不整合の解消 | User (Approved) | 承認 (PW: ｙ) |
