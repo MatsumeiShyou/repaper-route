@@ -90,7 +90,32 @@ function ProfilePortal() {
 
 function AppContent() {
     const { currentUser, logout } = useAuth();
-    const [adminView, setAdminView] = useState('board');
+    const [adminView, setAdminView] = useState(() => {
+        // 初期ロード時にURLパラメータ (?activeView=...) があれば優先する
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('activeView') || 'board';
+        }
+        return 'board';
+    });
+
+    // URLのパラメータ (?activeView=...) とステートを同期
+    React.useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const activeView = params.get('activeView');
+        if (activeView && activeView !== adminView) {
+            setAdminView(activeView);
+        }
+    }, [currentUser]); // ログイン状態変化時に再評価
+
+    // ステート変更時にURLを更新 (ブラウザの戻る/進むへの対応は簡易版)
+    React.useEffect(() => {
+        const url = new URL(window.location);
+        if (url.searchParams.get('activeView') !== adminView) {
+            url.searchParams.set('activeView', adminView);
+            window.history.pushState({}, '', url);
+        }
+    }, [adminView]);
 
     if (!currentUser) return <ProfilePortal />;
 

@@ -28,7 +28,8 @@
 ## # 3. DB & DOM Governance
 1. [cite_start]**DB同期**: コードとスキーマ（SQLファイル）の変更は同一AMPで行え。手動変更は厳禁 [cite: 69, 77]。
 2. [cite_start]**履歴管理**: 変更は `SCHEMA_HISTORY.md` に記録し、`npx supabase db diff` を使用せよ [cite: 73, 117]。
-3. [cite_start]**DOM操作**: 操作直前の生HTMLを記録し、Loading/Ready/Stableの3段階で観測せよ [cite: 56, 59]。
+3. [cite_start]**DOM操作**: 操作直前の生HTMLを記録し、Loading/Ready/Stableの3段階で観測せよ。原則として静的解析(SDR)を優先し、DOMツールの使用は物理的検証が必要な最小限に留めること [cite: 56, 59]。
+4. [cite_start]**検証義務**: 静的解析に基づき修正した後、自己判断で完了とせず、必ずユーザーに「スクリーンショット」と「動作確認」を依頼し、最終承認を得ること。
 
 ## # 4. Stop & Debt Protocol
 - [cite_start]**Stop**: 情報不足時は `[STATUS]: 停止`, `[MISSING_INFO]`, `[ACTION]` を出力し停止せよ [cite: 42, 43, 44]。

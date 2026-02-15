@@ -55,7 +55,7 @@ export const Sidebar = ({ activeView, onViewChange }) => {
                     />
                 </div>
                 <div>
-                    <h1 className="text-lg font-bold tracking-tight leading-none text-slate-800 dark:text-white">RePaper</h1>
+                    <h1 className="text-lg font-bold tracking-tight leading-none text-slate-800 dark:text-white">SANCTUARY</h1>
                     <span className="text-[10px] font-mono tracking-widest text-slate-500 dark:text-slate-500">ROUTE COMMAND</span>
                 </div>
             </div>
