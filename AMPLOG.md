@@ -57,3 +57,6 @@
 | 2026-02-14 | HuskyフックのWindows互換性修正 | .husky/pre-commit | Windows環境におけるGitコミット自動化（Pre-flight）の安定稼働を保証 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-14 | DXOS Blueprint Extraction & Generalization | Governance Logic (AGENTS.md, .agent/scripts, Master UI Components) | Established a portable DXOS Framework for rapid, context-aware deployment in other projects. | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-15 | Supabase Project Name Update | Project Metadata / AMPLOG.md | Supabaseプロジェクト名を「TBNY-DX-OS」に更新。プロジェクトIDおよび接続情報は変更なし。 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-15 | Revert Login UI to Selection Model | src/App.jsx, src/features/auth/LoginPortal.jsx | Improved UX by removing redundant authentication layer, delegating it to Base OS. | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-15 | Remove Driver UI (Architectural Separation) | src/App.jsx, src/features/driver/ | Transformed application into a pure Management Administration Portal, reducing attack surface and bundle size. | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-15 | Management Portal Specialization & Driver UI Retirement | src/App.jsx, src/features/auth/ (deleted), src/features/driver/ (deleted) | Purified the app into a specialized Management Portal. Reverted to selection-based UI (managed by Base OS) and removed redundant execution layer assets. | User (Approved) | 承認 (PW: ｙ) |
