@@ -47,6 +47,25 @@ JS 版には存在するが TS 版で欠落している「履歴操作 (Undo/Red
 | 2026-02-15 | Generalized RPC 復元と Vitest 環境設定の修正 | supabase/migrations/, vitest.config.ts | 全マスタ対応 RPC の復帰によりデータ整合性を確保し、Vitest のエイリアス設定修正によりテスト環境の安定性を向上 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-15 | Master Data Registration & Integrity Fix | src-ts/config/masterSchema.ts, src/config/masterSchema.js, supabase/migrations/20260215234500_restore_general_rpc_v5.sql | Resolved silent registration failures and normalized ID casting for all master tables. | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-15 | Logo & Logo Text Sync (SANCTUARY) | src/components/Sidebar.jsx | 5174/配車盤UIとロゴおよびテキスト（SANCTUARY Route Command）を同期。 | 済 | (PW: ｙ) |
+| 2026-02-16 | JS資産隔離 & TS(SANCTUARY)昇格 | src -> src-legacy-js, src-ts -> src, vite.config.js, tsconfig.json | 二重帝国状態を解消。TypeScript (SANCTUARY) を正典として 5173 ポートに固定。 JS版はアーカイブ化。 | 済 | (PW: ｙ) |
+| 2026-02-16 | UI スタイリング復旧修正 | tailwind.config.js, Vite Cache | TS昇格後のディレクトリ名変更に伴うTailwindスキャンパスの不整合を修正。キャッシュクリアによりスタイリングを完全復旧。 | 済 | (PW: ｙ) |
+
+---
+
+## 申請詳細: JS資産隔離 & TS(SANCTUARY)昇格 (2026-02-16)
+
+### 1. 概要 (State)
+リポジトリ内に JavaScript (旧ブランド) と TypeScript (新ブランド) が混在し、環境変数での切り替えを要する「二重帝国」状態となっていた。これにより、開発時の認知的負荷と、同一コンポーネントに対する重複修正の漏れ、推測実装を誘発する構造的脆さが発生していた。
+
+### 2. 判断 (Decision)
+- **隔離**: 旧 `src` ディレクトリを `src-legacy-js` に退避し、アーカイブ化する。
+- **昇格**: `src-ts` を `src` にリネームし、プロジェクトの標準正典に据える。
+- **固定**: `vite.config.js`, `tsconfig.json`, `index.html` を修正し、環境変数に依存せず 5173 ポートで常時 TS/SANCTUARY 環境が起動するよう固定する。
+
+### 3. 理由 (Reason)
+- 統治の純度（Singularity）を高め、保守・拡張時の「おせっかい実装」や不整合を物理的に排除するため。
+- SANCTUARY ブランドへの完全移行を物理構成レベルで確定させるため。
+- 今後の全機能を TypeScript で統一し、型安全性によるガバナンス強化を図るため。
 
 ---
 
@@ -61,3 +80,4 @@ JS 版には存在するが TS 版で欠落している「履歴操作 (Undo/Red
 
 ### 3. 理由 (Reason)
 - ユーザー指示に基づき、5174 の UI（配車盤）と管理ポータルのブランディングを同期・統合するため。
+| 2026-02-16 | JS Assets Isolation & TypeScript Promotion | Directory refactoring (src, src-ts), config updates (vite, tailwind, tsconfig), styling recovery | Eliminated Double Empire state, standardized on SANCTUARY brand, improved maintainability and type safety | User (Approved) | 承認 (PW: ｙ) |
