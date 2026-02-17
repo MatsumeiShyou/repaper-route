@@ -123,11 +123,14 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 }
             },
             {
-                key: 'default_route_code',
-                label: 'コース',
+                key: 'visit_slot',
+                label: '便区分',
                 type: 'badge',
                 styleRules: {
-                    default: 'bg-slate-700 text-white font-mono'
+                    default: 'bg-slate-100 text-slate-800',
+                    'AM': 'bg-blue-100 text-blue-800 border border-blue-200',
+                    'PM': 'bg-orange-100 text-orange-800 border border-orange-200',
+                    'FREE': 'bg-emerald-100 text-emerald-800'
                 }
             },
             { key: 'address', label: '住所', type: 'text', className: 'text-[10px] text-slate-500 max-w-[150px] truncate' },
@@ -151,8 +154,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 className: 'col-span-1'
             },
             { name: 'restricted_vehicle_id', label: '制限対象車両ID', type: 'text', placeholder: '車両ID（UUID）' },
-            { name: 'default_route_code', label: 'デフォルトコース', type: 'text', placeholder: '例: A' },
-            { name: 'target_item_category', label: '主要回収品目', type: 'text', placeholder: '例: 段ボール' },
+            { name: 'target_item_category', label: '主要回収品目', type: 'tags', className: 'col-span-2', placeholder: '品目を選択...' },
             { name: 'address', label: '住所', type: 'text', className: 'col-span-2' },
             { name: 'site_contact_phone', label: '現場直通電話', type: 'tel' },
             { name: 'average_weight', label: '平均回収重量(kg)', type: 'number' },

@@ -4,7 +4,8 @@ import {
     Search,
     Edit,
     Archive,
-    XCircle
+    XCircle,
+    X
 } from 'lucide-react';
 import useMasterCRUD from '../hooks/useMasterCRUD';
 import { Modal } from './Modal';
@@ -227,6 +228,22 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
         );
     }
 
+    // Tags Display
+    if (col.type === 'tags') {
+        const tagList = String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (tagList.length === 0) return <span className="text-slate-400">-</span>;
+
+        return (
+            <div className="flex flex-wrap gap-1 py-1">
+                {tagList.map(tag => (
+                    <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
+                        {tag}
+                    </span>
+                ))}
+            </div>
+        );
+    }
+
     return (
         <span className="text-slate-600 dark:text-slate-400">
             {value || '-'}
@@ -241,10 +258,24 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
     onCancel: () => void
 }) {
     const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
+    // 品目マスタのデータを取得するためのフック（タグ選択用）
+    const { items: allItems } = useMasterCRUD('items');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSave(formData);
+    };
+
+    const toggleTag = (fieldName: string, tagName: string) => {
+        const currentValue = String(formData[fieldName] || '');
+        const currentTags = currentValue.split(',').map(s => s.trim()).filter(Boolean);
+        let newTags;
+        if (currentTags.includes(tagName)) {
+            newTags = currentTags.filter(t => t !== tagName);
+        } else {
+            newTags = [...currentTags, tagName];
+        }
+        setFormData({ ...formData, [fieldName]: newTags.join(',') });
     };
 
     return (
@@ -255,7 +286,42 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
                             {field.label} {field.required && <span className="text-red-500">*</span>}
                         </label>
-                        {field.type === 'select' ? (
+
+                        {field.type === 'tags' ? (
+                            <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2 p-3 min-h-[46px] rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                    {String(formData[field.name] || '').split(',').map(s => s.trim()).filter(Boolean).map(tag => (
+                                        <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-600 text-white text-xs font-bold animate-in zoom-in-50">
+                                            {tag}
+                                            <button type="button" onClick={() => toggleTag(field.name, tag)} className="hover:text-blue-200">
+                                                <X size={12} />
+                                            </button>
+                                        </span>
+                                    ))}
+                                    {String(formData[field.name] || '').length === 0 && (
+                                        <span className="text-slate-400 text-xs mt-1">下のリストから選択してください</span>
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1">
+                                    {allItems.map(item => {
+                                        const isSelected = String(formData[field.name] || '').split(',').map(s => s.trim()).includes(item.name);
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                onClick={() => toggleTag(field.name, item.name)}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isSelected
+                                                    ? 'bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-300'
+                                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700'
+                                                    }`}
+                                            >
+                                                {item.name}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ) : field.type === 'select' ? (
                             <select
                                 className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
                                 value={formData[field.name] || ''}
