@@ -118,3 +118,4 @@ TS 移行後に溜まった型・Lintエラー、および未使用コードが�
 - Aフェーズ（計画）における判断事故（入れない車両の配車など）を物理的に防ぎ、将来の自動配車AIのための高精度な教師データを蓄積するため。
 | 2026-02-17 | モーダルUI改善とフィールド統合 | Modal.tsx, MasterDataLayout.tsx, masterSchema.ts | スクロール対応と2列化により視認性を向上。また入場手順等を『備考』に統合しUIを簡略化 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-17 | 品目タグシステム導入とマスタ項目整理 | Modal.tsx, MasterDataLayout.tsx, masterSchema.ts | 品目マスタ連動のタグ選択UIを導入。デフォルトコース削除と備考統合によりUIをさらにスリム化 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-17 | 回収先マスタ編集時のホワイトアウト修正 | MasterDataLayout.tsx | useMasterCRUD への引数不整合を解消し、モーダル表示時のクラッシュを修正。 | User (Approved) | 承認 (PW: ｙ) |

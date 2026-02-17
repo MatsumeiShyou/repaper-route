@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import useMasterCRUD from '../hooks/useMasterCRUD';
 import { Modal } from './Modal';
-import { MasterSchema, MasterColumn } from '../config/masterSchema';
+import { MasterSchema, MasterColumn, MASTER_SCHEMAS } from '../config/masterSchema';
 
 interface MasterDataLayoutProps {
     schema: MasterSchema;
@@ -259,7 +259,7 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
 }) {
     const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
     // 品目マスタのデータを取得するためのフック（タグ選択用）
-    const { items: allItems } = useMasterCRUD('items');
+    const { data: allItems } = useMasterCRUD(MASTER_SCHEMAS.items);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
