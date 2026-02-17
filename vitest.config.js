@@ -7,7 +7,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: './src/test/setup.js',
+    setupFiles: './src/test/setup.ts',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -19,6 +19,7 @@ export default defineConfig({
         'dist/',
       ],
     },
+    exclude: ['src-legacy-js', 'node_modules', 'dist', '.idea', '.git', '.cache'],
   },
   resolve: {
     alias: {

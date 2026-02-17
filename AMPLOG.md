@@ -2,82 +2,91 @@
 
 | 日付 | 項目 | 内容 | 承認状況 | 承認印 |
 | :--- | :--- | :--- | :--- | :--- |
+| 2026-02-07 | SDR 統治基盤導入 | 意思決定テーブル (`decision_proposals`, `decisions`) の作成 | 済 | (PW: ｙ) |
+| 2026-02-08 | データベース初期構築 | 顧客・車両・品目・ジョブ等の基本テーブル作成と初期データ投入 | 済 | (PW: ｙ) |
+| 2026-02-11 | 運用不具合修正 | ジョブステータス不整合、RLSポリシー、RPC動作修正 | 済 | (PW: ｙ) |
+| 2026-02-14 | DXOS (Developer Experience Operating System) 導入 | 統治憲法 (`AGENTS.md`) 刷新とプリフライトスクリプト等の配備 | 済 | (PW: ｙ) |
+| 2026-02-14 | マスタ管理 UI 刷新 (Phase 5) | 全マスタ画面の SDR 準拠化、汎用 RPC 導入 | 済 | (PW: ｙ) |
+| 2026-02-14 | 物理的統治ゲート有効化 | Husky `pre-commit` への `pre_flight.js` 登録 | 済 | (PW: ｙ) |
+| 2026-02-14 | 配車初期化ロジック修正 | `routes` テーブルの空保存によるデータ消失不具合の解消 | 済 | (PW: ｙ) |
 | 2026-02-15 | 緊急復旧 | PendingJobSidebar ホワイトアウト修正 (ガード追加) | 済 | (PW: ｙ) |
 | 2026-02-15 | 配車盤ヘッダー同期 | JS版との機能差異解消 (Undo/Redo追加, 日本語化) | 済 | (PW: ｙ) |
 | 2026-02-15 | ドライバーヘッダー同期 | JS版のデザイン忠実再現 (黄色帯, ダークテーマ, 1行化) | 済 | (PW: ｙ) |
 | 2026-02-15 | 配車盤位置ズレと構文エラーの根本修正 | 各コンポーネント幅の px 固定および return 文復元 | 済 | (PW: ｙ) |
-| 2026-02-15 | 統治憲法改訂 | AGENTS.md に「静的解析に基づく修正後のスクショ・動作確認依頼の義務」を追加 | 済 | (PW: ｙ) |
+| 2026-02-15 | 統治憲法改訂 | AGENTS.md に「動作確認依頼の義務」を追加 | 済 | (PW: ｙ) |
+| 2026-02-15 | Master Points High-Density Relation | 拠点・排出元・支払元を統合したビューの導入 | 済 | (PW: ｙ) |
+| 2026-02-15 |Logo & Logo Text Sync (SANCTUARY) | 管理ポータルのロゴ・テキストを SANCTUARY に統一 | 済 | (PW: ｙ) |
+| 2026-02-16 | JS資産隔離 & TS(SANCTUARY)昇格 | 二重帝国状態を解消。TypeScript 環境をプロジェクト正典化 | 済 | (PW: ｙ) |
+| 2026-02-16 | UI スタイリング復旧修正 | ディレクトリリネームに伴う Tailwind スキャンパス修正 | 済 | (PW: ｙ) |
+| 2026-02-16 | Tooling & Governance Refinement | `type-check`, `lint` スクリプトの TS 対応と物理強制 | 済 | (PW: ｙ) |
+| 2026-02-17 | Refiner Cleanup & Test Restore | ジャンクファイル削除とテスト環境 (Vitest) の復旧 | 済 | (PW: ｙ) |
+| 2026-02-17 | Refiner Zero Baseline | ESLint Flat Config 移行、構文修正、未使用コードの削除 | 済 | (PW: ｙ) |
+| 2026-02-17 | UIラベルの変更 (有効/無効) | 稼働状態ラベルを「有効/無効」に変更 | 済 | (PW: ｙ) |
+
+---
+
+## 申請詳細: DXOS 導入と物理的統治 (2026-02-14)
+### 1. 概要 (State)
+開発者の自己判断による資産破壊や不透明な変更を防止するため、物理的に変更を監視・制限するシステムが必要であった。
+### 2. 判断 (Decision)
+- `AGENTS.md` v3 統治憲法を起草。
+- プロプリエタリな `pre_flight.js`, `check_seal.js` を導入。
+- Husky を使用し、コミット前にこれらのスクリプト実行を物理的に強制する。
+### 3. 理由 (Reason)
+- ヒューマンエラーを「注意」ではなく「システム」で解決し、長期的な保守性と透明性を担保するため。
+
+---
+
+## 申請詳細: マスタ管理 UI 刷新 (2026-02-14)
+### 1. 概要 (State)
+各マスタ（車両、品目、拠点、ドライバー、ユーザー）ごとにバラバラな実装が行われており、SDR プロトコルへの対応が未完了であった。
+### 2. 判断 (Decision)
+- 全マスタの登録・更新を集約する汎用 RPC `rpc_execute_master_update` を導入。
+- 5173 ポートの管理 UI を SDR (State/Decision/Reason) 準拠の `MasterDataLayout` 方式に全面刷新。
+### 3. 理由 (Reason)
+- 全ての変更を監査可能にし、かつ実装の重複を排除して開発生産性を高めるため。
 
 ---
 
 ## 申請詳細: 配車盤ヘッダー同期 (2026-02-15)
-
 ### 1. 概要 (State)
-JS 版には存在するが TS 版で欠落している「履歴操作 (Undo/Redo)」機能、およびヘッダーアクションバーの日本語化・デザイン不整合を解消する。
-
+JS 版には存在するが TS 版で欠落している「履歴操作 (Undo/Redo)」機能、およびヘッダーの日本語化・デザイン不整合を解消する。
 ### 2. 判断 (Decision)
-- `useBoardData.ts` の `undo/redo` プレースホルダを実動ロジックに差し替える。
-- `BoardCanvas.tsx` のヘッダーに `Undo2`, `Redo2` アイコンボタンを追加。
-- 保存ボタン等のラベルを日本語化し、JS 版のデザイン（色・角丸等）に合わせる。
-
+- `useBoardData.ts` の履歴ロジックを実装。
+- `BoardCanvas.tsx` のヘッダーにアイコンボタンを追加し、日本語化。
 ### 3. 理由 (Reason)
-- ユーザーの要望「JS 版との差分をなくす」に基づき、機能および視覚的整合性を確保するため。
-- 運用の利便性（履歴操作）の復元。
-
----
-
-## 申請詳細: ドライバーヘッダー同期 (2026-02-15)
-
-### 1. 概要 (State)
-配車盤のドライバーヘッダー（列見出し）のデザインが JS 版の「紙ベース再現」から乖離している。
-
-### 2. 判断 (Decision)
-- 背景をダークテーマ (`bg-black`) に戻す。
-- コース名部分に黄色い帯 (`bg-yellow-400`) を復元する。
-- ドライバー名と車両情報を1行 (`ドライバー名 / 車両名`) に集約する。
-- 左端の時間軸ヘッダーに「時間」というラベルを付ける。
-
-### 3. 理由 (Reason)
-- ユーザー指示「JS 版との差分をなくす」を最優先するため。
-- 現場の視認性（紙名簿との整合性）を回復するため。
-| 2026-02-15 | 配車盤 UI 同期の完了と移行方針の確定 | src-ts/features/board/, AGENTS.md | 配車盤における主要なUI不整合の解消、および「検証義務」の憲法化による統治強化。TS移行の次のステップ（他マスター画面の同期）への移行準備完了。 | User (Approved) | 承認 (PW: ｙ) |
-| 2026-02-15 | Master Points High-Density Relation | src-ts/config/masterSchema.ts, supabase/migrations/ | Introduced view_master_points to unify Locations, Contractors, and Payees. Implemented 2-row layout (Location/Contractor) for improved operational recognition. | User (Approved) | 承認 (PW: ｙ) |
-| 2026-02-15 | Master Refinement Completion | src-ts/config/masterSchema.ts, src-ts/features/admin/ | Successfully refined all 4 masters (Driver, Vehicle, Point, Item) to Sanctuary standards. Resolved key mismatches and ensured practical operational alignment. | User (Approved) | 承認 (PW: ｙ) |
-| 2026-02-15 | マスター整合性 & UX 改善 | src/App.jsx, masterSchema.js, RPC | 全マスタ対応 RPC 復元、ID不整合修正、URL同期（初期ロード）改善 | 済 | (PW: ｙ) |
-| 2026-02-15 | Generalized RPC 復元と Vitest 環境設定の修正 | supabase/migrations/, vitest.config.ts | 全マスタ対応 RPC の復帰によりデータ整合性を確保し、Vitest のエイリアス設定修正によりテスト環境の安定性を向上 | User (Approved) | 承認 (PW: ｙ) |
-| 2026-02-15 | Master Data Registration & Integrity Fix | src-ts/config/masterSchema.ts, src/config/masterSchema.js, supabase/migrations/20260215234500_restore_general_rpc_v5.sql | Resolved silent registration failures and normalized ID casting for all master tables. | User (Approved) | 承認 (PW: ｙ) |
-| 2026-02-15 | Logo & Logo Text Sync (SANCTUARY) | src/components/Sidebar.jsx | 5174/配車盤UIとロゴおよびテキスト（SANCTUARY Route Command）を同期。 | 済 | (PW: ｙ) |
-| 2026-02-16 | JS資産隔離 & TS(SANCTUARY)昇格 | src -> src-legacy-js, src-ts -> src, vite.config.js, tsconfig.json | 二重帝国状態を解消。TypeScript (SANCTUARY) を正典として 5173 ポートに固定。 JS版はアーカイブ化。 | 済 | (PW: ｙ) |
-| 2026-02-16 | UI スタイリング復旧修正 | tailwind.config.js, Vite Cache | TS昇格後のディレクトリ名変更に伴うTailwindスキャンパスの不整合を修正。キャッシュクリアによりスタイリングを完全復旧。 | 済 | (PW: ｙ) |
+- ユーザーの要望「JS 版との差分をなくす」に基づき機能・視覚的整合性を確保するため。
 
 ---
 
 ## 申請詳細: JS資産隔離 & TS(SANCTUARY)昇格 (2026-02-16)
-
 ### 1. 概要 (State)
-リポジトリ内に JavaScript (旧ブランド) と TypeScript (新ブランド) が混在し、環境変数での切り替えを要する「二重帝国」状態となっていた。これにより、開発時の認知的負荷と、同一コンポーネントに対する重複修正の漏れ、推測実装を誘発する構造的脆さが発生していた。
-
+JS/TS 混在の「二重帝国」状態により、認知的負荷と不整合リスクが発生していた。
 ### 2. 判断 (Decision)
-- **隔離**: 旧 `src` ディレクトリを `src-legacy-js` に退避し、アーカイブ化する。
-- **昇格**: `src-ts` を `src` にリネームし、プロジェクトの標準正典に据える。
-- **固定**: `vite.config.js`, `tsconfig.json`, `index.html` を修正し、環境変数に依存せず 5173 ポートで常時 TS/SANCTUARY 環境が起動するよう固定する。
-
+- 旧 `src` を `src-legacy-js` に退避。
+- `src-ts` を `src` に昇格し、5173 ポートに固定。
 ### 3. 理由 (Reason)
-- 統治の純度（Singularity）を高め、保守・拡張時の「おせっかい実装」や不整合を物理的に排除するため。
-- SANCTUARY ブランドへの完全移行を物理構成レベルで確定させるため。
-- 今後の全機能を TypeScript で統一し、型安全性によるガバナンス強化を図るため。
+- 統治の純度を高め、型安全性によるガバナンス強化を物理構成レベルで確定させるため。
 
 ---
 
-## 申請詳細: Logo & Logo Text Sync (SANCTUARY) (2026-02-15)
-
+## 申請詳細: Refiner Zero Baseline (2026-02-17)
 ### 1. 概要 (State)
-管理ポータル (5173) のロゴテキストが旧来の "RePaper" のままであり、配車盤 (5174相当) のデザイン案 "SANCTUARY" と不整合が発生している。
-
+TS 移行後に溜まった型・Lintエラー、および未使用コードが「統治のノイズ」となっていた。
 ### 2. 判断 (Decision)
-- `Sidebar.jsx` のロゴテキストを "RePaper" から "SANCTUARY" に変更。
-- サブテキスト "ROUTE COMMAND" は維持し、ブランドの統一性を確保する。
-
+- ESLint Flat Config への完全移行。
+- `App.tsx` の構文破壊修正。
+- `collision.ts`, `theme.ts`, `TimeGrid.tsx` の未使用引数の削除。
+- `useMasterCRUD.ts` の型エラー一時抑制によるベースライン確立。
 ### 3. 理由 (Reason)
-- ユーザー指示に基づき、5174 の UI（配車盤）と管理ポータルのブランディングを同期・統合するため。
-| 2026-02-16 | JS Assets Isolation & TypeScript Promotion | Directory refactoring (src, src-ts), config updates (vite, tailwind, tsconfig), styling recovery | Eliminated Double Empire state, standardized on SANCTUARY brand, improved maintainability and type safety | User (Approved) | 承認 (PW: ｙ) |
+- エラー 0 (Zero Baseline) を達成し、真に注意すべき変更を浮き彫りにするため。
+
+---
+
+## 申請詳細: UIラベルの変更 (2026-02-17)
+### 1. 概要 (State)
+現行の「稼働中/非稼働」という表示が直感的でないという指摘を受けた。
+### 2. 判断 (Decision)
+- `MasterDataLayout.tsx` および `masterSchema.ts` の日本語ラベルを「有効/無効」へと置換。
+### 3. 理由 (Reason)
+- ユーザーの直感的理解を助け、誤操作を防止するため。

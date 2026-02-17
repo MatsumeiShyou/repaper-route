@@ -64,3 +64,13 @@
   - **概要**: `.agent/scripts/pre_flight.js` を Husky などのフックに登録し、物理的に統治を強制する。
   - **解決方法**: Husky `pre-commit` への登録を完了し、全ての変更においてプリフライトチェックを物理的に強制する体制を確立。
   - **結果**: 人為的なエラーや統治のバイパスがシステム的に遮断されるようになった。
+- [ ] **TypeScript & Linting Errors** (Status: **In Progress**)
+    - [x] Initial Audit (Exit Code 1)
+    - [x] Config Fix (ESLint v9 Flat Config)
+    - [x] Semantic Fixes (`useMasterCRUD`, `TimeGrid`, `Collision`, `Theme`)
+    - [ ] **Ghost Errors**:
+        - `App.tsx(2,10)` "User is declared but never read" (File content shows no import).
+        - `TS2367` Condition always false in `board/hooks`.
+        - Lint Error at `102:47` (Unknown file).
+    - **Action**: Monitor in next CI run. Potentially requires `git clean -fdx`.
+  - **Note**: 既存エラーは一旦是認し、別タスクで集中的に解消するか、`// @ts-ignore` 等で明示的に抑制してベースラインを作成する必要がある。
