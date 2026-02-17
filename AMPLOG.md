@@ -120,3 +120,4 @@ TS 移行後に溜まった型・Lintエラー、および未使用コードが�
 | 2026-02-17 | 品目タグシステム導入とマスタ項目整理 | Modal.tsx, MasterDataLayout.tsx, masterSchema.ts | 品目マスタ連動のタグ選択UIを導入。デフォルトコース削除と備考統合によりUIをさらにスリム化 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-17 | 回収先マスタ編集時のホワイトアウト修正 | MasterDataLayout.tsx | useMasterCRUD への引数不整合を解消し、モーダル表示時のクラッシュを修正。 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-17 | 回収先マスタの便区分重複修正 | masterSchema.ts | 意図せず重複していたカラム定義を削除し、マスタ一覧の表示を正常化 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-17 | 回収先マスタ一覧の表示項目追加 | masterSchema.ts | 一覧に「品目」「重量」「備考」のカラムを追加し、情報の網羅性を向上 | User (Approved) | 承認 (PW: ｙ) |

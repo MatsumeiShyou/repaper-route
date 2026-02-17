@@ -123,7 +123,14 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 }
             },
 
-            { key: 'address', label: '住所', type: 'text', className: 'text-[10px] text-slate-500 max-w-[150px] truncate' },
+            {
+                key: 'target_item_category',
+                label: '主要回収品目',
+                type: 'tags'
+            },
+            { key: 'average_weight', label: '平均重量', type: 'number', className: 'text-right' },
+            { key: 'note', label: '備考', type: 'text', className: 'text-xs text-slate-500 max-w-[150px] truncate' },
+            { key: 'address', label: '住所', type: 'text', className: 'text-[10px] text-slate-500 max-w-[120px] truncate' },
             { key: 'is_active', label: '有効 / 無効', type: 'status' }
         ],
         fields: [
