@@ -68,8 +68,7 @@
     - [x] Initial Audit (Exit Code 1)
     - [x] Config Fix (ESLint v9 Flat Config)
     - [x] Semantic Fixes (`useMasterCRUD`, `TimeGrid`, `Collision`, `Theme`)
-    - [ ] **Ghost Errors**:
-        - `App.tsx(2,10)` "User is declared but never read" (File content shows no import).
+    - [ ] **App.tsx Type Error**: `NotificationContext` import error persists in `type-check` despite correct file structure. Needs deep dive into `tsconfig` or cache.
         - `TS2367` Condition always false in `board/hooks`.
         - Lint Error at `102:47` (Unknown file).
     - **Action**: Monitor in next CI run. Potentially requires `git clean -fdx`.

@@ -38,9 +38,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             />
 
             {/* Modal Content */}
-            <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md transform transition-all animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-2rem)] flex flex-col transform transition-all animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 shrink-0">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                         {title}
                     </h3>
@@ -53,13 +53,13 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
                 </div>
 
                 {/* Body */}
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto flex-1 thin-scrollbar">
                     {children}
                 </div>
 
                 {/* Footer */}
                 {footer && (
-                    <div className="flex items-center justify-end gap-3 p-6 pt-0">
+                    <div className="flex items-center justify-end gap-3 p-6 pt-2 border-t border-gray-100 dark:border-gray-700 shrink-0">
                         {footer}
                     </div>
                 )}

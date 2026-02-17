@@ -15,6 +15,7 @@ interface MasterDataLayoutProps {
 }
 
 export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) => {
+    // 汎用レイアウトなので Record<string, any> として扱う
     const {
         data,
         loading,
@@ -22,11 +23,11 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         createItem,
         updateItem,
         deleteItem
-    } = useMasterCRUD(schema);
+    } = useMasterCRUD<Record<string, any>>(schema);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<any>(null);
+    const [editingItem, setEditingItem] = useState<Record<string, any> | null>(null);
 
     const filteredData = data.filter(item => {
         if (!searchQuery) return true;
@@ -40,12 +41,12 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         setIsModalOpen(true);
     };
 
-    const handleEdit = (item: any) => {
+    const handleEdit = (item: Record<string, any>) => {
         setEditingItem(item);
         setIsModalOpen(true);
     };
 
-    const handleSave = async (formData: any) => {
+    const handleSave = async (formData: Record<string, any>) => {
         if (editingItem) {
             await updateItem(editingItem[schema.primaryKey], formData);
         } else {
@@ -161,10 +162,10 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
     );
 };
 
-function renderCell(item: any, col: MasterColumn) {
+function renderCell(item: Record<string, any>, col: MasterColumn) {
     const value = item[col.key];
 
-    // Status Dot Display (New)
+    // Status Dot Display
     if (col.type === 'status') {
         const isActive = !!value;
         return (
@@ -178,17 +179,28 @@ function renderCell(item: any, col: MasterColumn) {
     }
 
     if (col.type === 'badge') {
-        const badgeValue = item[col.key];
-        // プレミアムな車種別色分けロジック (JS版準拠 + 拡張)
-        let colorClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300';
+        const badgeValue = String(value || '');
+        let colorClass = 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'; // Default fallback
 
-        if (badgeValue) {
-            if (badgeValue.includes('10t')) {
-                colorClass = 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300';
-            } else if (badgeValue.includes('4t')) {
-                colorClass = 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300';
-            } else if (badgeValue.includes('待機')) {
-                colorClass = 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300';
+        // スキーマ定義の styleRules があれば適用 (部分一致を含む検索ロジック)
+        if (col.styleRules && badgeValue) {
+            // 完全一致を優先
+            if (col.styleRules[badgeValue]) {
+                colorClass = col.styleRules[badgeValue];
+            }
+            // デフォルト設定がある場合
+            else if (col.styleRules['default']) {
+                colorClass = col.styleRules['default'];
+
+                // 部分一致の検索 (例: '4tゲート' -> '4t')
+                // キーを走査して、値が含まれていれば適用するロジック
+                // キーが 'default' 以外で、かつ badgeValue に含まれる場合
+                const matchedKey = Object.keys(col.styleRules).find(key =>
+                    key !== 'default' && badgeValue.includes(key)
+                );
+                if (matchedKey) {
+                    colorClass = col.styleRules[matchedKey];
+                }
             }
         }
 
@@ -224,11 +236,11 @@ function renderCell(item: any, col: MasterColumn) {
 
 function MasterForm({ schema, initialData, onSave, onCancel }: {
     schema: MasterSchema,
-    initialData: any,
-    onSave: (data: any) => Promise<void>,
+    initialData: Record<string, any> | null,
+    onSave: (data: Record<string, any>) => Promise<void>,
     onCancel: () => void
 }) {
-    const [formData, setFormData] = useState(initialData || {});
+    const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -236,10 +248,10 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 {schema.fields.map(field => (
-                    <div key={field.name} className={field.className}>
+                    <div key={field.name} className={`${field.className || ''} flex flex-col`}>
                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
                             {field.label} {field.required && <span className="text-red-500">*</span>}
                         </label>
@@ -269,7 +281,7 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
                 ))}
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-3 mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
                 <button type="button" onClick={onCancel} className="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
                     キャンセル
                 </button>

@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase/client';
 import { MasterSchema } from '../config/masterSchema';
@@ -8,22 +6,23 @@ import { MasterSchema } from '../config/masterSchema';
  * 汎用マスタCRUDフック (TypeScript版)
  * SDR（State/Decision/Reason）プロトコルに基づくデータ更新を行う
  */
-export function useMasterCRUD(schema: MasterSchema) {
-    const [data, setData] = useState<any[]>([]);
+export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchema) {
+    const [data, setData] = useState<T[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<any>(null);
+    const [error, setError] = useState<Error | null>(null);
 
     const refresh = useCallback(async () => {
         try {
             setLoading(true);
             const { data: res, error: err } = await supabase
+                // @ts-ignore Dynamic view name from schema cannot be statically verified against Database types
                 .from(schema.viewName)
                 .select('*');
 
             if (err) throw err;
-            setData(res || []);
+            setData((res as unknown as T[]) || []);
         } catch (err) {
-            setError(err);
+            setError(err instanceof Error ? err : new Error(String(err)));
             console.error('Master Data Fetch Error:', err);
         } finally {
             setLoading(false);
@@ -34,9 +33,10 @@ export function useMasterCRUD(schema: MasterSchema) {
         refresh();
     }, [refresh]);
 
-    const createItem = async (formData: any) => {
+    const createItem = async (formData: Partial<T>) => {
         try {
             const { error: err } = await supabase
+                // @ts-ignore Dynamic RPC call with schema-driven table name
                 .rpc('rpc_execute_master_update', {
                     p_table_name: schema.rpcTableName,
                     p_core_data: formData,
@@ -45,14 +45,15 @@ export function useMasterCRUD(schema: MasterSchema) {
             if (err) throw err;
             await refresh();
         } catch (err) {
-            setError(err);
+            setError(err instanceof Error ? err : new Error(String(err)));
             throw err;
         }
     };
 
-    const updateItem = async (idValue: string, formData: any) => {
+    const updateItem = async (idValue: string | number, formData: Partial<T>) => {
         try {
             const { error: err } = await supabase
+                // @ts-ignore Dynamic RPC call with schema-driven table name
                 .rpc('rpc_execute_master_update', {
                     p_table_name: schema.rpcTableName,
                     p_id: idValue,
@@ -62,14 +63,15 @@ export function useMasterCRUD(schema: MasterSchema) {
             if (err) throw err;
             await refresh();
         } catch (err) {
-            setError(err);
+            setError(err instanceof Error ? err : new Error(String(err)));
             throw err;
         }
     };
 
-    const deleteItem = async (idValue: string) => {
+    const deleteItem = async (idValue: string | number) => {
         try {
             const { error: err } = await supabase
+                // @ts-ignore Dynamic RPC call with schema-driven table name
                 .rpc('rpc_execute_master_update', {
                     p_table_name: schema.rpcTableName,
                     p_id: idValue,
@@ -79,7 +81,7 @@ export function useMasterCRUD(schema: MasterSchema) {
             if (err) throw err;
             await refresh();
         } catch (err) {
-            setError(err);
+            setError(err instanceof Error ? err : new Error(String(err)));
             throw err;
         }
     };

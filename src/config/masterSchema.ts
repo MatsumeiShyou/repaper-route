@@ -8,6 +8,7 @@ export interface MasterColumn {
     type: 'text' | 'badge' | 'number' | 'status' | 'multi-row';
     subLabelKey?: string;
     className?: string;
+    styleRules?: Record<string, string>;
 }
 
 export interface MasterField {
@@ -60,7 +61,17 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         searchFields: ['number', 'callsign', 'vehicle_type'],
         columns: [
             { key: 'number', subLabelKey: 'callsign', label: '車両番号 / 通称', type: 'multi-row', className: 'font-bold text-blue-600' },
-            { key: 'vehicle_type', label: '車種', type: 'badge' },
+            {
+                key: 'vehicle_type',
+                label: '車種',
+                type: 'badge',
+                styleRules: {
+                    default: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+                    '4t': 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
+                    '待機': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                }
+            },
+
             { key: 'display_order', label: '表示順', type: 'number' }
         ],
         fields: [
@@ -87,19 +98,71 @@ export const MASTER_SCHEMAS: MasterSchemas = {
     },
     points: {
         title: '回収先管理',
-        description: '店舗・拠点の有効・無効の設定',
+        description: '現場制約（車両制限/時間）および巡回ルート設定',
         viewName: 'view_master_points',
-        rpcTableName: 'master_collection_points', // Fixed from 'points' to match DB table
+        rpcTableName: 'master_collection_points',
         primaryKey: 'id',
-        searchFields: ['name', 'address', 'contractor_name'],
+        searchFields: ['display_name', 'address', 'contractor_name', 'default_route_code'],
         columns: [
-            { key: 'name', subLabelKey: 'contractor_name', label: '地点名 / 排出元', type: 'multi-row', className: 'font-bold' },
-            { key: 'address', label: '住所', type: 'text', className: 'text-xs text-slate-500' },
+            {
+                key: 'display_name',
+                subLabelKey: 'contractor_name',
+                label: '地点名 / 排出元',
+                type: 'multi-row',
+                className: 'font-bold'
+            },
+            {
+                key: 'visit_slot',
+                label: '便区分',
+                type: 'badge',
+                styleRules: {
+                    default: 'bg-slate-100 text-slate-800',
+                    'AM': 'bg-blue-100 text-blue-800 border border-blue-200',
+                    'PM': 'bg-orange-100 text-orange-800 border border-orange-200',
+                    'FREE': 'bg-emerald-100 text-emerald-800'
+                }
+            },
+            {
+                key: 'default_route_code',
+                label: 'コース',
+                type: 'badge',
+                styleRules: {
+                    default: 'bg-slate-700 text-white font-mono'
+                }
+            },
+            { key: 'address', label: '住所', type: 'text', className: 'text-[10px] text-slate-500 max-w-[150px] truncate' },
             { key: 'is_active', label: '有効 / 無効', type: 'status' }
         ],
         fields: [
-            { name: 'name', label: '地点名', type: 'text', required: true },
-            { name: 'address', label: '住所', type: 'text' }
+            { name: 'display_name', label: '地点名（表示用）', type: 'text', required: true, placeholder: '例: ○○スーパー(AM)' },
+            { name: 'contractor_id', label: '契約主体ID', type: 'text', required: true },
+            {
+                name: 'visit_slot',
+                label: '便区分（スロット）',
+                type: 'select',
+                options: ['AM', 'PM', 'FREE'],
+                className: 'col-span-1'
+            },
+            {
+                name: 'vehicle_restriction_type',
+                label: '車両制約タイプ',
+                type: 'select',
+                options: ['NONE', 'FIXED', 'FIXED_UNTIL_RETURN'],
+                className: 'col-span-1'
+            },
+            { name: 'restricted_vehicle_id', label: '制限対象車両ID', type: 'text', placeholder: '車両ID（UUID）' },
+            { name: 'default_route_code', label: 'デフォルトコース', type: 'text', placeholder: '例: A' },
+            { name: 'target_item_category', label: '主要回収品目', type: 'text', placeholder: '例: 段ボール' },
+            { name: 'address', label: '住所', type: 'text', className: 'col-span-2' },
+            { name: 'site_contact_phone', label: '現場直通電話', type: 'tel' },
+            { name: 'average_weight', label: '平均回収重量(kg)', type: 'number' },
+            {
+                name: 'note',
+                label: '備考',
+                type: 'text',
+                className: 'col-span-2',
+                placeholder: '例: 裏口から入場。天井低い。'
+            }
         ]
     }
 };

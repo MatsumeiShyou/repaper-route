@@ -97,6 +97,49 @@ export interface Database {
                     display_order: number | null
                 }
             }
+            master_collection_points: {
+                Row: {
+                    id: string
+                    location_id: string
+                    name: string
+                    display_name: string | null
+                    address: string | null
+                    contractor_id: string | null
+                    visit_slot: string | null
+                    vehicle_restriction_type: string | null
+                    restricted_vehicle_id: string | null
+                    time_constraint_type: string | null
+                    default_route_code: string | null
+                    is_active: boolean
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    location_id: string
+                    name: string
+                    display_name?: string | null
+                    address?: string | null
+                    contractor_id?: string | null
+                    visit_slot?: string | null
+                    vehicle_restriction_type?: string | null
+                    is_active?: boolean
+                }
+                Update: {
+                    display_name?: string | null
+                    address?: string | null
+                    contractor_id?: string | null
+                    visit_slot?: string | null
+                    vehicle_restriction_type?: string | null
+                    is_active?: boolean
+                }
+            }
+            master_contractors: {
+                Row: {
+                    contractor_id: string
+                    name: string
+                    payee_id: string | null
+                }
+            }
         }
     }
 }
