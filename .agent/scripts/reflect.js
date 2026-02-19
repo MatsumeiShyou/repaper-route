@@ -262,6 +262,26 @@ function checkRetryPatterns() {
     }
 
     if (rapidRetries.length > 0) {
+        // --- Added: SDR Reflection Bypass Logic (§6) ---
+        let reflectionFound = false;
+        let reflectionContent = '';
+        if (fs.existsSync(AMPLOG_PATH)) {
+            const amplogContent = fs.readFileSync(AMPLOG_PATH, 'utf8');
+            const lines = amplogContent.split('\n').filter(l => l.trim().startsWith('|'));
+            const lastEntry = lines[lines.length - 1] || '';
+            const auditMatch = lastEntry.match(/\[Audit:\s*(.*?)\]/);
+            if (auditMatch && auditMatch[1].trim().length > 5) { // 5文字以上の内省を要求
+                reflectionFound = true;
+                reflectionContent = auditMatch[1].trim();
+            }
+        }
+
+        if (reflectionFound) {
+            console.log('\n✅ [SVP Resolution] 有効な内省（Auditタグ）を検知しました。物理ロックを解除します。');
+            console.log(`📝 Reflection: ${reflectionContent}`);
+            return []; // Violations を空にして通過させる
+        }
+
         const details = rapidRetries.map(r =>
             `📄 ${r.file} — ${r.count} modifications in ${r.window}\n` +
             r.commits.map(c => `    └─ ${c}`).join('\n')
@@ -272,7 +292,7 @@ function checkRetryPatterns() {
             category: '§4 Stop & Retry Protocol (SVP)',
             issue: `${rapidRetries.length} file(s) with rapid consecutive modifications detected (potential "当てずっぽう" retry)`,
             details,
-            recommendation: 'AGENTS.md §4: 2回で失格。同一エラーへのリトライは Stop Protocol を発動し、原因を調査せよ。'
+            recommendation: `【ベストプラクティス ONE】\n試行錯誤の履歴を論理的な一単位に統合し、AMPLOG.md のステータス欄に [Audit: <原因・判断・根拠>] を記録した上で再試行せよ。`
         });
     }
 

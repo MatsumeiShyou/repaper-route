@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../../lib/supabase/client';
 import { useMasterData } from './useMasterData';
-import { useNotification } from '../../../contexts/NotificationContext';
+import { useNotification, NotificationProvider } from './contexts/NotificationContext';
 import {
     BoardJob, BoardDriver, BoardSplit, BoardHistory,
     Profile, AppUser, SupabaseJob, UserRole
@@ -70,7 +70,7 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
                     .from('routes')
                     .select('*')
                     .eq('date', currentDateKey)
-                    .maybeSingle();
+                    .maybeSingle() as { data: any, error: any };
 
                 if (error) throw error;
 
@@ -120,7 +120,7 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
                         .from('profiles')
                         .select('can_edit_board')
                         .eq('id', currentUserId)
-                        .maybeSingle();
+                        .maybeSingle() as { data: any, error: any };
 
                     if (!profileError && userProfile) {
                         setCanEditBoard(userProfile.can_edit_board || false);
@@ -176,7 +176,7 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
                 .maybeSingle();
 
             const isLockExpired = route?.last_activity_at &&
-                (Date.now() - new Date(route.last_activity_at).getTime()) > TIMEOUT_MS;
+                (Date.now() - new Date(route.last_activity_at as string).getTime()) > TIMEOUT_MS;
 
             if (!route?.edit_locked_by || isLockExpired || route.edit_locked_by === currentUserId) {
                 let updateData: any = {

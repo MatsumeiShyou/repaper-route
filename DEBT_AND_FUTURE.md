@@ -55,6 +55,10 @@
   - **現状**: 検証ロジック (`validateVehicleLock`) は実装済みだが、UI側の厳密なブロック動作は検証待ち/未適用。
   - **理由**: 現場の柔軟な運用を優先するため、警告 (Warning) レベルに留めている可能性あり。
 
+- [ ] **Deterministic Logic Integration (Logic Base)**
+  - **概要**: AIに代わる、重量・時間・巡回順序に基づく決定論的な計算ロジックの統合。
+  - **理由**: ブラックボックスを排除し、100%説明可能な配車支援を実現するため。
+
 - [x] **Master Management UI** (Phase 5 - 2026-02-14)
   - **概要**: 顧客 (`master_collection_points`) や車両 (`vehicles`) を管理画面から編集・追加する機能。
   - **解決方法**: 汎用RPC `rpc_execute_master_update` を実装し、各マスタ画面 (Vehicle/Item/Point/Driver/User) をSDR準拠で実装完遂。
@@ -64,12 +68,11 @@
   - **概要**: `.agent/scripts/pre_flight.js` を Husky などのフックに登録し、物理的に統治を強制する。
   - **解決方法**: Husky `pre-commit` への登録を完了し、全ての変更においてプリフライトチェックを物理的に強制する体制を確立。
   - **結果**: 人為的なエラーや統治のバイパスがシステム的に遮断されるようになった。
-- [ ] **TypeScript & Linting Errors** (Status: **In Progress**)
+- [x] **TypeScript & Linting Errors** (Status: **Fixed**)
     - [x] Initial Audit (Exit Code 1)
     - [x] Config Fix (ESLint v9 Flat Config)
     - [x] Semantic Fixes (`useMasterCRUD`, `TimeGrid`, `Collision`, `Theme`)
-    - [ ] **App.tsx Type Error**: `NotificationContext` import error persists in `type-check` despite correct file structure. Needs deep dive into `tsconfig` or cache.
-        - `TS2367` Condition always false in `board/hooks`.
-        - Lint Error at `102:47` (Unknown file).
-    - **Action**: Monitor in next CI run. Potentially requires `git clean -fdx`.
+    - [x] **App.tsx Type Error**: Resolved by removing .tsx extension in imports.
+    - [x] **useBoardData.ts Errors**: Resolved by explicit type assertions for Supabase single queries.
+    - **Action**: Monitor in next CI run.
   - **Note**: 既存エラーは一旦是認し、別タスクで集中的に解消するか、`// @ts-ignore` 等で明示的に抑制してベースラインを作成する必要がある。

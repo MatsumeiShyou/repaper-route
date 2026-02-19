@@ -1,5 +1,5 @@
 import React from 'react'
-import { useNotification, NotificationProvider } from './contexts/NotificationContext.tsx'
+import { useNotification, NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider, useAuth } from './contexts/AuthProvider'
 import { ProfilePortal } from './components/ProfilePortal'
 import { RefreshCcw, Database } from 'lucide-react'

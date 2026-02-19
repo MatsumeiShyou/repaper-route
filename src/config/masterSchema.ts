@@ -5,7 +5,7 @@
 export interface MasterColumn {
     key: string;
     label: string;
-    type: 'text' | 'badge' | 'number' | 'status' | 'multi-row';
+    type: 'text' | 'badge' | 'number' | 'status' | 'multi-row' | 'tags' | 'select';
     subLabelKey?: string;
     className?: string;
     styleRules?: Record<string, string>;
@@ -19,6 +19,11 @@ export interface MasterField {
     placeholder?: string;
     options?: string[];
     className?: string;
+    lookup?: {
+        schemaKey: string; // MASTER_SCHEMAS のキー
+        labelKey: string;  // 表示に使用するカラム
+        valueKey: string;  // 実際の値に使用するカラム
+    };
 }
 
 export interface MasterSchema {
@@ -37,6 +42,23 @@ export interface MasterSchemas {
 }
 
 export const MASTER_SCHEMAS: MasterSchemas = {
+    contractors: {
+        title: '契約主体管理',
+        description: '排出元（顧客）の契約主体および支払元の設定',
+        viewName: 'master_contractors',
+        rpcTableName: 'master_contractors',
+        primaryKey: 'contractor_id',
+        searchFields: ['name'],
+        columns: [
+            { key: 'name', label: '契約主体名', type: 'text', className: 'font-bold' },
+            { key: 'contractor_id', label: 'ID', type: 'text', className: 'text-xs text-slate-400' }
+        ],
+        fields: [
+            { name: 'contractor_id', label: '契約主体ID', type: 'text', required: true },
+            { name: 'name', label: '契約主体名', type: 'text', required: true },
+            { name: 'payee_id', label: '支払元ID', type: 'text' }
+        ]
+    },
     drivers: {
         title: 'ドライバー管理',
         description: '乗務員の基本連絡先と稼働状態の設定',
@@ -58,6 +80,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         description: '配車対象車両の登録と設定',
         viewName: 'vehicles',
         rpcTableName: 'vehicles',
+        primaryKey: 'id',
         searchFields: ['number', 'callsign', 'vehicle_type'],
         columns: [
             { key: 'number', subLabelKey: 'callsign', label: '車両番号 / 通称', type: 'multi-row', className: 'font-bold text-blue-600' },
@@ -102,14 +125,20 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         viewName: 'view_master_points',
         rpcTableName: 'master_collection_points',
         primaryKey: 'id',
-        searchFields: ['display_name', 'address', 'contractor_name', 'default_route_code'],
+        searchFields: ['display_name', 'address', 'contractor_name', 'default_route_code', 'location_code'],
         columns: [
             {
                 key: 'display_name',
                 subLabelKey: 'contractor_name',
                 label: '地点名 / 排出元',
                 type: 'multi-row',
-                className: 'font-bold'
+                className: 'font-bold sticky left-0 bg-white dark:bg-slate-900 z-10 min-w-[200px] shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)]'
+            },
+            {
+                key: 'location_code',
+                label: 'コード',
+                type: 'text',
+                className: 'text-xs font-mono text-slate-400'
             },
             {
                 key: 'visit_slot',
@@ -122,20 +151,39 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     'FREE': 'bg-emerald-100 text-emerald-800'
                 }
             },
-
+            {
+                key: 'vehicle_restriction_type',
+                label: '車両制限',
+                type: 'badge',
+                styleRules: {
+                    default: 'bg-slate-50 text-slate-400',
+                    'FIXED': 'bg-red-50 text-red-700 border border-red-100 font-black',
+                    'FIXED_UNTIL_RETURN': 'bg-purple-50 text-purple-700 border border-purple-100 font-black'
+                }
+            },
             {
                 key: 'target_item_category',
                 label: '主要回収品目',
                 type: 'tags'
             },
-            { key: 'average_weight', label: '平均重量', type: 'number', className: 'text-right' },
-            { key: 'note', label: '備考', type: 'text', className: 'text-xs text-slate-500 max-w-[150px] truncate' },
-            { key: 'address', label: '住所', type: 'text', className: 'text-[10px] text-slate-500 max-w-[120px] truncate' },
-            { key: 'is_active', label: '有効 / 無効', type: 'status' }
+            { key: 'internal_note', label: '備考', type: 'text', className: 'text-xs text-slate-500 min-w-[200px] max-w-[300px] truncate-2-lines' },
+            { key: 'site_contact_phone', label: '連絡先', type: 'text', className: 'text-xs font-bold text-blue-600' },
+            { key: 'address', label: '住所', type: 'text', className: 'text-[10px] text-slate-500 min-w-[150px] truncate' },
+            { key: 'is_active', label: '状態', type: 'status' }
         ],
         fields: [
             { name: 'display_name', label: '地点名（表示用）', type: 'text', required: true, placeholder: '例: ○○スーパー(AM)' },
-            { name: 'contractor_id', label: '契約主体ID', type: 'text', required: true },
+            {
+                name: 'contractor_id',
+                label: '契約主体',
+                type: 'select',
+                required: true,
+                lookup: {
+                    schemaKey: 'contractors',
+                    labelKey: 'name',
+                    valueKey: 'contractor_id'
+                }
+            },
             {
                 name: 'visit_slot',
                 label: '便区分（スロット）',
@@ -150,13 +198,21 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 options: ['NONE', 'FIXED', 'FIXED_UNTIL_RETURN'],
                 className: 'col-span-1'
             },
-            { name: 'restricted_vehicle_id', label: '制限対象車両ID', type: 'text', placeholder: '車両ID（UUID）' },
+            {
+                name: 'restricted_vehicle_id',
+                label: '制限対象車両',
+                type: 'select',
+                lookup: {
+                    schemaKey: 'vehicles',
+                    labelKey: 'callsign',
+                    valueKey: 'id'
+                }
+            },
             { name: 'target_item_category', label: '主要回収品目', type: 'tags', className: 'col-span-2', placeholder: '品目を選択...' },
             { name: 'address', label: '住所', type: 'text', className: 'col-span-2' },
             { name: 'site_contact_phone', label: '現場直通電話', type: 'tel' },
-            { name: 'average_weight', label: '平均回収重量(kg)', type: 'number' },
             {
-                name: 'note',
+                name: 'internal_note',
                 label: '備考',
                 type: 'text',
                 className: 'col-span-2',

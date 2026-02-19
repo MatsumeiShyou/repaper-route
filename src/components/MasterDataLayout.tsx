@@ -5,7 +5,9 @@ import {
     Edit,
     Archive,
     XCircle,
-    X
+    X,
+    Phone,
+    Lock
 } from 'lucide-react';
 import useMasterCRUD from '../hooks/useMasterCRUD';
 import { Modal } from './Modal';
@@ -104,25 +106,30 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                     </div>
                 ) : (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                    {schema.columns.map(col => (
-                                        <th key={col.key} className="px-6 py-4">{col.label}</th>
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-sm">
+                        <table className="w-full text-left border-separate border-spacing-0 min-w-max">
+                            <thead className="sticky top-0 z-20">
+                                <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
+                                    {schema.columns.map((col, idx) => (
+                                        <th
+                                            key={col.key}
+                                            className={`px-6 py-4 border-b border-slate-200 dark:border-slate-800 ${col.className?.includes('sticky') ? 'sticky left-0 bg-slate-50 dark:bg-slate-800 z-30' : ''}`}
+                                        >
+                                            {col.label}
+                                        </th>
                                     ))}
-                                    <th className="px-6 py-4 text-right">操作</th>
+                                    <th className="px-6 py-4 text-right border-b border-slate-200 dark:border-slate-800 sticky right-0 bg-slate-50/90 dark:bg-slate-800/90 z-20 backdrop-blur-md shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">操作</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {filteredData.map(item => (
                                     <tr key={item[schema.primaryKey]} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
                                         {schema.columns.map(col => (
-                                            <td key={col.key} className={`px-6 py-4 whitespace-nowrap text-sm ${col.className || ''}`}>
+                                            <td key={col.key} className={`px-6 py-3 whitespace-nowrap text-sm ${col.className || ''}`}>
                                                 {renderCell(item, col)}
                                             </td>
                                         ))}
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-3 text-right sticky right-0 bg-white/90 dark:bg-slate-900/90 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 z-10 backdrop-blur-sm shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={() => handleEdit(item)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 transition-colors">
                                                     <Edit size={16} />
@@ -216,11 +223,23 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
     if (col.type === 'multi-row' || col.subLabelKey) {
         return (
             <div className="flex flex-col py-1">
-                <span className="font-bold text-slate-800 dark:text-slate-200 leading-none">
-                    {value || '-'}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        {value || '-'}
+                    </span>
+                    {item.site_contact_phone && (
+                        <div className="w-5 h-5 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                            <Phone size={10} className="stroke-[3]" />
+                        </div>
+                    )}
+                    {item.vehicle_restriction_type && item.vehicle_restriction_type !== 'NONE' && (
+                        <div className="w-5 h-5 flex items-center justify-center rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+                            <Lock size={10} className="stroke-[3]" />
+                        </div>
+                    )}
+                </div>
                 {col.subLabelKey && item[col.subLabelKey] && (
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium">
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium truncate max-w-[180px]">
                         {item[col.subLabelKey]}
                     </span>
                 )}
@@ -321,6 +340,12 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
                                     })}
                                 </div>
                             </div>
+                        ) : field.type === 'select' && field.lookup ? (
+                            <LookupSelect
+                                field={field}
+                                value={formData[field.name] || ''}
+                                onChange={(val) => setFormData({ ...formData, [field.name]: val })}
+                            />
                         ) : field.type === 'select' ? (
                             <select
                                 className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
@@ -356,5 +381,31 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
                 </button>
             </div>
         </form>
+    );
+}
+
+function LookupSelect({ field, value, onChange }: {
+    field: any, // MasterField from schema
+    value: string,
+    onChange: (val: string) => void
+}) {
+    const lookupSchema = MASTER_SCHEMAS[field.lookup.schemaKey];
+    const { data: options, loading } = useMasterCRUD(lookupSchema);
+
+    return (
+        <select
+            className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white disabled:opacity-50"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            required={field.required}
+            disabled={loading}
+        >
+            <option value="">{loading ? '読み込み中...' : '選択してください'}</option>
+            {options.map((opt: any) => (
+                <option key={opt[field.lookup.valueKey]} value={opt[field.lookup.valueKey]}>
+                    {opt[field.lookup.labelKey]}
+                </option>
+            ))}
+        </select>
     );
 }

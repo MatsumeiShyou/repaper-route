@@ -1,6 +1,6 @@
 # Governance Self-Reflection Report
 
-**Generated**: 2026-02-17T19:21:50.896Z
+**Generated**: 2026-02-19T09:57:55.447Z
 **Period**: Last 7 days
 **Checks**: AMPLOG Protocol, Strict Seal, Resource Governance, Retry Pattern Detection
 
@@ -18,7 +18,11 @@ All governance protocols are being followed correctly.
 
 ### Recent Changes (Auto-Snapshot)
 ```
- GOVERNANCE_REPORT.md | 9 +--------
- 1 file changed, 1 insertion(+), 8 deletions(-)
+ .agent/scripts/record_amp.js | 33 ++++++++++++++++++++++-----------
+ .agent/scripts/reflect.js    | 22 +++++++++++++++++++++-
+ AGENTS.md                    |  7 ++++++-
+ AMPLOG.md                    |  3 ++-
+ GOVERNANCE_REPORT.md         | 38 ++++++++------------------------------
+ 5 files changed, 59 insertions(+), 44 deletions(-)
 
 ```

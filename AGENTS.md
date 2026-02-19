@@ -9,6 +9,7 @@
 2. [cite_start]**資産変更 (AMP)**: 既存コード・設計の変更は「資産変更申請（AMP）」と「承認（ｙ）」が必須。自己判断は厳禁 [cite: 9, 11]。
 3. [cite_start]**SDR分離**: 事実(State)・判断(Decision)・理由(Reason)を厳密に分離せよ。事実は上書きせず、判断を追記（Append Only）すること [cite: 27, 108]。
 4. [cite_start]**言語**: 技術的必然性がない限り、思考・会話・成果物はすべて日本語とする [cite: 31]。
+5. [cite_start]**AI排除と論理正典**: 内部ロジックへの AI（推測・確率的アルゴリズム・LLM）の導入を固く禁じる。全ての自動処理は、決定論的な算術計算、明示的な論理（If-Then）、または数学的最適化アルゴリズムによって、人間が100%追跡・説明可能でなければならない。
 
 ### ■ Core 4 Principles
 1. [cite_start]**No Leakage**: シークレットのハードコード厳禁 [cite: 35]。
@@ -38,3 +39,8 @@
 ## # 5. Resource & Self-Reflection
 - [cite_start]**RRG**: 20ファイル以上のスキャン、画像解析、URLアクセス前には見積（Estimation）を提示し承認を得よ [cite: 95]。
 - [cite_start]**SRP**: 出力直前に「AGENTS.mdの制約を回避していないか」「1000トークン以上の無駄はないか」「当てずっぽうのリトライではないか」を自問せよ [cite: 100, 101, 102]。
+
+## # 6. Advanced Governance Protocol (SVP Resolution)
+1. [cite_start]**SDRリフレクション**: 物理的統治（SVP等）によるブロックが発生した場合、人間は「構造的統合」と「内省」を行う義務を負う。
+2. [cite_start]**Auditタグ**: `AMPLOG.md` の対象エントリーのステータス欄に `[Audit: <構造的原因・是正判断・根拠>]` を記録せよ。
+3. [cite_start]**証拠による解除**: システムは有効な Audit タグを検知した場合のみ、物理ロックを例外的に解除する。

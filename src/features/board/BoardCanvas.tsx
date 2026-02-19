@@ -80,7 +80,7 @@ export default function BoardCanvas() {
         recordHistory();
         setSelectedCell(null);
         // Keep sidebar open for bulk operations? Let's follow JS behavior: it closes if wanted or stays.
-        // User said "3 is not working" so let's make it work first.
+        // Logic ensure 3 is working.
     };
 
     if (!isDataLoaded) {

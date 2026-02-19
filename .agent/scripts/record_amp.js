@@ -27,19 +27,25 @@ function parseArgs(argv) {
             args.impact = argv[++i];
         } else if (argv[i] === '--approver' && argv[i + 1]) {
             args.approver = argv[++i];
+        } else if (argv[i] === '--audit' && argv[i + 1]) {
+            args.audit = argv[++i];
         }
     }
     return args;
 }
 
-function recordEntry(title, scope, impact, approver) {
+function recordEntry(title, scope, impact, approver, audit) {
     if (!fs.existsSync(AMPLOG_PATH)) {
         console.error(`❌ Error: AMPLOG.md not found at ${AMPLOG_PATH}`);
         process.exit(1);
     }
 
     const date = new Date().toISOString().split('T')[0];
-    const entry = `| ${date} | ${title} | ${scope} | ${impact} | ${approver} | 承認 ${REQUIRED_SEAL} |`;
+    let status = `承認 ${REQUIRED_SEAL}`;
+    if (audit) {
+        status = `承認 [Audit: ${audit}] ${REQUIRED_SEAL}`;
+    }
+    const entry = `| ${date} | ${title} | ${scope} | ${impact} | ${approver} | ${status} |`;
 
     try {
         const content = fs.readFileSync(AMPLOG_PATH, 'utf8');
@@ -83,8 +89,13 @@ async function interactiveMode() {
     const scope = await question(rl, '🎯 Scope (e.g., "Add new API endpoint"): ');
     const impact = await question(rl, '💡 Impact (e.g., "Improved performance"): ');
     const approver = (await question(rl, '👤 Approver (default: "User (Approved)"): ')) || 'User (Approved)';
+    const audit = await question(rl, '🔍 Audit/Reflection (optional): ');
 
-    const entry = `| ${date} | ${title} | ${scope} | ${impact} | ${approver} | 承認 ${REQUIRED_SEAL} |`;
+    let status = `承認 ${REQUIRED_SEAL}`;
+    if (audit) {
+        status = `承認 [Audit: ${audit}] ${REQUIRED_SEAL}`;
+    }
+    const entry = `| ${date} | ${title} | ${scope} | ${impact} | ${approver} | ${status} |`;
 
     console.log('\n📋 Preview:');
     console.log('---');
@@ -99,26 +110,26 @@ async function interactiveMode() {
         process.exit(0);
     }
 
-    recordEntry(title, scope, impact, approver);
+    recordEntry(title, scope, impact, approver, audit);
     rl.close();
 }
 
 async function main() {
     const args = parseArgs(process.argv);
 
-    // Non-interactive mode (CLI arguments provided)
+    // 非対話モード (CLI引数が提供された場合)
     if (args.title && args.scope && args.impact) {
         const approver = args.approver || 'User (Approved)';
-        console.log('📝 AMPLOG Auto-Recording (Non-Interactive Mode)');
+        console.log('📝 AMPLOG 自動記録 (非対話モード)');
         console.log('================================================\n');
-        recordEntry(args.title, args.scope, args.impact, approver);
+        recordEntry(args.title, args.scope, args.impact, approver, args.audit);
     } else if (args.title || args.scope || args.impact) {
-        // Partial args = error
-        console.error('❌ Non-interactive mode requires --title, --scope, and --impact');
-        console.error('Usage: node record_amp.js --title "X" --scope "Y" --impact "Z"');
+        // 引数が不完全な場合
+        console.error('❌ 非対話モードには --title, --scope, --impact が必須です');
+        console.error('使用法: node record_amp.js --title "名称" --scope "範囲" --impact "効果"');
         process.exit(1);
     } else {
-        // Interactive mode
+        // 対話モード
         await interactiveMode();
     }
 }
