@@ -55,10 +55,10 @@ function checkAMPLOGViolations() {
 
     if (!fs.existsSync(AMPLOG_PATH)) {
         violations.push({
-            severity: 'CRITICAL',
-            category: 'AMPLOG Protocol',
-            issue: 'AMPLOG.md does not exist',
-            recommendation: 'Create AMPLOG.md immediately'
+            severity: '致命的',
+            category: 'AMPLOG プロトコル',
+            issue: 'AMPLOG.md が存在しません',
+            recommendation: '直ちに AMPLOG.md を作成してください'
         });
         return violations;
     }
@@ -82,10 +82,10 @@ function checkAMPLOGViolations() {
 
     if (hasCodeChanges && recentAMPLOGEntries.length === 0) {
         violations.push({
-            severity: 'HIGH',
-            category: 'AMPLOG Protocol',
-            issue: `Code changes detected in last ${DAYS_TO_CHECK} days but no AMPLOG entries`,
-            recommendation: 'Run: node .agent/scripts/record_amp.js'
+            severity: '高',
+            category: 'AMPLOG プロトコル',
+            issue: `直近 ${DAYS_TO_CHECK} 日間にコード変更が検知されましたが、AMPLOG の記録がありません`,
+            recommendation: '実行してください: node .agent/scripts/record_amp.js'
         });
     }
 
@@ -96,10 +96,10 @@ function checkAMPLOGViolations() {
 
     if (unsealed.length > 0) {
         violations.push({
-            severity: 'HIGH',
-            category: '§1 Strict Seal Protocol',
-            issue: `${unsealed.length} AMPLOG entries without (PW: ｙ) seal`,
-            recommendation: 'Add (PW: ｙ) to unsealed entries'
+            severity: '高',
+            category: '§1 厳格な印（Seal）プロトコル',
+            issue: `${unsealed.length} 件の AMPLOG エントリに承認印 (PW: ｙ) がありません`,
+            recommendation: '未承認のエントリに (PW: ｙ) を追記してください'
         });
     }
 
@@ -130,11 +130,11 @@ function checkCleanupViolations() {
 
     if (offenders.length > 0) {
         violations.push({
-            severity: 'MEDIUM',
-            category: '§5 Resource & Clean-up Governance',
-            issue: `${offenders.length} temporary/backup files detected`,
+            severity: '中',
+            category: '§5 資源およびクリーンアップ統治',
+            issue: `${offenders.length} 個の一時ファイル/バックアップファイルが検出されました`,
             details: offenders.join('\n'),
-            recommendation: 'Delete these files immediately. Use Git for history, not .bak files.'
+            recommendation: 'これらのファイルを直ちに削除してください。履歴管理には Git を使用し、.bak ファイルは作成しないでください。'
         });
     }
 
@@ -171,11 +171,11 @@ function checkLogFileSize() {
 
     if (logFiles.length > 0) {
         violations.push({
-            severity: 'MEDIUM',
-            category: 'Resource Governance',
-            issue: `${logFiles.length} large log files (>100KB) detected`,
+            severity: '中',
+            category: '資源統治',
+            issue: `${logFiles.length} 個の巨大なログファイル (>100KB) が検出されました`,
             details: logFiles.map(f => `${f.path.replace(PROJECT_ROOT, '.')} (${f.size})`).join('\n  '),
-            recommendation: 'Delete or archive large log files'
+            recommendation: '巨大なログファイルを削除またはアーカイブしてください'
         });
     }
 
@@ -288,9 +288,9 @@ function checkRetryPatterns() {
         ).join('\n\n');
 
         violations.push({
-            severity: 'HIGH',
-            category: '§4 Stop & Retry Protocol (SVP)',
-            issue: `${rapidRetries.length} file(s) with rapid consecutive modifications detected (potential "当てずっぽう" retry)`,
+            severity: '高',
+            category: '§4 停止およびリトライプロトコル (SVP)',
+            issue: `${rapidRetries.length} 個のファイルで短時間の連続修正が検知されました（「当てずっぽう」なリトライの可能性）`,
             details,
             recommendation: `【ベストプラクティス ONE】\n試行錯誤の履歴を論理的な一単位に統合し、AMPLOG.md のステータス欄に [Audit: <原因・判断・根拠>] を記録した上で再試行せよ。`
         });
@@ -349,11 +349,11 @@ function checkRetryPatterns() {
 
         if (repeatedErrors.length > 0) {
             violations.push({
-                severity: 'MEDIUM',
-                category: '§4 Stop & Retry Protocol (SVP)',
-                issue: `${repeatedErrors.length} repeated error pattern(s) found across debug outputs`,
+                severity: '中',
+                category: '§4 停止およびリトライプロトコル (SVP)',
+                issue: `${repeatedErrors.length} 件の重複するエラーパターンがデバッグ出力から見つかりました`,
                 details: repeatedErrors.join('\n'),
-                recommendation: 'Investigate root cause. Do not retry — analyze the State (§4: Fact over Logic).'
+                recommendation: '根本原因を調査してください。リトライせず、状態（State）を分析してください（§4：論理より事実）。'
             });
         }
     }
@@ -370,50 +370,50 @@ function generateReport(violations) {
     report += `---\n\n`;
 
     if (violations.length === 0) {
-        report += `## ✅ Status: COMPLIANT\n\n`;
-        report += `### Verification Evidence\n`;
-        report += `- **§2 Traceability**: AMPLOG.md exists and contains recent sealed entries.\n`;
-        report += `- **§4 SVP**: Git log analysis detected no rapid retry patterns.\n`;
-        report += `- **§5 Clean-up**: No .bak, debug_*, or fix_* files found in project root/src.\n`;
-        report += `- **Resource Control**: All log files are within acceptable size limits (<100KB).\n\n`;
-        report += `All governance protocols are being followed correctly.\n`;
+        report += `## ✅ ステータス: 準拠 (COMPLIANT)\n\n`;
+        report += `### 検証エビデンス\n`;
+        report += `- **§2 追跡可能性**: AMPLOG.md が存在し、最近の承認済みエントリが含まれています。\n`;
+        report += `- **§4 SVP**: Git ログ分析により、急激なリトライパターンは検出されませんでした。\n`;
+        report += `- **§5 クリーンアップ**: プロジェクトルートおよび src 内に .bak, debug_*, fix_* ファイルは見つかりませんでした。\n`;
+        report += `- **資源管理**: すべてのログファイルは許容サイズ制限内 (<100KB) です。\n\n`;
+        report += `全ての統治プロトコルが正しく遵守されています。\n`;
         return report;
     }
 
-    const critical = violations.filter(v => v.severity === 'CRITICAL');
-    const high = violations.filter(v => v.severity === 'HIGH');
-    const medium = violations.filter(v => v.severity === 'MEDIUM');
+    const critical = violations.filter(v => v.severity === '致命的');
+    const high = violations.filter(v => v.severity === '高');
+    const medium = violations.filter(v => v.severity === '中');
 
-    report += `## ⚠️ Status: ${critical.length > 0 ? 'CRITICAL' : high.length > 0 ? 'HIGH PRIORITY' : 'NEEDS ATTENTION'}\n\n`;
-    report += `- 🔴 Critical: ${critical.length}\n`;
-    report += `- 🟠 High: ${high.length}\n`;
-    report += `- 🟡 Medium: ${medium.length}\n\n`;
+    report += `## ⚠️ ステータス: ${critical.length > 0 ? '致命的' : high.length > 0 ? '高優先度' : '注意が必要'}\n\n`;
+    report += `- 🔴 致命的: ${critical.length}\n`;
+    report += `- 🟠 高: ${high.length}\n`;
+    report += `- 🟡 中: ${medium.length}\n\n`;
     report += `---\n\n`;
 
     function writeViolations(list, emoji) {
         list.forEach((v) => {
             report += `### ${emoji} ${v.category} - ${v.severity}\n\n`;
-            report += `**Issue**: ${v.issue}\n\n`;
+            report += `**問題**: ${v.issue}\n\n`;
             if (v.details) {
-                report += `**Details**:\n\`\`\`\n${v.details}\n\`\`\`\n\n`;
+                report += `**詳細**:\n\`\`\`\n${v.details}\n\`\`\`\n\n`;
             }
-            report += `**Recommendation**: ${v.recommendation}\n\n`;
+            report += `**推奨アクション**: ${v.recommendation}\n\n`;
             report += `---\n\n`;
         });
     }
 
     if (critical.length > 0) {
-        report += `## 🔴 Critical Violations\n\n`;
+        report += `## 🔴 致命的な違反\n\n`;
         writeViolations(critical, '🔴');
     }
 
     if (high.length > 0) {
-        report += `## 🟠 High Priority Violations\n\n`;
+        report += `## 🟠 高優先度の違反\n\n`;
         writeViolations(high, '🟠');
     }
 
     if (medium.length > 0) {
-        report += `## 🟡 Medium Priority Violations\n\n`;
+        report += `## 🟡 中優先度の違反\n\n`;
         writeViolations(medium, '🟡');
     }
 
