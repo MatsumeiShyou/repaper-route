@@ -1,7 +1,7 @@
 export interface LogicConstraint {
-    maxWeight: number; // kg
-    maxWorkTimeMinutes: number; // 分
-    requiredLicenses: string[]; // 免許
+    maxWeight: number; // 最大積載量 (kg)
+    maxWorkTimeMinutes: number; // 最大稼働時間 (分)
+    requiredLicenses: string[]; // 必要免許
 }
 
 export interface LogicJob {
@@ -20,15 +20,15 @@ export interface LogicVehicle {
 }
 
 export interface ConstraintViolation {
-    type: 'WEIGHT_OVER' | 'TIME_OVER' | 'LICENSE_MISSING';
+    type: '積載量超過' | '稼働時間超過' | '免許不足';
     message: string;
     currentValue: number | string;
     limitValue: number | string;
 }
 
 export interface LogicResult {
-    isFeasible: boolean;
-    violations: ConstraintViolation[];
-    score: number;
-    reason: string[]; // 計算根拠のテキストリスト
+    isFeasible: boolean; // 実行可能か
+    violations: ConstraintViolation[]; // 制約違反の内訳
+    score: number; // 決定論的スコア
+    reason: string[]; // 論理的根拠（人間が追跡可能な形式で日本語記述）
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../../lib/supabase/client';
 import { useMasterData } from './useMasterData';
-import { useNotification, NotificationProvider } from './contexts/NotificationContext';
+import { useNotification } from '../../../contexts/NotificationContext';
 import {
     BoardJob, BoardDriver, BoardSplit, BoardHistory,
     Profile, AppUser, SupabaseJob, UserRole

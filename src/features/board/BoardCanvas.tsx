@@ -15,7 +15,7 @@ import { BoardJob } from '../../types';
 export default function BoardCanvas() {
     const { currentUser } = useAuth();
     const { showNotification } = useNotification();
-    const currentUserId = currentUser?.id;
+    const currentUserId = currentUser?.id as string | undefined;
 
     const today = new Date();
     const currentDateKey = today.toISOString().split('T')[0];

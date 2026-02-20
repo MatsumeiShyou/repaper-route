@@ -60,7 +60,8 @@ export const useBoardDragDrop = (
             proposedDuration: targetJob.duration,
             ignoreJobId: targetJobId,
             existingJobs: jobs,
-            splits: splits
+            splits: splits,
+            drivers: drivers // 追加
         });
 
         const isVehicleError = checkVehicleCompatibility(
@@ -76,7 +77,8 @@ export const useBoardDragDrop = (
             startTime: newStartTime,
             duration: collision.adjustedDuration,
             isVehicleError,
-            isOverlapError: collision.isOverlapError
+            isOverlapError: collision.isOverlapError,
+            logicResult: (collision as any).logicResult // 追加: Logic Base の詳細結果
         };
     };
 

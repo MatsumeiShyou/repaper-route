@@ -1,6 +1,6 @@
 # Governance Self-Reflection Report
 
-**Generated**: 2026-02-19T10:01:34.495Z
+**Generated**: 2026-02-20T14:57:40.544Z
 **Period**: Last 7 days
 **Checks**: AMPLOG Protocol, Strict Seal, Resource Governance, Retry Pattern Detection
 
@@ -18,7 +18,17 @@
 
 ### Recent Changes (Auto-Snapshot)
 ```
- GOVERNANCE_REPORT.md | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ .agent/scripts/check_seal.js                 |   4 +
+ AGENTS.md                                    | 240 ++++++++++++++++++++++-----
+ AMPLOG.md                                    |  53 +++++-
+ GOVERNANCE_REPORT.md                         |   9 +-
+ src/features/board/BoardCanvas.tsx           |   2 +-
+ src/features/board/hooks/useBoardData.ts     |   2 +-
+ src/features/board/hooks/useBoardDragDrop.ts |   6 +-
+ src/features/board/logic/collision.ts        |  55 +++++-
+ src/features/logic/core/ConstraintEngine.ts  |  15 +-
+ src/features/logic/score/ScoringEngine.ts    |  24 +--
+ src/features/logic/types.ts                  |  16 +-
+ 11 files changed, 330 insertions(+), 96 deletions(-)
 
 ```
