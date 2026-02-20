@@ -1,8 +1,7 @@
 import { BoardJob, BoardSplit, BoardDriver } from '../../../types';
-import { timeToMinutes } from './timeUtils';
 import { checkConstraints } from '../../logic/core/ConstraintEngine';
 import { calculateScore } from '../../logic/score/ScoringEngine';
-import { LogicJob, LogicVehicle } from '../../logic/types';
+import { LogicJob, LogicVehicle, PointAccessPermission } from '../../logic/types';
 
 interface CollisionCheckParams {
     proposedDriverId: string;
@@ -12,14 +11,17 @@ interface CollisionCheckParams {
     existingJobs: BoardJob[];
     splits: BoardSplit[];
     isResize?: boolean;
-    drivers?: BoardDriver[]; // 追加: 車両情報取得のため
+    drivers?: BoardDriver[];
+    // Phase D: 入場制限ルール（省略可 = 制約なし）
+    pointPermissions?: PointAccessPermission[];
 }
 
 export const calculateCollision = ({
     proposedDriverId,
     ignoreJobId,
     existingJobs,
-    drivers = []
+    drivers = [],
+    pointPermissions = []
 }: CollisionCheckParams) => {
     // 1. 物理的な重なりチェック (現在はスタブのまま)
     const isOverlapError = false;
@@ -37,22 +39,23 @@ export const calculateCollision = ({
     };
 
     if (driver) {
-        // Logic Base 形式に変換
         const logicVehicle: LogicVehicle = {
             id: driver.id,
             name: driver.name,
-            capacityWeight: 4000, // TODO: マスタから取得。一旦 4t 固定
-            startLocation: { lat: 35.44, lng: 139.36 } // 厚木
+            capacityWeight: 4000, // TODO: 車両マスタから取得
+            startLocation: { lat: 35.44, lng: 139.36 }
         };
 
         const logicJobs: LogicJob[] = jobsInCol.map(j => ({
             id: j.id,
-            weight: 500, // TODO: 実データから取得。一旦 500kg 固定
+            weight: 500, // TODO: 実データから取得
             durationMinutes: j.duration,
-            location: { lat: 35.44, lng: 139.36 }
+            location: { lat: 35.44, lng: 139.36 },
+            pointId: (j as any).pointId // 回収先ID（入場制限チェック用）
         }));
 
-        const checkRes = checkConstraints(logicVehicle, logicJobs);
+        // Phase D: driverId と pointPermissions を渡して入場制限チェックを有効化
+        const checkRes = checkConstraints(logicVehicle, logicJobs, driver.id, pointPermissions);
         const scoreRes = calculateScore(logicJobs);
 
         constraintResult = {

@@ -10,6 +10,7 @@ export interface LogicJob {
     timeConstraint?: string; // HH:mm
     durationMinutes: number; // 作業時間
     location: { lat: number; lng: number }; // 簡易座標
+    pointId?: string; // 回収先マスタの地点ID (入場制限チェック用)
 }
 
 export interface LogicVehicle {
@@ -20,10 +21,20 @@ export interface LogicVehicle {
 }
 
 export interface ConstraintViolation {
-    type: '積載量超過' | '稼働時間超過' | '免許不足';
+    type: '積載量超過' | '稼働時間超過' | '免許不足' | '入場制限違反';
     message: string;
     currentValue: number | string;
     limitValue: number | string;
+}
+
+/** 地点×ドライバー×車両のアクセス許可 (point_access_permissions テーブルの行) */
+export interface PointAccessPermission {
+    id: string;
+    point_id: string;   // master_collection_points.id
+    driver_id: string;  // profiles.id
+    vehicle_id: string; // vehicles.id
+    note?: string;
+    is_active: boolean;
 }
 
 export interface LogicResult {

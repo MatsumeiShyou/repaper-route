@@ -1,34 +1,40 @@
 # Governance Self-Reflection Report
 
-**Generated**: 2026-02-20T14:57:40.544Z
+**Generated**: 2026-02-20T21:03:57.818Z
 **Period**: Last 7 days
 **Checks**: AMPLOG Protocol, Strict Seal, Resource Governance, Retry Pattern Detection
 
 ---
 
-## ✅ ステータス: 準拠 (COMPLIANT)
+## ⚠️ ステータス: 高優先度
 
-### 検証エビデンス
-- **§2 追跡可能性**: AMPLOG.md が存在し、最近の承認済みエントリが含まれています。
-- **§4 SVP**: Git ログ分析により、急激なリトライパターンは検出されませんでした。
-- **§5 クリーンアップ**: プロジェクトルートおよび src 内に .bak, debug_*, fix_* ファイルは見つかりませんでした。
-- **資源管理**: すべてのログファイルは許容サイズ制限内 (<100KB) です。
+- 🔴 致命的: 0
+- 🟠 高: 1
+- 🟡 中: 0
 
-全ての統治プロトコルが正しく遵守されています。
+---
 
-### Recent Changes (Auto-Snapshot)
+## 🟠 高優先度の違反
+
+### 🟠 §4 停止およびリトライプロトコル (SVP) - 高
+
+**問題**: 2 個のファイルで短時間の連続修正が検知されました（「当てずっぽう」なリトライの可能性）
+
+**詳細**:
 ```
- .agent/scripts/check_seal.js                 |   4 +
- AGENTS.md                                    | 240 ++++++++++++++++++++++-----
- AMPLOG.md                                    |  53 +++++-
- GOVERNANCE_REPORT.md                         |   9 +-
- src/features/board/BoardCanvas.tsx           |   2 +-
- src/features/board/hooks/useBoardData.ts     |   2 +-
- src/features/board/hooks/useBoardDragDrop.ts |   6 +-
- src/features/board/logic/collision.ts        |  55 +++++-
- src/features/logic/core/ConstraintEngine.ts  |  15 +-
- src/features/logic/score/ScoringEngine.ts    |  24 +--
- src/features/logic/types.ts                  |  16 +-
- 11 files changed, 330 insertions(+), 96 deletions(-)
+📄 AMPLOG.md — 3 modifications in 10 min
+    └─ 6d1eae4: [事実] 回収先マスタの編集追加モーダルを開く際のホワイトアウト（クラッシュ）を修正。 [理由] useMasterCRUD フックへ正しいスキーマオブジェクトを渡し、データ取得プロパティ名を整合させたため。
+    └─ d568ca1: [事実] 回収先マスタ一覧にて「便区分」カラムが2重に表示されていた問題を修正。 [理由] masterSchema.ts の定義修正時のコピペミスによる重複定義を削除したため。
+    └─ 4295f45: [事実] 回収先マスタの一覧画面に「主要回収品目」「平均重量」「備考」カラムを追加表示。 [理由] 一覧上で重要な情報を確認できない状態を解消し、業務効率を向上させるため。
 
+📄 GOVERNANCE_REPORT.md — 3 modifications in 10 min
+    └─ 6d1eae4: [事実] 回収先マスタの編集追加モーダルを開く際のホワイトアウト（クラッシュ）を修正。 [理由] useMasterCRUD フックへ正しいスキーマオブジェクトを渡し、データ取得プロパティ名を整合させたため。
+    └─ d568ca1: [事実] 回収先マスタ一覧にて「便区分」カラムが2重に表示されていた問題を修正。 [理由] masterSchema.ts の定義修正時のコピペミスによる重複定義を削除したため。
+    └─ 4295f45: [事実] 回収先マスタの一覧画面に「主要回収品目」「平均重量」「備考」カラムを追加表示。 [理由] 一覧上で重要な情報を確認できない状態を解消し、業務効率を向上させるため。
 ```
+
+**推奨アクション**: 【ベストプラクティス ONE】
+試行錯誤の履歴を論理的な一単位に統合し、AMPLOG.md のステータス欄に [Audit: <原因・判断・根拠>] を記録した上で再試行せよ。
+
+---
+

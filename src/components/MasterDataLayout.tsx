@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Plus,
     Search,
@@ -7,8 +7,12 @@ import {
     XCircle,
     X,
     Phone,
-    Lock
+    Lock,
+    ChevronDown,
+    Shield,
+    Trash2
 } from 'lucide-react';
+import { supabase } from '../lib/supabase/client';
 import useMasterCRUD from '../hooks/useMasterCRUD';
 import { Modal } from './Modal';
 import { MasterSchema, MasterColumn, MASTER_SCHEMAS } from '../config/masterSchema';
@@ -110,7 +114,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                         <table className="w-full text-left border-separate border-spacing-0 min-w-max">
                             <thead className="sticky top-0 z-20">
                                 <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
-                                    {schema.columns.map((col, idx) => (
+                                    {schema.columns.map((col) => (
                                         <th
                                             key={col.key}
                                             className={`px-6 py-4 border-b border-slate-200 dark:border-slate-800 ${col.className?.includes('sticky') ? 'sticky left-0 bg-slate-50 dark:bg-slate-800 z-30' : ''}`}
@@ -372,6 +376,11 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
                 ))}
             </div>
 
+            {/* 入場制限セクション（回収先マスタ・編集時のみ） */}
+            {schema.rpcTableName === 'master_collection_points' && initialData && (
+                <PointAccessSection pointId={initialData.id} />
+            )}
+
             <div className="flex items-center justify-end gap-3 mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
                 <button type="button" onClick={onCancel} className="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
                     キャンセル
@@ -407,5 +416,137 @@ function LookupSelect({ field, value, onChange }: {
                 </option>
             ))}
         </select>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 入場制限セクション（PointAccessSection）
+// 回収先マスタ編集モーダル内に表示。デフォルト折りたたみ（制約なし）。
+// ─────────────────────────────────────────────────────────────────────────────
+function PointAccessSection({ pointId }: { pointId: string }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [permissions, setPermissions] = useState<any[]>([]);
+    const [drivers, setDrivers] = useState<any[]>([]);
+    const [vehicles, setVehicles] = useState<any[]>([]);
+    const [newDriverId, setNewDriverId] = useState('');
+    const [newVehicleId, setNewVehicleId] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        // 入場制限一覧の取得
+        supabase.from('point_access_permissions')
+            .select('*, profile:profiles(id, name:raw_user_meta_data->name), vehicle:vehicles(id, callsign, number)')
+            .eq('point_id', pointId).eq('is_active', true)
+            .then(({ data }) => setPermissions(data || []));
+        // ドライバー一覧
+        supabase.from('profiles').select('id, raw_user_meta_data').then(({ data }) =>
+            setDrivers((data || []).map((d: any) => ({ id: d.id, name: d.raw_user_meta_data?.name || d.id })))
+        );
+        // 車両一覧
+        supabase.from('vehicles').select('id, number, callsign').then(({ data }) =>
+            setVehicles(data || [])
+        );
+    }, [isOpen, pointId]);
+
+    const handleAdd = async () => {
+        if (!newDriverId || !newVehicleId) return;
+        setSaving(true);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('point_access_permissions') as any).upsert(
+            { point_id: pointId, driver_id: newDriverId, vehicle_id: newVehicleId, is_active: true },
+            { onConflict: 'point_id,driver_id' }
+        );
+        setNewDriverId(''); setNewVehicleId('');
+        // 再取得
+        const { data } = await (supabase.from('point_access_permissions') as any)
+            .select('*, profile:profiles(id, raw_user_meta_data), vehicle:vehicles(id, callsign, number)')
+            .eq('point_id', pointId).eq('is_active', true);
+        setPermissions(data || []);
+        setSaving(false);
+    };
+
+    const handleDelete = async (id: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('point_access_permissions') as any).update({ is_active: false }).eq('id', id);
+        setPermissions(prev => prev.filter(p => p.id !== id));
+    };
+
+    return (
+        <div className="col-span-2 mt-2 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+            {/* トグルヘッダー */}
+            <button
+                type="button"
+                onClick={() => setIsOpen(p => !p)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            >
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
+                    <Shield size={16} className={permissions.length > 0 ? 'text-red-500' : 'text-slate-400'} />
+                    入場制限設定
+                    {permissions.length > 0 && (
+                        <span className="ml-1 px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full font-bold">
+                            {permissions.length}件の制限あり
+                        </span>
+                    )}
+                    {permissions.length === 0 && (
+                        <span className="ml-1 text-xs text-slate-400 font-normal">制約なし（デフォルト）</span>
+                    )}
+                </div>
+                <ChevronDown size={16} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* 展開コンテンツ */}
+            {isOpen && (
+                <div className="p-4 space-y-4 bg-white dark:bg-slate-900">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                        特定ドライバーが訪問する際に必須となる車両を登録します。
+                        登録のないドライバーは制約なしで配車可能です。
+                    </p>
+
+                    {/* 既存ルール一覧 */}
+                    {permissions.length > 0 && (
+                        <div className="space-y-2">
+                            {permissions.map((p: any) => {
+                                const driverName = p.profile?.raw_user_meta_data?.name || p.driver_id;
+                                const vehicleLabel = p.vehicle ? `${p.vehicle.number}（${p.vehicle.callsign || ''}）` : p.vehicle_id;
+                                return (
+                                    <div key={p.id} className="flex items-center justify-between gap-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg">
+                                        <div className="text-sm">
+                                            <span className="font-bold text-slate-700 dark:text-slate-200">{driverName}</span>
+                                            <span className="text-slate-400 mx-2">→</span>
+                                            <span className="font-mono text-red-700 dark:text-red-300 font-bold">{vehicleLabel}</span>
+                                            <span className="ml-2 text-xs text-red-600">必須</span>
+                                        </div>
+                                        <button type="button" onClick={() => handleDelete(p.id)}
+                                            className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg text-red-400 hover:text-red-600 transition-colors">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* 新規追加フォーム */}
+                    <div className="flex items-center gap-2">
+                        <select value={newDriverId} onChange={e => setNewDriverId(e.target.value)}
+                            className="flex-1 px-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500">
+                            <option value="">ドライバーを選択</option>
+                            {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                        <span className="text-slate-400 font-bold text-sm">→</span>
+                        <select value={newVehicleId} onChange={e => setNewVehicleId(e.target.value)}
+                            className="flex-1 px-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500">
+                            <option value="">車両を選択</option>
+                            {vehicles.map(v => <option key={v.id} value={v.id}>{v.number}（{v.callsign || '-'}）</option>)}
+                        </select>
+                        <button type="button" onClick={handleAdd} disabled={!newDriverId || !newVehicleId || saving}
+                            className="px-3 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg disabled:opacity-40 hover:bg-blue-700 transition-colors flex items-center gap-1">
+                            <Plus size={14} />追加
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
