@@ -58,19 +58,8 @@ async function main() {
     const reflectOk = runCheck('Compliance Audit', `node "${path.join(SCRIPTS_DIR, 'reflect.js')}"`);
     if (!reflectOk) process.exit(1);
 
-    // 3. State Capture (Automated Snapshot)
-    console.log('\n📸 [Pre-flight] Capturing State Snapshot...');
-    try {
-        const diff = execSync('git diff --stat', { cwd: PROJECT_ROOT, encoding: 'utf8' });
-        if (diff) {
-            fs.appendFileSync(path.join(PROJECT_ROOT, 'GOVERNANCE_REPORT.md'), `\n### Recent Changes (Auto-Snapshot)\n\`\`\`\n${diff}\n\`\`\`\n`, 'utf8');
-            console.log('✅ Changes recorded in GOVERNANCE_REPORT.md');
-        } else {
-            console.log('ℹ️ No pending changes to snapshot.');
-        }
-    } catch (err) {
-        console.warn('⚠️ Warning: Could not capture git snapshot.');
-    }
+    // 3. State Capture は reflect.js 内で GOVERNANCE_REPORT.md として完結するため、
+    //    ここでの追記は不要（追記するとコミットループが発生するため削除）
 
     console.log('\n✨ [Pre-flight] ALL SYSTEMS NOMINAL. Implementation authorized.');
     process.exit(0);
