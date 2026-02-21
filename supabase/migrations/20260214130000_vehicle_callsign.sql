@@ -6,6 +6,7 @@
 ALTER TABLE master_vehicles ADD COLUMN IF NOT EXISTS callsign TEXT;
 
 -- 2. Update Compatibility View
+DROP VIEW IF EXISTS vehicles;
 CREATE OR REPLACE VIEW vehicles AS
 SELECT 
     v.id,

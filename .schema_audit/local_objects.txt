@@ -1,0 +1,35 @@
+﻿CREATE TABLE public.decision_proposals (
+CREATE TABLE public.decisions (
+create table if not exists public.master_items (
+create table if not exists public.customer_item_defaults (
+create table if not exists public.master_payees (
+create table if not exists public.master_contractors (
+create table if not exists public.master_collection_points (
+create table if not exists public.customer_item_defaults (
+-- Recreate table with correct reference to master_collection_points
+create table public.customer_item_defaults (
+create table if not exists public.vehicles (
+CREATE TABLE IF NOT EXISTS public.routes (
+CREATE OR REPLACE FUNCTION public.rpc_execute_board_update(
+CREATE TABLE IF NOT EXISTS logistics_vehicle_attrs (
+CREATE OR REPLACE VIEW vehicles AS
+CREATE OR REPLACE FUNCTION rpc_execute_master_update(
+CREATE OR REPLACE VIEW vehicles AS
+CREATE OR REPLACE FUNCTION rpc_execute_master_update(
+CREATE OR REPLACE FUNCTION rpc_execute_master_update(
+CREATE TABLE IF NOT EXISTS logistics_vehicle_attrs (
+CREATE OR REPLACE VIEW vehicles AS
+CREATE OR REPLACE FUNCTION rpc_execute_master_update(
+CREATE OR REPLACE VIEW public.view_master_drivers AS
+CREATE OR REPLACE VIEW vehicles AS
+CREATE OR REPLACE VIEW public.view_master_points AS
+CREATE OR REPLACE FUNCTION rpc_execute_master_update(
+CREATE OR REPLACE FUNCTION rpc_execute_master_update(
+CREATE OR REPLACE FUNCTION rpc_execute_master_update(
+CREATE OR REPLACE FUNCTION public.rpc_execute_master_update(
+CREATE OR REPLACE VIEW public.view_master_points AS
+CREATE OR REPLACE FUNCTION public.rpc_execute_master_update(
+CREATE OR REPLACE VIEW public.view_master_points AS
+CREATE OR REPLACE VIEW public.view_master_points AS
+CREATE OR REPLACE FUNCTION public.rpc_execute_master_update(
+CREATE TABLE IF NOT EXISTS public.point_access_permissions (

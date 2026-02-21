@@ -1,0 +1,22 @@
+﻿CREATE OR REPLACE FUNCTION "public"."rpc_execute_board_update"("p_date" "date", "p_new_state" "jsonb", "p_decision_type" "text" DEFAULT NULL::"text", "p_reason" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+CREATE OR REPLACE FUNCTION "public"."rpc_execute_master_update"("p_table_name" "text", "p_id" "text" DEFAULT NULL::"text", "p_core_data" "jsonb" DEFAULT '{}'::"jsonb", "p_ext_data" "jsonb" DEFAULT '{}'::"jsonb", "p_decision_type" "text" DEFAULT 'MASTER_UPDATE'::"text", "p_reason" "text" DEFAULT 'No reason provided'::"text", "p_user_id" "text" DEFAULT NULL::"text") RETURNS "void"
+CREATE TABLE IF NOT EXISTS "public"."customer_item_defaults" (
+CREATE TABLE IF NOT EXISTS "public"."customers" (
+CREATE TABLE IF NOT EXISTS "public"."decision_proposals" (
+CREATE TABLE IF NOT EXISTS "public"."decisions" (
+CREATE TABLE IF NOT EXISTS "public"."drivers" (
+CREATE TABLE IF NOT EXISTS "public"."items" (
+CREATE TABLE IF NOT EXISTS "public"."job_contents" (
+CREATE TABLE IF NOT EXISTS "public"."jobs" (
+CREATE TABLE IF NOT EXISTS "public"."logistics_vehicle_attrs" (
+CREATE TABLE IF NOT EXISTS "public"."master_collection_points" (
+CREATE TABLE IF NOT EXISTS "public"."master_contractors" (
+CREATE TABLE IF NOT EXISTS "public"."master_items" (
+CREATE TABLE IF NOT EXISTS "public"."master_payees" (
+CREATE TABLE IF NOT EXISTS "public"."master_vehicles" (
+CREATE TABLE IF NOT EXISTS "public"."point_access_permissions" (
+CREATE TABLE IF NOT EXISTS "public"."profiles" (
+CREATE TABLE IF NOT EXISTS "public"."routes" (
+CREATE TABLE IF NOT EXISTS "public"."splits" (
+CREATE OR REPLACE VIEW "public"."vehicles" AS
+CREATE OR REPLACE VIEW "public"."view_master_points" AS

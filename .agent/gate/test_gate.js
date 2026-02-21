@@ -16,12 +16,18 @@ const identityPath = path.join(__dirname, '.identity');
 const originalIdentity = fs.readFileSync(identityPath, 'utf8').trim();
 
 try {
-    // Test 1: Input Gate Injection
-    console.log('\n[Test 1] Input Gate Injection (ANALYZER)');
+    // Test 1.1: Input Gate Injection (Declarative)
+    console.log('\n[Test 1.1] Input Gate Injection (Declarative)');
     StateManager.setActiveIdentity('ANALYZER');
-    const prompt = 'これはテストプロンプトです。';
-    const injected = InputGate.inject(prompt);
-    console.log('Result:', injected.includes('active_identity = "ANALYZER"') ? '✅ OK' : '❌ FAILED');
+    const declarativePrompt = 'Decision: これをテストします。';
+    const injectedDecl = InputGate.inject(declarativePrompt);
+    console.log('Result:', injectedDecl.startsWith('Decision:') && injectedDecl.includes('active_identity = "ANALYZER"') ? '✅ OK' : '❌ FAILED');
+
+    // Test 1.2: Input Gate Injection (Non-Declarative)
+    console.log('\n[Test 1.2] Input Gate Injection (Non-Declarative)');
+    const nonDeclarativePrompt = 'これをテストしてください。';
+    const injectedNonDecl = InputGate.inject(nonDeclarativePrompt);
+    console.log('Result:', injectedNonDecl.includes('Intent:\nこれをテストしてください。') && injectedNonDecl.includes('active_identity = "ANALYZER"') ? '✅ OK' : `❌ FAILED\nOutput:\n${injectedNonDecl}`);
 
     // Test 2: Output Gate - ANALYZER mode (Valid Output)
     console.log('\n[Test 2] Output Gate - ANALYZER Valid');

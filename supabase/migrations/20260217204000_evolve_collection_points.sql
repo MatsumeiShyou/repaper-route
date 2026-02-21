@@ -7,7 +7,7 @@ ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid(),
 ADD COLUMN IF NOT EXISTS display_name TEXT,
 ADD COLUMN IF NOT EXISTS visit_slot VARCHAR(10) DEFAULT 'FREE',
 ADD COLUMN IF NOT EXISTS vehicle_restriction_type VARCHAR(20) DEFAULT 'NONE',
-ADD COLUMN IF NOT EXISTS restricted_vehicle_id UUID REFERENCES public.vehicles(id),
+ADD COLUMN IF NOT EXISTS restricted_vehicle_id UUID REFERENCES public.master_vehicles(id),
 ADD COLUMN IF NOT EXISTS time_constraint_type VARCHAR(10) DEFAULT 'NONE',
 ADD COLUMN IF NOT EXISTS time_range_start TIME,
 ADD COLUMN IF NOT EXISTS time_range_end TIME,
@@ -29,6 +29,7 @@ SET display_name = name
 WHERE display_name IS NULL;
 
 -- 3. Update view_master_points to expose new attributes
+DROP VIEW IF EXISTS public.view_master_points;
 CREATE OR REPLACE VIEW public.view_master_points AS
 SELECT 
     p.id as id, -- New internal UUID

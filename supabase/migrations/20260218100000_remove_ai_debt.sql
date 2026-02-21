@@ -1,7 +1,8 @@
 -- Remove average_weight column from master_collection_points
 -- This column was added based on an incorrect "AI Functionality" assumption (Governance Violation)
 
--- 1. Update view_master_points to remove average_weight
+-- 2. Ensure view_master_points matches the new schema (removing entry_instruction & safety_note)
+DROP VIEW IF EXISTS public.view_master_points;
 CREATE OR REPLACE VIEW public.view_master_points AS
 SELECT 
     p.id as id,

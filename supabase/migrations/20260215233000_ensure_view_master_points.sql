@@ -1,5 +1,6 @@
 -- Ensure view_master_points exists and is correctly structured
-DROP VIEW IF EXISTS public.view_master_points CASCADE;
+-- Create or replace the view to ensure consistency
+DROP VIEW IF EXISTS public.view_master_points;
 
 CREATE OR REPLACE VIEW public.view_master_points AS
 SELECT 

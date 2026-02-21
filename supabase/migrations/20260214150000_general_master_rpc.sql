@@ -148,6 +148,7 @@ END;
 $$;
 
 -- 3. Final Permissions Consistency
-GRANT EXECUTE ON FUNCTION rpc_execute_master_update TO authenticated;
-GRANT EXECUTE ON FUNCTION rpc_execute_master_update TO anon;
+DROP FUNCTION IF EXISTS rpc_execute_master_update(TEXT, UUID, JSONB, JSONB, TEXT, TEXT, TEXT);
+GRANT EXECUTE ON FUNCTION rpc_execute_master_update(TEXT, TEXT, JSONB, JSONB, TEXT, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION rpc_execute_master_update(TEXT, TEXT, JSONB, JSONB, TEXT, TEXT, TEXT) TO anon;
 NOTIFY pgrst, 'reload schema';

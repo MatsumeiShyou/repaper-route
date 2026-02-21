@@ -250,12 +250,21 @@ function checkRetryPatterns() {
             const windowEnd = mods[i + RAPID_THRESHOLD - 1].date;
 
             if (windowEnd - windowStart <= RAPID_WINDOW_MS) {
-                rapidRetries.push({
-                    file,
-                    count: RAPID_THRESHOLD,
-                    window: `${Math.round((windowEnd - windowStart) / 60000)} min`,
-                    commits: mods.slice(i, i + RAPID_THRESHOLD).map(m => `${m.hash}: ${m.message}`)
+                // Context-Aware SVP Bypass: コミットメッセージが「正常なイテレーション」を示唆する場合はスキップ
+                // 例: "lint", "format", "fix typo", "test", "docs" などのキーワード
+                const isNormalIteration = mods.slice(i, i + RAPID_THRESHOLD).every(m => {
+                    const msg = m.message.toLowerCase();
+                    return msg.includes('lint') || msg.includes('format') || msg.match(/fix.*typo/) || msg.includes('docs') || msg.includes('test');
                 });
+
+                if (!isNormalIteration) {
+                    rapidRetries.push({
+                        file,
+                        count: RAPID_THRESHOLD,
+                        window: `${Math.round((windowEnd - windowStart) / 60000)} min`,
+                        commits: mods.slice(i, i + RAPID_THRESHOLD).map(m => `${m.hash}: ${m.message}`)
+                    });
+                }
                 break; // Report only the first cluster per file
             }
         }

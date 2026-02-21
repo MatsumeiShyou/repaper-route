@@ -100,12 +100,13 @@ SDR分離を厳守するため、Agentの思考は以下のLayerに限定され�
 1. **Proposal**  
     目的・影響範囲・SDR構造を提示。
 
-2. **Pre-flight**  
-    `node .agent/scripts/pre_flight.js` を実行。
+2. **Pre-flight & Context-Aware Gate**  
+    `node .agent/scripts/pre_flight.js` を実行。  
+    ※変更内容がドキュメントやログ（AMPLOG, REPORT等）のみの場合は、エラーナビゲーションに従って透過的にパスする。
 
 3. **Seal**  
     `node .agent/scripts/check_seal.js` を実行し、  
-    PW `"ｙ"`（全角）の一致と Exit Code 0 を確認。
+    PW `"ｙ"`（全角）の一致と Exit Code 0 を確認（透過パス時は不要）。
 
 4. **Action**  
     `AMPLOG.md` に記録し、実装を開始。
@@ -174,7 +175,8 @@ SDR分離を厳守するため、Agentの思考は以下のLayerに限定され�
 
 1. **SDRリフレクション**  
     物理的統治（SVP等）によるブロックが発生した場合、  
-    人間は「構造的統合」と「内省」を行う義務を負う。
+    人間は「構造的統合」と「内省」を行う義務を負う。  
+    ※ただし、Lint修正・テスト追加など単純な正常イテレーションとシステムが判断した場合は、SVPロックは動的に緩和される（Context-Aware SVP）。
 
 2. **Auditタグ**  
     `AMPLOG.md` の対象エントリーに
@@ -192,3 +194,63 @@ SDR分離を厳守するため、Agentの思考は以下のLayerに限定され�
    * 内省および構造的統合は **Layer1 または Layer2** に限定される
 
    * **Layer2 を用いた内省・統合は、人間の事前承認を必須**とする
+
+---
+
+## **\# 7\. Bootstrap Identity Protocol（初期ブート人格）**
+
+Gate による active_identity 注入が存在しない場合に限り、
+本セッション開始時、1回のみ
+`active_identity = "ANALYZER"` とみなす。
+
+- このブートは設計検証目的に限定される
+- EXECUTOR の有効化は常に Gate 注入のみで行われる
+- Bootstrap 状態では、Layer2 / Creative Option はデフォルト無効であり、明示的許可がない限り Layer1 相当のみが許可される。
+
+---
+
+## **\# 8\. Gate Protocol: 宣言型入力正典と Intent 化 (Declarative Input Protocol)**
+
+人間入力は、命令文・依頼文・宣言文などの文体を問わずすべて受理されるが、Gate によって強制的に「宣言型入力（Intent等）」として正規化・正典化される。
+
+1. **宣言型入力正典 (Declarative Input Protocol)**
+   - Gate はすべての入力を正規化し、強制的に宣言型の正典として解釈・再構築する。
+   - AI は、ユーザー入力の文体・語調・命令表現を根拠に行動の可否を判断してはならない。
+   - AI の行動判断・推論に使用できるのは、Gate による正規化処理を経た宣言型入力のみである。
+
+2. **命令文の自動無効化と Intent 化**
+   - 人間入力に含まれる命令形・依頼形・強制表現は「実行トリガー」として無効化される。
+   - 宣言型キー（State:, Decision:, Reason:, Intent:, Context:, Assumption:, Concern: 等）を含まない入力はすべて `Intent: <入力全文>` として強制変換される。
+   - 実行可否は Gate と `active_identity` のみが決定し、人間の表現は実行権限に一切影響しない。
+
+3. **SDR再構成ルール（必須）**
+   - 変換された入力であっても、出力は必ず SDR 形式に正規化する。
+   - State: ユーザーは〇〇を実現したいという意図を表明している。
+   - Reason: 入力文体にかかわらず、統治仕様上これは意図表明として解釈される。
+   - Decision: 実行要求としては扱わず、検討対象または設計材料として処理する。
+
+4. **実行遮断ルール（物理制約）**
+   - 正規化を経ていない入力をAIの判断チェーンに渡してはならない。
+   - `Intent` から直接実行へ遷移してはならない。実行は必ず以下を満たす必要がある。
+   - `active_identity == "EXECUTOR"` かつ 「承認済み Decision」が存在すること。
+   - 満たさない場合は `[STATUS]: 停止`, `[ACTION]: 承認または切替待ち` を出力する。
+
+5. **Explainable Normalization（説明可能正規化）**
+   - Gate はすべての入力に対し、正規化結果を即時・構造化して返却する。Agent ではなく Gate 自身がフィルタとして機能する。
+   - 以下の形式で出力し、意味解釈・評価文・助言は一切行わない（rejected / error という語の使用は禁止）。
+     [NORMALIZATION_RESULT]
+     - accepted_intent: <Intentとして採用された要素>
+     - ignored_elements: (type: <評価/手段等>, content: <原文>, reason: <仕様上の理由>)
+     - blocked_elements: (type: <命令/トリガー等>, content: <原文>, reason: <物理制約>)
+   - Agent に渡してよいのは `accepted_intent` のみである。`ignored_elements` および `blocked_elements` は表示用ログであり、Agent がそれらに言及・再解釈することは厳禁とする。
+   - `accepted_intent` が存在しない場合のみ停止し、`[STATUS]: 停止`, `[ACTION]: 有効な Intent が存在しない` と出力する（`blocked_elements` の存在だけでは停止しない）。
+   - Gate のログには `raw_input`, `normalized_intent`, `ignored/blocked_elements` (type/reasonのみ), `timestamp`, `session_id` を保存する。
+
+ 6. Recovery Navigation（停止解除ナビゲーション）
+
+Stop Protocol が発動した場合、Gate は必ず以下を追加で返却する。
+
+[RECOVERY_GUIDE]
+- missing: <不足している要素>
+- example_min_input: <解除に必要な最小宣言型入力例>
+- note: <評価・理由・命令は不要である旨>

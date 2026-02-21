@@ -1,3 +1,4 @@
+DROP VIEW IF EXISTS public.view_master_points;
 CREATE OR REPLACE VIEW public.view_master_points AS
 SELECT 
     p.location_id as id,

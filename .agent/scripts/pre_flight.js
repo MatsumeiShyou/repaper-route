@@ -31,6 +31,25 @@ async function main() {
     console.log('🛡️  Antigravity Dynamic Governance: Pre-flight Check');
     console.log('==================================================');
 
+    // 0. Context Visualization
+    console.log('\n📊 [Context] 現在の変更コンテキストを解析中...');
+    try {
+        const diffCached = execSync('git diff --cached --name-only', { encoding: 'utf8' }).trim();
+        const diffWorkspace = execSync('git ls-files --others --modified --exclude-standard', { encoding: 'utf8' }).trim();
+        const allFiles = [...new Set([...diffCached.split('\n'), ...diffWorkspace.split('\n')])].filter(f => f);
+
+        if (allFiles.length > 0) {
+            console.log(`   📝 検出された変更ファイル (${allFiles.length}件):`);
+            const displayFiles = allFiles.slice(0, 5);
+            displayFiles.forEach(f => console.log(`      - ${f}`));
+            if (allFiles.length > 5) console.log(`      ...他 ${allFiles.length - 5} 件`);
+        } else {
+            console.log('   ℹ️ 変更されたファイルはありません。');
+        }
+    } catch (e) {
+        console.log('   ⚠️ コンテキスト情報の取得に失敗しました。');
+    }
+
     // 1. Seal Check (Identity & Permissions)
     const sealOk = runCheck('Seal Check', `node "${path.join(SCRIPTS_DIR, 'check_seal.js')}"`);
     if (!sealOk) process.exit(1);

@@ -1,21 +1,19 @@
-# アクティブタスク: RePaper Route 開発
+# プロジェクト統治タスク (v2.0)
 
-> **履歴**: 完了したフェーズは [`task_archive.md`](file:///c:/Users/shiyo/開発中APP/RePaper%20Route/task_archive.md) を参照。
+## 現在進行中: 2026-02-21 統治強化セッション
+- [x] 現状分析と憲法整合性チェック（ANALYZER）
+- [x] 改善方針の策定と承認（ｙ）
+- [/] 実行フェーズ：統治資産の整合性是正（EXECUTOR）
+    - [x] DEBT_AND_FUTURE.md の精査と事実同期
+    - [/] AMPLOG.md への本日の活動記録追記
+    - [ ] 最終検証と walkthrough.md 作成
 
----
+## 継続的な課題 (from DEBT_AND_FUTURE.md)
+- [ ] **useMasterCRUD.ts** の動的型定義の改善（@ts-ignore の排除）
+- [ ] 車両固定制約 (`Vehicle Lock`) の UI ブロッキング実装
+- [ ] 決定論的ロジック (Logic Base) のさらなる統合
 
-## 現在進行中
-
-### フェーズ 3: 管理機能強化 (Admin Features)
-- [ ] **User Permission Management UI**: 詳細スペックは `DEBT_AND_FUTURE.md` へ移管
-
-### フェーズ 12: 統治品質強化 (Governance Hardening)
-- [ ] **コアロジックテスト追加**: `useBoardData`, `useBoardDragDrop` のスモークテスト → `DEBT_AND_FUTURE.md` にも記録
-- [ ] **Master Management UI 運用設計**: Excel連携 vs 完全Web化の方針決定
-
----
-
-## 次のアクション候補
-- [ ] 配車盤の性能最適化 (大量データ対応)
-- [ ] オフライン対応 (PWA化)
-- [ ] モバイル版UI実装
+## 完了済みマイルストーン
+- [x] 物理的統治ゲート (Pre-flight/Seal) の有効化
+- [x] 二重帝国（JS/TS混在）の解消と TS 昇格
+- [x] Explainable Normalization プロトコルの策定

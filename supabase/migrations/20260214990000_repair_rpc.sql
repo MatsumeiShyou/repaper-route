@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS logistics_vehicle_attrs (
 );
 
 -- 2. Ensure Compatibility View
+DROP VIEW IF EXISTS vehicles;
 CREATE OR REPLACE VIEW vehicles AS
 SELECT 
     v.id,

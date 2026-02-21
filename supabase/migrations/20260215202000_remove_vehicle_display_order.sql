@@ -12,6 +12,7 @@ ALTER TABLE master_vehicles DROP COLUMN IF EXISTS display_order;
 ALTER TABLE logistics_vehicle_attrs ADD COLUMN IF NOT EXISTS empty_vehicle_weight NUMERIC;
 
 -- 3. Redefine vehicles View (Integration Layer)
+DROP VIEW IF EXISTS vehicles;
 CREATE OR REPLACE VIEW vehicles AS
 SELECT 
     v.id,

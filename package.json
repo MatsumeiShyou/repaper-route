@@ -17,7 +17,11 @@
         "governance:preflight": "node .agent/scripts/pre_flight.js",
         "prepare": "husky install",
         "storybook": "storybook dev -p 6006",
-        "build-storybook": "storybook build"
+        "build-storybook": "storybook build",
+        "supabase": "supabase",
+        "db:diff": "supabase db diff",
+        "db:push": "supabase db push",
+        "gen:types": "supabase gen types typescript --local > src/types/database.types.ts"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.93.3",

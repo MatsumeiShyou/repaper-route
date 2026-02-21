@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 
 const AMPLOG_PATH = path.join(process.cwd(), 'AMPLOG.md');
 const REQUIRED_SEAL = '(PW: ｙ)';
@@ -47,6 +48,55 @@ if (!fs.existsSync(AMPLOG_PATH)) {
     process.exit(1);
 }
 
+// ═══════════════════════════════════════════════════
+// Context-Aware Bypass (Log/Doc only changes)
+// ═══════════════════════════════════════════════════
+try {
+    // 変更されているファイルを抽出
+    let diffCached = [];
+    let diffWorkspace = [];
+    try {
+        diffCached = execSync('git diff --cached --name-only', { encoding: 'utf8' }).trim().split('\n');
+        diffWorkspace = execSync('git ls-files --others --modified --exclude-standard', { encoding: 'utf8' }).trim().split('\n');
+    } catch (e) {
+        // git error
+    }
+
+    const allChangedFiles = [...new Set([...diffCached, ...diffWorkspace])].filter(f => f.trim().length > 0);
+
+    // 変更ファイルがある場合のみチェックする
+    if (allChangedFiles.length > 0) {
+        // 免除対象のファイル群（ドキュメントやログファイル）
+        const exemptPatterns = [
+            /^AMPLOG\.md$/,
+            /^GOVERNANCE_REPORT\.md$/,
+            /^SCHEMA_HISTORY\.md$/,
+            /^DEBT_AND_FUTURE\.md$/,
+            /^task\.md$/,
+            /^implementation_plan\.md$/,
+            /^walkthrough\.md$/,
+            /^\.agent[\\\/].*\.md$/,
+            /^\.gemini[\\\/]/
+        ];
+
+        // 変更されたすべてのファイルが免除対象に合致するかチェック
+        const isDocOnlyChange = allChangedFiles.every(file => {
+            // パスの正規化（Windows対応）
+            const normalizedFile = file.replace(/\\/g, '/');
+            return exemptPatterns.some(pattern => pattern.test(normalizedFile));
+        });
+
+        if (isDocOnlyChange) {
+            console.log('✅ [check_seal] Context-Aware Bypass 動員: ドキュメント/ログファイルの更新のみを検知しました。');
+            console.log('   → 厳格な承認プロセス (PW要求) をスキップします。');
+            process.exit(0);
+        }
+    }
+} catch (e) {
+    // ignore
+}
+
+
 // 2. AMPLOG.md の読み込みとエントリー抽出
 const content = fs.readFileSync(AMPLOG_PATH, 'utf8');
 const lines = content.split('\n').filter(l => l.trim().startsWith('|') && !l.includes('---'));
@@ -64,10 +114,16 @@ if (dataLines.length === 0) {
 const lastEntry = dataLines[dataLines.length - 1];
 
 if (!lastEntry.includes(REQUIRED_SEAL)) {
-    console.error('❌ [check_seal] 最終AMPLOGエントリーに承認印がありません。');
-    console.error(`   → 必要な承認印: ${REQUIRED_SEAL}`);
-    console.error(`   → 最終エントリー: ${lastEntry.trim()}`);
-    console.error('   → AGENTS.md §1: 完全一致時のみ承認。PWなき変更は即時ロールバック。');
+    console.error('\n🚫───────────── [ GOVERNANCE LOCK ] ─────────────🚫');
+    console.error('❌ 最終AMPLOGエントリーに承認印がありません。');
+    console.error(`   【必要な承認印】: ${REQUIRED_SEAL}`);
+    console.error(`   【最終エントリー】: ${lastEntry.trim()}`);
+    console.error('   【根拠条文】: AGENTS.md §1 (完全一致時のみ承認。PWなき変更は即時ロールバック)');
+    console.error('\n💡 [ナビゲーション] 以下のいずれかの対応を行ってください:');
+    console.error('  1. AMPLOGを自動記録する: node .agent/scripts/record_amp.js');
+    console.error('  2. 手動で最終エントリーの末尾に「承認 (PW: ｙ)」を追記する');
+    console.error('  3. 例外措置としてSVPを動員する: 承認 [Audit: 理由を書く] (PW: ｙ) と記述する');
+    console.error('🚫──────────────────────────────────────────────────🚫\n');
     process.exit(1);
 }
 

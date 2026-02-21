@@ -1,18 +1,18 @@
 -- Create vehicles table if not exists
-create table if not exists public.vehicles (
+create table if not exists public.master_vehicles (
   id uuid primary key default gen_random_uuid(),
   number text not null unique,
   created_at timestamp with time zone default now()
 );
 
 -- Enable RLS
-alter table public.vehicles enable row level security;
+alter table public.master_vehicles enable row level security;
 
 -- Policy
-create policy "Enable read access for all users" on public.vehicles for select using (true);
+create policy "Enable read access for all users" on public.master_vehicles for select using (true);
 
 -- Insert data
-insert into public.vehicles (number) values
+insert into public.master_vehicles (number) values
 ('2267PK'),
 ('2025PK'),
 ('5122PK'),
