@@ -272,16 +272,29 @@ function checkRetryPatterns() {
 
     if (rapidRetries.length > 0) {
         // --- Added: SDR Reflection Bypass Logic (§6) ---
+        // 修正: 最終行のみでなく、直近 DAYS_TO_CHECK 日以内のテーブル行すべてを検索する
         let reflectionFound = false;
         let reflectionContent = '';
         if (fs.existsSync(AMPLOG_PATH)) {
             const amplogContent = fs.readFileSync(AMPLOG_PATH, 'utf8');
-            const lines = amplogContent.split('\n').filter(l => l.trim().startsWith('|'));
-            const lastEntry = lines[lines.length - 1] || '';
-            const auditMatch = lastEntry.match(/\[Audit:\s*(.*?)\]/);
-            if (auditMatch && auditMatch[1].trim().length > 5) { // 5文字以上の内省を要求
-                reflectionFound = true;
-                reflectionContent = auditMatch[1].trim();
+            // (1) | で始まる全テーブル行を取得
+            const tableLines = amplogContent.split('\n').filter(l => l.trim().startsWith('|'));
+            // (2) 直近7日以内のエントリのみを抽出
+            const recentLines = tableLines.filter(line => {
+                const dateMatch = line.match(/\|\s*(\d{4}-\d{2}-\d{2})\s*\|/);
+                if (!dateMatch) return false;
+                const entryDate = new Date(dateMatch[1]);
+                const daysAgo = (new Date() - entryDate) / (1000 * 60 * 60 * 24);
+                return daysAgo <= DAYS_TO_CHECK;
+            });
+            // (3) いずれかの行に有効な Audit タグ（5文字以上の内省を要求）が存在すれば解除
+            for (const line of recentLines) {
+                const auditMatch = line.match(/\[Audit:\s*(.*?)\]/);
+                if (auditMatch && auditMatch[1].trim().length > 5) {
+                    reflectionFound = true;
+                    reflectionContent = auditMatch[1].trim();
+                    break;
+                }
             }
         }
 
