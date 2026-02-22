@@ -95,12 +95,17 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                     }
                     if (data.splits) setSplits(data.splits as BoardSplit[]);
 
-                    if (data.pending && Array.isArray(data.pending) && data.pending.length > 0) {
-                        setPendingJobs(data.pending as BoardJob[]);
-                    } else {
-                        const fallbackJobs = await fetchUnassignedJobsFallback();
-                        setPendingJobs(fallbackJobs);
-                    }
+                    // 再発防止案: routes.pending に保存されているデータがあっても、
+                    // マスター jobs からの最新未割当案件を常に「正」として取得しマージする。
+                    const fallbackJobs = await fetchUnassignedJobsFallback();
+
+                    // routes 側に保存された pending があればそれを優先しつつ、
+                    // jobs テーブルにのみ存在する新しい未割当案件（新規追加分）を補完する。
+                    const savedPending = (data.pending || []) as BoardJob[];
+                    const savedIds = new Set(savedPending.map(j => j.id));
+                    const newUnassigned = fallbackJobs.filter(j => !savedIds.has(j.id));
+
+                    setPendingJobs([...savedPending, ...newUnassigned]);
 
                     setIsOffline(false);
                 } else {

@@ -248,3 +248,4 @@ Docker (Supabase local) 起動エラーが発生している現状において�
 ### 3. 理由 (Reason)
 - 歪んだクラウド状態にローカルを合わせることは技術的負債となる。ローカルにある「設計の歴史（31ファイル）」を資産（正典）とし、Gitで進化過程を担保した上で、これに準拠する形でクラウドを再構築することが、最もシンプルかつ保守性の高いアプローチであるため。
 | 2026-02-22 | ガバナンス互換性向上配車ボードUI刷新 | .agent/scripts/, src/features/board/, src/components/MasterDataLayout.tsx | Windows環境での統治エラー解消、および配車操作のUI視認性安全性向上 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-22 | 未配車リスト表示不具合の修正と再発防止 | src/features/board/hooks/useBoardData.ts | 未配車案件のSingle Source of Truth（マスター jobs 優先）確立によるデータ不整合の恒久的解消 | User (Approved) | 承認 (PW: ｙ) |
