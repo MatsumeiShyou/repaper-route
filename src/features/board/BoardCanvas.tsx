@@ -1,36 +1,39 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
+
 import {
-    Save, Clipboard, RefreshCcw, LogOut, User, Database, Undo2, Redo2
+    Save, Clipboard, RefreshCcw, Database, Undo2, Redo2
 } from 'lucide-react';
 import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
+
 import { DriverHeader } from './components/DriverHeader';
 import { TimeGrid } from './components/TimeGrid';
 import { JobLayer } from './components/JobLayer';
 import { PendingJobSidebar } from './components/PendingJobSidebar';
 import { useAuth } from '../../contexts/AuthProvider';
-import { useNotification } from '../../contexts/NotificationContext';
 import { BoardJob } from '../../types';
+
 
 export default function BoardCanvas() {
     const { currentUser } = useAuth();
-    const { showNotification } = useNotification();
     const currentUserId = currentUser?.id as string | undefined;
+
 
     const today = new Date();
     const currentDateKey = today.toISOString().split('T')[0];
 
     // 1. Data & Logic Hook
     const {
-        drivers, setDrivers,
+        drivers,
         jobs, setJobs,
         pendingJobs, setPendingJobs,
         splits, setSplits,
         isDataLoaded, isSyncing,
-        editMode, lockedBy, canEditBoard,
+        editMode, canEditBoard,
         handleSave, recordHistory, undo, redo,
-        addColumn, deleteColumn
-    } = useBoardData(currentUserId, currentDateKey);
+        addColumn
+    } = useBoardData(currentUser, currentDateKey);
+
 
     // 2. Drag & Drop Hook
     const driverColRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -45,16 +48,17 @@ export default function BoardCanvas() {
         jobs, drivers, splits,
         driverColRefs,
         setJobs, setSplits,
-        recordHistory,
-        currentUserId
+        recordHistory
     );
+
 
     // 3. UI State
     const [selectedCell, setSelectedCell] = useState<{ driverId: string, time: string } | null>(null);
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [pendingFilter, setPendingFilter] = useState('全て');
-    const [modalState, setModalState] = useState<{ isOpen: boolean, type: string | null, targetId?: string | null }>({ isOpen: false, type: null });
+    const [, setModalState] = useState<{ isOpen: boolean, type: string | null, targetId?: string | null }>({ isOpen: false, type: null });
+
 
     // 4. Handlers
     const openHeaderEdit = (driverId: string) => {

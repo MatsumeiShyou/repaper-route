@@ -16,7 +16,7 @@ const SCRIPTS_DIR = path.join(PROJECT_ROOT, '.agent', 'scripts');
 function runCheck(name, command) {
     console.log(`\n🚀 [Pre-flight] Running ${name}...`);
     try {
-        const output = execSync(command, { cwd: PROJECT_ROOT, encoding: 'utf8' });
+        const output = execSync(command, { cwd: PROJECT_ROOT, encoding: 'utf8', shell: true });
         console.log(output);
         return true;
     } catch (err) {
@@ -27,9 +27,34 @@ function runCheck(name, command) {
     }
 }
 
+/**
+ * [AGENTS.md §9] Shell Environment Integrity Check
+ */
+function checkEnvironment() {
+    console.log('\n🔍 [Environment] Shell Compatibility Check...');
+    const isWin = process.platform === 'win32';
+    if (isWin) {
+        console.log('   💻 OS: Windows');
+        try {
+            const psVersion = execSync('$PSVersionTable.PSVersion.Major', { shell: 'powershell.exe', encoding: 'utf8' }).trim();
+            console.log(`   🐚 Shell: PowerShell v${psVersion}`);
+            if (parseInt(psVersion) <= 5) {
+                console.log('   ⚠️  NOTICE: PowerShell 5.1 detected. DO NOT use "&&" in shell commands. Use ";" instead.');
+            }
+        } catch (e) {
+            console.log('   🐚 Shell: Standard Command Prompt / Unknown');
+        }
+    } else {
+        console.log(`   💻 OS: ${process.platform} (Unix-like)`);
+    }
+}
+
 async function main() {
     console.log('🛡️  Antigravity Dynamic Governance: Pre-flight Check');
     console.log('==================================================');
+
+    // [AGENTS.md §9] Environmental Compliance Check
+    checkEnvironment();
 
     // 0. Context Visualization
     console.log('\n📊 [Context] 現在の変更コンテキストを解析中...');

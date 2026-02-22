@@ -50,10 +50,10 @@
   - **現状**: DB (`profiles` テーブル) を直接操作して権限管理を行っている。
   - **理由**: 現状のユーザー数が少なく、頻繁な変更がないため。
 
-- [ ] **Vehicle Lock UI Blocking** (Phase 3.X 残件)
+- [x] **Vehicle Lock UI Blocking** (Phase 3.X 完了 - 2026-02-22)
   - **概要**: `validateVehicleLock` (車両固定制約) 違反時に、UI上でドロップ操作をブロックする機能。
-  - **現状**: 検証ロジック (`validateVehicleLock`) は実装済みだが、UI側の厳密なブロック動作は検証待ち/未適用。
-  - **理由**: 現場の柔軟な運用を優先するため、警告 (Warning) レベルに留めている可能性あり。
+  - **解決方法**: `collision.ts` を `ConstraintEngine` と統合し、`useBoardDragDrop.ts` を通じて `JobLayer.tsx` のプレビューに違反理由を動的表示。違反時はドロップを物理的に禁止。
+  - **結果**: 重量超過や入場制限違反をリアルタイムに検知し、誤った配車をシステム的に防止。
 
 - [ ] **Deterministic Logic Integration (Logic Base)**
   - **概要**: AIに代わる、重量・時間・巡回順序に基づく決定論的な計算ロジックの統合。
@@ -75,5 +75,6 @@
     - [x] **App.tsx Type Error**: Resolved by removing .tsx extension in imports.
     - [x] **useBoardData.ts Errors**: Resolved by explicit type assertions for Supabase single queries.
     - [x] **useMasterCRUD.ts Errors**: 静的検証困難な箇所を「是認された動的仕様（TBNY-SPEC-DYNAMIC）」として明文化し、負債を解消。
+    - [x] **Master Data Layout Fixes**: 2026-02-22 セッションにて操作列のモーダル化と表示崩れ（z-index, スクロールバー）の対策済みを確認。
     - **Action**: 2026-02-21 セッションにて正典化完了。
   - **Note**: 既存エラーは一旦是認し、別タスクで集中的に解消するか、`// @ts-ignore` 等で明示的に抑制してベースラインを作成する必要がある。

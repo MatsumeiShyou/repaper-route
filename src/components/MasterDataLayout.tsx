@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus,
     Search,
-    Edit,
-    Archive,
     XCircle,
     X,
     Phone,
@@ -104,16 +102,16 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
             </header>
 
             {/* List Area */}
-            <main className="flex-1 overflow-y-auto p-6">
+            <main className="flex-1 min-h-0 relative">
                 {loading && data.length === 0 ? (
                     <div className="h-64 flex items-center justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                     </div>
                 ) : (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-sm">
+                    <div className="absolute inset-0 overflow-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-100 dark:scrollbar-track-slate-800/50">
                         <table className="w-full text-left border-separate border-spacing-0 min-w-max">
                             <thead className="sticky top-0 z-20">
-                                <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
+                                <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 text-xs font-bold uppercase tracking-wider">
                                     {schema.columns.map((col) => (
                                         <th
                                             key={col.key}
@@ -122,27 +120,20 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                                             {col.label}
                                         </th>
                                     ))}
-                                    <th className="px-6 py-4 text-right border-b border-slate-200 dark:border-slate-800 sticky right-0 bg-slate-50/90 dark:bg-slate-800/90 z-20 backdrop-blur-md shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">操作</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {filteredData.map(item => (
-                                    <tr key={item[schema.primaryKey]} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                                    <tr
+                                        key={item[schema.primaryKey]}
+                                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
+                                        onClick={() => handleEdit(item)}
+                                    >
                                         {schema.columns.map(col => (
-                                            <td key={col.key} className={`px-6 py-3 whitespace-nowrap text-sm ${col.className || ''}`}>
+                                            <td key={col.key} className={`px-6 py-4 whitespace-nowrap text-sm ${col.className || ''}`}>
                                                 {renderCell(item, col)}
                                             </td>
                                         ))}
-                                        <td className="px-6 py-3 text-right sticky right-0 bg-white/90 dark:bg-slate-900/90 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 z-10 backdrop-blur-sm shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => handleEdit(item)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 transition-colors">
-                                                    <Edit size={16} />
-                                                </button>
-                                                <button onClick={() => deleteItem(item[schema.primaryKey])} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-500 transition-colors">
-                                                    <Archive size={16} />
-                                                </button>
-                                            </div>
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -167,6 +158,10 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                     schema={schema}
                     initialData={editingItem}
                     onSave={handleSave}
+                    onDelete={async (id) => {
+                        await deleteItem(id);
+                        setIsModalOpen(false);
+                    }}
                     onCancel={() => setIsModalOpen(false)}
                 />
             </Modal>
@@ -274,10 +269,11 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
     );
 }
 
-function MasterForm({ schema, initialData, onSave, onCancel }: {
+function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
     schema: MasterSchema,
     initialData: Record<string, any> | null,
     onSave: (data: Record<string, any>) => Promise<void>,
+    onDelete: (id: any) => Promise<void>,
     onCancel: () => void
 }) {
     const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
@@ -381,13 +377,31 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
                 <PointAccessSection pointId={initialData.id} />
             )}
 
-            <div className="flex items-center justify-end gap-3 mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
-                <button type="button" onClick={onCancel} className="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
-                    キャンセル
-                </button>
-                <button type="submit" className="px-8 py-2 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
-                    保存する
-                </button>
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                <div>
+                    {initialData && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (window.confirm('本当に削除しますか？')) {
+                                    onDelete(initialData[schema.primaryKey]);
+                                }
+                            }}
+                            className="px-4 py-2 text-red-500 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors flex items-center gap-2"
+                        >
+                            <Trash2 size={18} />
+                            削除する
+                        </button>
+                    )}
+                </div>
+                <div className="flex items-center gap-3">
+                    <button type="button" onClick={onCancel} className="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                        キャンセル
+                    </button>
+                    <button type="submit" className="px-8 py-2 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
+                        保存する
+                    </button>
+                </div>
             </div>
         </form>
     );

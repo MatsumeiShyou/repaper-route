@@ -1,3 +1,9 @@
+import { Database } from '../types/database.types';
+
+type PublicSchema = Database['public'];
+type ViewName = keyof PublicSchema['Views'] | keyof PublicSchema['Tables'];
+type TableName = keyof PublicSchema['Tables'];
+
 /**
  * マスタデータ定義の型
  */
@@ -29,8 +35,8 @@ export interface MasterField {
 export interface MasterSchema {
     title: string;
     description: string;
-    viewName: string;
-    rpcTableName: string;
+    viewName: ViewName;
+    rpcTableName: TableName;
     primaryKey: string;
     searchFields: string[];
     columns: MasterColumn[];

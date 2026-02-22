@@ -31,7 +31,7 @@
 ### 理由
 要件定義書 ver 6.0 対応。回収品目の詳細追跡と、顧客ごとの回収品目管理を実現。
 
-**参考**: `supabase_schema_v2.sql`（アーカイブ済み）
+**参考**: `20260101000000_genesis.sql` (正典)
 
 ---
 
@@ -45,7 +45,7 @@
 ### 理由
 De-mocking フェーズの一環として、ハードコードされたユーザー情報をデータベース管理へ移行。
 
-**参考**: `supabase_profiles_schema.sql`（アーカイブ済み）
+**参考**: `20260101000000_genesis.sql` (正典)
 
 ---
 
@@ -68,10 +68,7 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 - 拡張履歴を本ファイルで管理（履歴の可視化）
 - アーカイブディレクトリで旧ファイルを保管（Git履歴との連携）
 
-**参考**: 
-- `_archived/supabase_schema.sql`
-- `_archived/supabase_schema_v2.sql`
-- `_archived/supabase_profiles_schema.sql`
+**参考**: `20260101000000_genesis.sql` (正典)
 
 ---
 
@@ -97,13 +94,11 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 - **routes テーブル追加**: 配車計画のスナップショット保存用（date, jobs, drivers, splits, pending）
 
 ### 改善点
+- **正典化 (Canonization)**: 物理的な全テーブル・全カラムを `20260101000000_genesis.sql` に集約。
 - **冪等性**: 全テーブルに `IF NOT EXISTS`、全データに `ON CONFLICT DO NOTHING`
-- **簡潔な構造**: コメントを最小化、セクション番号で折りたたみ対応
-- **履歴の可視化**: 各テーブルに由来Phase番号を記載
+- **履歴の可視化**: 各テーブルに由来Phase番号を記載し、`genesis.sql` を唯一の真実のソースとして確立。
 
-**参考**: 
-- `supabase_schema_actual.sql`（新規）
-- `_archived/supabase_schema_unified.sql`（旧統合ファイル）
+**参考**: `20260101000000_genesis.sql` (正典)
 
 ---
 

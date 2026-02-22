@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+
 import { BoardJob, BoardDriver, BoardSplit } from '../../../types';
 import { timeToMinutes, minutesToTime, calculateTimeFromY } from '../logic/timeUtils';
 import { calculateCollision, checkVehicleCompatibility } from '../logic/collision';
@@ -22,13 +23,14 @@ export const useBoardDragDrop = (
     setJobs: React.Dispatch<React.SetStateAction<BoardJob[]>>,
     setSplits: React.Dispatch<React.SetStateAction<BoardSplit[]>>,
     recordHistory: () => void,
-    currentUserId: string | undefined,
     createProposal: ((state: any) => void) | null = null
 ) => {
+
     const [draggingJobId, setDraggingJobId] = useState<string | null>(null);
     const [draggingSplitId, setDraggingSplitId] = useState<string | null>(null);
     const [dropPreview, setDropPreview] = useState<any | null>(null);
-    const [dropSplitPreview, setDropSplitPreview] = useState<any | null>(null);
+    const [dropSplitPreview] = useState<any | null>(null);
+
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [dragMousePos, setDragMousePos] = useState({ x: 0, y: 0 });
     const [resizingState, setResizingState] = useState<any | null>(null);
@@ -78,20 +80,46 @@ export const useBoardDragDrop = (
             duration: collision.adjustedDuration,
             isVehicleError,
             isOverlapError: collision.isOverlapError,
-            logicResult: (collision as any).logicResult // 追加: Logic Base の詳細結果
+            logicResult: collision.logicResult // 追加: Logic Base の詳細結果
         };
     };
 
     const handleMouseDownJob = (e: React.MouseEvent, job: BoardJob) => {
         if (e.button !== 0) return;
+
+        // [GUARDRAIL] Lock check
+        if ((job as any).isLocked || (job as any).status === 'confirmed') {
+            return;
+        }
+
         setDraggingJobId(job.id);
         const rect = e.currentTarget.getBoundingClientRect();
         setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-        setDropPreview({ driverId: job.driverId, startTime: job.timeConstraint, duration: job.duration, isOverlapError: false });
+        setDropPreview({
+            driverId: job.driverId,
+            startTime: job.timeConstraint,
+            duration: job.duration,
+            isOverlapError: false,
+            isWarning: (job as any).hasWarning
+        });
+    };
+
+    const handleSplitMouseDown = (e: React.MouseEvent, split: BoardSplit) => {
+        if (e.button !== 0) return;
+        setDraggingSplitId(split.id);
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     };
 
     const handleResizeStart = (e: React.MouseEvent, job: BoardJob, direction: 'top' | 'bottom') => {
+
         e.stopPropagation();
+
+        // [GUARDRAIL] Lock check
+        if ((job as any).isLocked || (job as any).status === 'confirmed') {
+            return;
+        }
+
         setResizingState({
             id: job.id,
             direction,
@@ -183,7 +211,9 @@ export const useBoardDragDrop = (
         dragMousePos, resizingState,
         handleJobMouseDown: handleMouseDownJob,
         handleResizeStart,
+        handleSplitMouseDown,
         handleBackgroundMouseMove: handleWindowMouseMove,
         handleBackgroundMouseUp: handleWindowMouseUp
     };
+
 };

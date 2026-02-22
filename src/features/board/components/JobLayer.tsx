@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { Clock, AlertTriangle, GripVertical } from 'lucide-react';
+import { Clock, AlertTriangle, Lock, Ban } from 'lucide-react';
 import { BoardJob, BoardDriver, BoardSplit } from '../../../types';
-import { timeToMinutes, minutesToTime } from '../logic/timeUtils';
+import { timeToMinutes } from '../logic/timeUtils';
 import { generateJobColorMap } from '../../core/config/theme';
+import { BOARD_CONSTANTS } from '../logic/constants';
 
-const SLOT_HEIGHT_PX = 32; // 15分 = 32px
+const { SLOT_HEIGHT_PX, Z_INDEX } = BOARD_CONSTANTS;
 
 interface JobLayerProps {
     jobs: BoardJob[];
@@ -21,7 +22,6 @@ interface JobLayerProps {
     onSplitMouseDown: (e: React.MouseEvent, split: BoardSplit) => void;
     onResizeStart: (e: React.MouseEvent, job: BoardJob, direction: 'top' | 'bottom') => void;
     onJobClick: (id: string, e: React.MouseEvent) => void;
-    selectedJobId_old?: string | null; // Migration compatibility
 }
 
 export const JobLayer: React.FC<JobLayerProps> = ({
@@ -40,9 +40,25 @@ export const JobLayer: React.FC<JobLayerProps> = ({
         return generateJobColorMap(jobs, driverOrder, timeToMinutes);
     }, [jobs, drivers]);
 
+    // 内部白線（Hour Lines）の描画用
+    const renderHourLines = (duration: number) => {
+        if (duration <= 60) return null;
+        const lines = [];
+        const hourBlocks = Math.floor(duration / 60);
+        for (let i = 1; i <= hourBlocks; i++) {
+            lines.push(
+                <div
+                    key={i}
+                    className="absolute w-full border-t border-white/40 z-0"
+                    style={{ top: `${(i * 60 / 15) * SLOT_HEIGHT_PX}px` }}
+                />
+            );
+        }
+        return lines;
+    };
+
     return (
         <div className="absolute inset-0 flex pointer-events-none">
-            {/* Spacer for time axis - must match TimeGrid's width */}
             <div style={{ width: '64px', minWidth: '64px', flexShrink: 0 }} className="flex-shrink-0" />
 
             <div className="flex">
@@ -53,8 +69,7 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                         className="relative h-full"
                     >
                         {jobs.filter(job => job.driverId === driver.id).map(job => {
-                            if (draggingJobId === job.id) return null;
-
+                            const isDragging = draggingJobId === job.id;
                             const jobTime = job.startTime || job.timeConstraint || '06:00';
                             const startMin = timeToMinutes(jobTime);
                             const topPx = ((startMin - 360) / 15) * SLOT_HEIGHT_PX;
@@ -62,36 +77,64 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                             const isSelected = selectedJobId === job.id;
                             const colorTheme = jobColorMap[job.id] || { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-700' };
 
+                            // ガードレール状態の判別
+                            const isLocked = (job as any).isLocked || (job as any).status === 'confirmed';
+                            const hasWarning = (job as any).hasWarning;
+                            const hasError = (job as any).hasError;
+
+                            let borderClass = colorTheme.border;
+                            let zIndexClass = isLocked ? `z-[${Z_INDEX.LOCK}]` : `z-[${Z_INDEX.DEFAULT}]`;
+                            if (isSelected) {
+                                borderClass = 'border-blue-500 ring-2 ring-blue-500';
+                                zIndexClass = `z-[${Z_INDEX.SELECTED}]`;
+                            }
+                            if (hasWarning) borderClass = 'border-yellow-400 border-2';
+                            if (hasError) borderClass = 'border-red-500 border-2';
+                            if (isLocked) borderClass = 'border-gray-400 bg-gray-200';
+
                             return (
                                 <div
                                     key={job.id}
-                                    className={`absolute w-[94%] left-[3%] rounded-md border text-[10px] shadow-sm overflow-hidden select-none z-10 pointer-events-auto
-                                        ${colorTheme.bg} ${colorTheme.border} ${colorTheme.text}
-                                        ${isSelected ? 'ring-2 ring-blue-500 z-30' : 'hover:brightness-95'}
+                                    className={`absolute w-[94%] left-[3%] rounded-md border text-[10px] shadow-sm overflow-hidden select-none pointer-events-auto transition-brightness
+                                        ${isLocked ? 'bg-gray-200 text-gray-500 italic' : colorTheme.bg} 
+                                        ${borderClass} ${colorTheme.text} ${zIndexClass}
+                                        ${isDragging ? 'opacity-40 grayscale-[0.5]' : 'hover:brightness-95'}
                                     `}
                                     style={{
                                         top: `${topPx}px`,
                                         height: `${heightPx}px`,
                                     }}
-                                    onMouseDown={(e) => onJobMouseDown(e, job)}
+                                    onMouseDown={(e) => !isLocked && onJobMouseDown(e, job)}
                                     onClick={(e) => onJobClick(job.id, e)}
                                 >
-                                    {/* Resize Handles */}
-                                    <div className="absolute top-0 w-full h-1 cursor-ns-resize hover:bg-black/5" onMouseDown={(e) => onResizeStart(e, job, 'top')} />
+                                    {/* 内部白線 */}
+                                    {renderHourLines(job.duration)}
 
-                                    <div className="p-1 h-full flex flex-col">
-                                        <div className="flex justify-between font-bold truncate">
-                                            {job.title}
+                                    {/* Resize Handles */}
+                                    {!isLocked && (
+                                        <div className="absolute top-0 w-full h-1.5 cursor-ns-resize hover:bg-black/5 z-10" onMouseDown={(e) => onResizeStart(e, job, 'top')} />
+                                    )}
+
+                                    <div className="p-1 h-full flex flex-col relative z-20">
+                                        <div className="flex justify-between font-bold truncate gap-1">
+                                            <span className="truncate">{job.title}</span>
+                                            <div className="flex shrink-0 gap-0.5">
+                                                {isLocked && <Lock size={10} className="text-gray-400" />}
+                                                {hasWarning && <AlertTriangle size={10} className="text-yellow-600" />}
+                                                {hasError && <Ban size={10} className="text-red-600" />}
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-1 opacity-70">
                                             <Clock size={8} />
-                                            <span>{job.timeConstraint}</span>
+                                            <span>{job.startTime || job.timeConstraint}</span>
                                         </div>
                                     </div>
 
-                                    <div className="absolute bottom-0 w-full h-2 cursor-ns-resize flex justify-center items-end" onMouseDown={(e) => onResizeStart(e, job, 'bottom')}>
-                                        <div className="w-4 h-0.5 bg-black/10 rounded-full" />
-                                    </div>
+                                    {!isLocked && (
+                                        <div className="absolute bottom-0 w-full h-2 cursor-ns-resize flex justify-center items-end z-10" onMouseDown={(e) => onResizeStart(e, job, 'bottom')}>
+                                            <div className="w-4 h-0.5 bg-black/10 rounded-full" />
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -102,7 +145,10 @@ export const JobLayer: React.FC<JobLayerProps> = ({
             {/* Drag Preview */}
             {dropPreview && (
                 <div
-                    className="fixed pointer-events-none z-[100] border-2 rounded-md shadow-xl bg-blue-500/20 border-blue-500 flex items-center justify-center"
+                    className={`fixed pointer-events-none z-[100] border-2 rounded-md shadow-xl flex items-center justify-center
+                        ${dropPreview.isOverlapError ? 'bg-red-500/20 border-red-500' :
+                            dropPreview.isWarning ? 'bg-yellow-500/20 border-yellow-500' : 'bg-emerald-500/20 border-emerald-500'}
+                    `}
                     style={{
                         left: dragMousePos.x + 10,
                         top: dragMousePos.y + 10,
@@ -110,7 +156,23 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                         height: `${(dropPreview.duration / 15) * SLOT_HEIGHT_PX}px`
                     }}
                 >
-                    <span className="bg-white text-blue-600 text-[10px] font-bold px-1 rounded">{dropPreview.startTime}</span>
+                    <div className="flex flex-col items-center gap-1 p-2">
+                        <span className={`text-[10px] font-bold px-1.5 rounded shadow-sm
+                            ${dropPreview.isOverlapError ? 'bg-red-500 text-white' :
+                                dropPreview.isWarning ? 'bg-yellow-500 text-white' : 'bg-emerald-500 text-white'}
+                        `}>
+                            {dropPreview.startTime}
+                        </span>
+                        {dropPreview.isOverlapError && (
+                            <div className="flex flex-col items-center gap-1">
+                                <Ban size={12} className="text-red-500" />
+                                <div className="text-[8px] text-red-600 bg-red-50 px-1 py-0.5 rounded font-bold text-center leading-tight">
+                                    {dropPreview.logicResult?.reason?.filter((r: string) => r.includes('不可')).map((r: string) => r.replace('【不可】', '')).join('\n') || '配置不可'}
+                                </div>
+                            </div>
+                        )}
+                        {dropPreview.isWarning && <AlertTriangle size={12} className="text-yellow-500" />}
+                    </div>
                 </div>
             )}
         </div>

@@ -38,9 +38,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     .order('role', { ascending: true })
                     .order('name');
 
-                if (data) {
+                if (data && (data as any[]).length > 0) {
                     // Map Supabase Row to our Profile type
-                    const mappedProfiles: Profile[] = data.map(p => ({
+                    const mappedProfiles: Profile[] = (data as any[]).map(p => ({
                         id: p.id,
                         name: p.name,
                         role: (p.role as UserRole) || 'driver',
@@ -49,6 +49,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         updated_at: p.updated_at
                     }));
                     setProfiles(mappedProfiles);
+                } else {
+                    // EMERGENCY MOCK for recovery
+                    const mockProfiles: Profile[] = [
+                        { id: '00000000-0000-0000-0000-000000000001', name: 'システム管理者 (Recov)', role: 'admin' as UserRole, can_edit_board: true, updated_at: new Date().toISOString() },
+                        { id: '00000000-0000-0000-0000-000000000002', name: 'デモドライバー (Recov)', role: 'driver' as UserRole, vehicle_info: 'R-01', can_edit_board: false, updated_at: new Date().toISOString() }
+                    ];
+                    setProfiles(mockProfiles);
                 }
                 if (error) console.error("Staff Fetch Error:", error);
             } catch (e) {

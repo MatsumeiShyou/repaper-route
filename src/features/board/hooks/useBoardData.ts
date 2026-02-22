@@ -3,12 +3,13 @@ import { supabase } from '../../../lib/supabase/client';
 import { useMasterData } from './useMasterData';
 import { useNotification } from '../../../contexts/NotificationContext';
 import {
-    BoardJob, BoardDriver, BoardSplit, BoardHistory,
-    Profile, AppUser, SupabaseJob, UserRole
+    BoardJob, BoardDriver, BoardSplit, BoardHistory, AppUser
 } from '../../../types';
 
-export const useBoardData = (currentUserId: string | undefined, currentDateKey: string) => {
-    const { drivers: masterDrivers, isLoading: isMasterLoading } = useMasterData();
+export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
+    const currentUserId = user?.id;
+
+    const { drivers: masterDrivers } = useMasterData();
     const { showNotification } = useNotification();
 
     // --- State ---
@@ -21,12 +22,11 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [isOffline, setIsOffline] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [localUpdatedAt, setLocalUpdatedAt] = useState<string | number>(Date.now());
 
     // Lock & Permission State
     const [editMode, setEditMode] = useState(false);
     const [lockedBy, setLockedBy] = useState<string | null>(null);
-    const [canEditBoard, setCanEditBoard] = useState(false);
+    const [canEditBoard, setCanEditBoard] = useState(user?.role === 'admin');
 
     // History State
     const [history, setHistory] = useState<BoardHistory>({ past: [], future: [] });
@@ -102,7 +102,6 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
                         setPendingJobs(fallbackJobs);
                     }
 
-                    setLocalUpdatedAt(data.updated_at);
                     setIsOffline(false);
                 } else {
                     const fallbackJobs = await fetchUnassignedJobsFallback();
@@ -110,7 +109,6 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
                     setDrivers([]);
                     setSplits([]);
                     setPendingJobs(fallbackJobs);
-                    setLocalUpdatedAt(new Date().toISOString());
                     setIsOffline(false);
                 }
 
@@ -118,12 +116,16 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
                 if (currentUserId) {
                     const { data: userProfile, error: profileError } = await supabase
                         .from('profiles')
-                        .select('can_edit_board')
+                        .select('can_edit_board, role')
                         .eq('id', currentUserId)
                         .maybeSingle() as { data: any, error: any };
 
                     if (!profileError && userProfile) {
-                        setCanEditBoard(userProfile.can_edit_board || false);
+                        const hasAdminRole = userProfile.role === 'admin' || user?.role === 'admin';
+                        setCanEditBoard(userProfile.can_edit_board || hasAdminRole);
+                    } else if (user?.role === 'admin') {
+                        // DBに存在しないモックユーザーであっても、コンテキスト上で管理者なら権限付与
+                        setCanEditBoard(true);
                     }
                 }
             } catch (err) {
@@ -136,7 +138,7 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
         };
 
         initializeData();
-    }, [currentDateKey, currentUserId]);
+    }, [currentDateKey, currentUserId, user?.role]);
 
     // Phase 7: Default Course Initialization
     useEffect(() => {
@@ -173,7 +175,7 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
                 .from('routes')
                 .select('edit_locked_by, edit_locked_at, last_activity_at')
                 .eq('date', currentDateKey)
-                .maybeSingle();
+                .maybeSingle() as { data: any, error: any };
 
             const isLockExpired = route?.last_activity_at &&
                 (Date.now() - new Date(route.last_activity_at as string).getTime()) > TIMEOUT_MS;
@@ -211,7 +213,7 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
     const releaseEditLock = useCallback(async () => {
         if (!editMode) return;
         try {
-            await supabase.from('routes').update({
+            await (supabase.from('routes') as any).update({
                 edit_locked_by: null,
                 edit_locked_at: null,
                 last_activity_at: null
@@ -229,7 +231,7 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
     useEffect(() => {
         if (!editMode) return;
         const interval = setInterval(async () => {
-            await supabase.from('routes').update({
+            await (supabase.from('routes') as any).update({
                 last_activity_at: new Date().toISOString()
             }).eq('date', currentDateKey).eq('edit_locked_by', currentUserId || '');
         }, 60000);
@@ -274,8 +276,6 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
 
             if (error) throw error;
 
-            const newTimestamp = new Date().toISOString();
-            setLocalUpdatedAt(newTimestamp);
             setIsOffline(false);
             showNotification("保存しました (SDR記録完了)", "success");
         } catch (e) {
@@ -295,7 +295,7 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
                 if (newData.edit_locked_by && newData.edit_locked_by !== currentUserId) {
                     setEditMode(false);
                     setLockedBy(newData.edit_locked_by);
-                    showNotification(`${newData.edit_locked_by}が編集中です`, "warning");
+                    showNotification(`${newData.edit_locked_by}が編集中です`, "info");
                 }
                 if (!newData.edit_locked_by && !editMode && lockedBy) {
                     setLockedBy(null);
@@ -306,7 +306,6 @@ export const useBoardData = (currentUserId: string | undefined, currentDateKey: 
                     if (newData.drivers) setDrivers(newData.drivers);
                     if (newData.splits) setSplits(newData.splits);
                     if (newData.pending && newData.pending.length > 0) setPendingJobs(newData.pending);
-                    setLocalUpdatedAt(newData.updated_at);
                 }
             })
             .subscribe();
