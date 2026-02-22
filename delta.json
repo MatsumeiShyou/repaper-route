@@ -1,0 +1,47 @@
+{
+  "tag": "div",
+  "role": null,
+  "name": "",
+  "value": null,
+  "content": "",
+  "state": {},
+  "hash": "-62a6f816",
+  "children": [
+    {
+      "tag": "div",
+      "role": null,
+      "name": "",
+      "value": null,
+      "content": "",
+      "state": {},
+      "hash": "-6cce211d",
+      "children": [
+        {
+          "unchanged": true,
+          "tag": "h1",
+          "role": "heading",
+          "name": "App Title"
+        },
+        {
+          "unchanged": true,
+          "tag": "button",
+          "role": "button",
+          "name": "Click"
+        },
+        {
+          "tag": "p",
+          "role": "status",
+          "name": "",
+          "value": null,
+          "content": "Loading...",
+          "state": {},
+          "hash": "-37a5139a",
+          "children": [],
+          "testId": null
+        }
+      ],
+      "testId": "app"
+    }
+  ],
+  "testId": null
+}

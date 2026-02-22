@@ -249,3 +249,6 @@ Docker (Supabase local) 起動エラーが発生している現状において�
 - 歪んだクラウド状態にローカルを合わせることは技術的負債となる。ローカルにある「設計の歴史（31ファイル）」を資産（正典）とし、Gitで進化過程を担保した上で、これに準拠する形でクラウドを再構築することが、最もシンプルかつ保守性の高いアプローチであるため。
 | 2026-02-22 | ガバナンス互換性向上配車ボードUI刷新 | .agent/scripts/, src/features/board/, src/components/MasterDataLayout.tsx | Windows環境での統治エラー解消、および配車操作のUI視認性安全性向上 | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-22 | 未配車リスト表示不具合の修正と再発防止 | src/features/board/hooks/useBoardData.ts | 未配車案件のSingle Source of Truth（マスター jobs 優先）確立によるデータ不整合の恒久的解消 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-22 | SADAテスト仕様のドキュメント化と最高規約へのルール追加 | テスト仕様ドキュメントの新規作成とポリシーの追記 | 将来のDOMテスト実装におけるAI実行環境の最適化(トークン節約) | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-22 | コンテキスト注入スクリプトの実装 | new_file | sada, ui, db, infra | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-22 | SADA実戦投入とコンテキスト注入評価 | src/features/board/, .agent/scripts/ | 方針1（SADAテスト実装）および方針3（注入スクリプト有効性検証）の実施 | User (Approved) | 承認 (PW: ｙ) |

@@ -16,13 +16,13 @@ const SCRIPTS_DIR = path.join(PROJECT_ROOT, '.agent', 'scripts');
 function runCheck(name, command) {
     console.log(`\n🚀 [Pre-flight] Running ${name}...`);
     try {
-        const output = execSync(command, { cwd: PROJECT_ROOT, encoding: 'utf8', shell: true });
+        const output = execSync(command, { cwd: PROJECT_ROOT, encoding: 'utf8', shell: true, stdio: ['inherit', 'pipe', 'inherit'] });
         console.log(output);
         return true;
     } catch (err) {
         console.error(`\n❌ [Pre-flight] ${name} FAILED`);
         if (err.stdout) console.error(err.stdout);
-        if (err.stderr) console.error(err.stderr);
+        // stderr は stdio で inherit しているため自動出力される
         return false;
     }
 }
@@ -82,6 +82,24 @@ async function main() {
     // 2. Self-Reflection (Compliance Audit)
     const reflectOk = runCheck('Compliance Audit', `node "${path.join(SCRIPTS_DIR, 'reflect.js')}"`);
     if (!reflectOk) process.exit(1);
+
+    // 3. Context Injection (Anti-Recurrence) - [AGENTS.md §K]
+    console.log('\n🧠 [Prevention] 過去の失敗パターンを参照中...');
+    try {
+        // 現在の変更ファイル名をキーワードとして inject_context に渡す
+        const changedFiles = execSync('git diff --cached --name-only', { encoding: 'utf8' }).trim().split('\n').join(' ');
+        const injection = execSync(`node "${path.join(SCRIPTS_DIR, 'inject_context.js')}" --task "${changedFiles}"`, {
+            cwd: PROJECT_ROOT,
+            encoding: 'utf8'
+        });
+        if (injection.trim()) {
+            console.log('\n' + injection);
+        } else {
+            console.log('   ✅ 関連する既知の失敗パターンは見つかりませんでした。');
+        }
+    } catch (e) {
+        console.log('   ⚠️ コンテキスト注入スキップ（解析エラー）');
+    }
 
     // 3. State Capture は reflect.js 内で GOVERNANCE_REPORT.md として完結するため、
     //    ここでの追記は不要（追記するとコミットループが発生するため削除）

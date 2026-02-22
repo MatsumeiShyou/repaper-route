@@ -314,7 +314,7 @@ function checkRetryPatterns() {
             category: '§4 停止およびリトライプロトコル (SVP)',
             issue: `${rapidRetries.length} 個のファイルで短時間の連続修正が検知されました（「当てずっぽう」なリトライの可能性）`,
             details,
-            recommendation: `【ベストプラクティス ONE】\n試行錯誤の履歴を論理的な一単位に統合し、AMPLOG.md のステータス欄に [Audit: <原因・判断・根拠>] を記録した上で再試行せよ。`
+            recommendation: `【ベストプラクティス ONE】\n試行錯誤の理由を論理的に分析し、AMPLOG.md に [Audit: <原因>] を記録せよ。さらに、再発可能性が高い失敗パターン（ホワイトアウト、型不整合、OS依存等）であれば必ず DEBT_AND_FUTURE.md へ登録し、KEYWORD_DICT.md を更新せよ。`
         });
     }
 

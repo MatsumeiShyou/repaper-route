@@ -95,17 +95,25 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                     }
                     if (data.splits) setSplits(data.splits as BoardSplit[]);
 
-                    // 再発防止案: routes.pending に保存されているデータがあっても、
-                    // マスター jobs からの最新未割当案件を常に「正」として取得しマージする。
-                    const fallbackJobs = await fetchUnassignedJobsFallback();
+                    // 【再発防止 / Single Source of Truth】
+                    // routes.pending に保存されているデータは「スナップショット」であり、
+                    // マスター jobs テーブルの更新（新規追加等）を反映していない可能性があります。
+                    // 常に jobs テーブル (driver_id IS NULL) を最新の候補リストとして取得し、
+                    // 保存済みデータと ID ベースでマージ（補完）することで、データの断絶を防ぎます。
+                    const latestUnassignedFromMaster = await fetchUnassignedJobsFallback();
 
-                    // routes 側に保存された pending があればそれを優先しつつ、
-                    // jobs テーブルにのみ存在する新しい未割当案件（新規追加分）を補完する。
                     const savedPending = (data.pending || []) as BoardJob[];
                     const savedIds = new Set(savedPending.map(j => j.id));
-                    const newUnassigned = fallbackJobs.filter(j => !savedIds.has(j.id));
 
-                    setPendingJobs([...savedPending, ...newUnassigned]);
+                    // routes に未保存の新しい案件のみを抽出して補完
+                    const newUnseenJobs = latestUnassignedFromMaster.filter(j => !savedIds.has(j.id));
+
+                    // さらに、routes に保存されている案件が jobs テーブル側で削除・変更（配車済み化）
+                    // されている可能性も考慮し、有効な（driver_id IS NULL のままの）案件のみを維持。
+                    const masterUnassignedIds = new Set(latestUnassignedFromMaster.map(j => j.id));
+                    const stillUnassignedSavedPending = savedPending.filter(j => masterUnassignedIds.has(j.id));
+
+                    setPendingJobs([...stillUnassignedSavedPending, ...newUnseenJobs]);
 
                     setIsOffline(false);
                 } else {
