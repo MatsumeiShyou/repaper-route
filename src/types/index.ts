@@ -43,6 +43,10 @@ export interface BoardJob {
     taskType: 'collection' | 'special';
     driverId?: string;
     startTime?: string; // Legacy/Internal compatibility for rendering
+    item_category?: string; // Dominant item category
+    location_id?: string; // Traceability: Reference to master_collection_points
+    address?: string;     // Traceability: Static snapshot of address at time of creation
+    creation_reason?: string; // Double Loop: Reason for manual injection
 }
 
 export interface BoardDriver {

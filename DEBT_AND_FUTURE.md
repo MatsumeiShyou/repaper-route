@@ -64,6 +64,16 @@
   - **解決策**: Supabase関連の実装時（特に新テーブル追加時）は、必ず `anon` ロールへのアクセス権限（SELECT/INSERT等）と RLS ポリシー (`TO anon`) をセットで実装すること。
   - **物理構造**: `inject_context.js` (Gate) により、今後の開発時に本警告が自動注入される。
 
+- [ ] **Magic String Guard for Delete (Master Modals)**
+#type: impl_debt
+#domain: ui
+#severity: low
+#trigger: [delete, guard, test, magic-string]
+#registered: 2026-02-23
+  - **現状**: マスタ系モーダルにおいて、誤操作防止とテスト簡易化のため、名称欄に `"test"` が含まれる場合のみ削除を許可するロジックを導入。
+  - **リスク**: 【低】将来的に "test" という正規の名称を持つデータを削除できなくなる、または仕様を知らない管理者が混乱する可能性がある。
+  - **解決策**: 本稼働前、あるいは正式なロールベースの削除権限管理が導入されたタイミングで、このマジックストリング依存を解消する。
+
 ---
 
 ## 3. Prevention & Post-Mortem (エラー再発防止策)
@@ -152,4 +162,22 @@
 | # | ファイル | 理由 |
 |---|---|---|
 | 1 | `hooks/useFeatureFlag.js` + `config/featureFlags.js` | 現 TS 版で未使用。必要時は TS で新規設計が安全 |
-| 2 | `services/gasApi.js` | GAS 連携は Supabase 直結アーキテクチャでは不要。外部連携時は Edge Functions を推奨 |
+### 5. Lessons Learned (教訓)
+
+- **表示ガードと操作ガードの分離不足 (2026-02-23)**
+#type: fault_pattern
+#domain: ui
+#severity: medium
+#trigger: [sidebar, cell-click, editMode, guard]
+  - **事象**: `editMode`（編集権限/ロック状態）を表示ロジックのガードに使用したため、閲覧ユーザーやデータロード直後のユーザーがサイドバー（未配車リスト）を参照できなくなる不具合が発生した。
+  - **原因**: データの書き換え（アサイン）に対するガードと、UIの表示（サイドバーの開閉）に対するガードを一括りで扱ってしまったことによる。
+  - **対策**: 今後、アクションを伴うUI操作においては、「表示（閲覧）」と「実行（変更）」のガード条件を明確に分離して設計する。閲覧目的のインタラクションを権限によって阻害してはならない。
+
+- [ ] **SADAテスト環境（Vitest/Vite）の不安定化と起動エラー (2026-02-23)**
+#type: impl_debt
+#domain: qa
+#severity: high
+#trigger: [test, sada, vitest, mock]
+  - **事象**: `MasterPointList.sada.test.tsx` や `BoardCanvas.test.tsx` 等のSADAテスト実行時、`_createServer` 内部での例外発生や `Failed to load url .../src/test/setup.ts` といったViteコアレベルのエラーが頻発し、テストプロセスがクラッシュする。
+  - **リスク**: 【高】ReactコンポーネントのUIレンダリングを介したセマンティック差分検証（SADA）が自動で実行できず、デグレードの検知が手動に依存する状態となっている。
+  - **解決策**: Vite、Vitest の設定ファイル（`vite.config.ts`, `vitest.config.ts`）、およびグローバルモック層（`setup.ts`）の依存・エンコーディング設定などをゼロベースで見直し、安定したテスト実行環境を再構築する。（本件では暫定的にブラウザでの目視検証で代替した）

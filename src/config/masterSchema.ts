@@ -11,8 +11,9 @@ type TableName = keyof PublicSchema['Tables'];
 export interface MasterColumn {
     key: string;
     label: string;
-    type: 'text' | 'badge' | 'number' | 'status' | 'multi-row' | 'tags' | 'select';
+    type: 'text' | 'badge' | 'number' | 'status' | 'multi-row' | 'tags' | 'select' | 'days';
     subLabelKey?: string;
+    thirdLabelKey?: string;
     className?: string;
     styleRules?: Record<string, string>;
 }
@@ -89,7 +90,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         title: '車両管理',
         description: '配車対象車両の登録と設定',
         viewName: 'vehicles',
-        rpcTableName: 'vehicles',
+        rpcTableName: 'master_vehicles',
         primaryKey: 'id',
         searchFields: ['number', 'callsign', 'vehicle_type'],
         columns: [
@@ -136,20 +137,20 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         viewName: 'view_master_points',
         rpcTableName: 'master_collection_points',
         primaryKey: 'id',
-        searchFields: ['display_name', 'address', 'contractor_name', 'default_route_code', 'location_code'],
+        searchFields: ['display_name', 'address', 'contractor_name', 'default_route_code', 'area'],
         columns: [
             {
                 key: 'display_name',
-                subLabelKey: 'contractor_name',
-                label: '地点名 / 排出元',
+                subLabelKey: 'area', // 名称の横に地域を表示
+                thirdLabelKey: 'address',
+                label: '拠点/地域/住所',
                 type: 'multi-row',
-                className: 'font-bold sticky left-0 bg-white dark:bg-slate-900 z-10 min-w-[200px] shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)]'
+                className: 'font-bold sticky left-0 bg-white dark:bg-slate-900 z-10 min-w-[280px] shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)]'
             },
             {
-                key: 'location_code',
-                label: 'コード',
-                type: 'text',
-                className: 'text-xs font-mono text-slate-400'
+                key: 'collection_days',
+                label: '曜',
+                type: 'days'
             },
             {
                 key: 'visit_slot',
@@ -168,8 +169,8 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 type: 'badge',
                 styleRules: {
                     default: 'bg-slate-50 text-slate-400',
-                    'FIXED': 'bg-red-50 text-red-700 border border-red-100 font-black',
-                    'FIXED_UNTIL_RETURN': 'bg-purple-50 text-purple-700 border border-purple-100 font-black'
+                    'FIXED': 'bg-red-600 text-white font-black px-3 py-1 animate-pulse',
+                    'FIXED_UNTIL_RETURN': 'bg-purple-600 text-white font-black px-3 py-1'
                 }
             },
             {
@@ -177,13 +178,44 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 label: '主要回収品目',
                 type: 'tags'
             },
-            { key: 'internal_note', label: '備考', type: 'text', className: 'text-xs text-slate-500 min-w-[200px] max-w-[300px] truncate-2-lines' },
-            { key: 'site_contact_phone', label: '連絡先', type: 'text', className: 'text-xs font-bold text-blue-600' },
-            { key: 'address', label: '住所', type: 'text', className: 'text-[10px] text-slate-500 min-w-[150px] truncate' },
+            {
+                key: 'weighing_site_id',
+                label: '計量所',
+                type: 'text',
+                className: 'text-[10px] text-emerald-600 font-mono'
+            },
+            {
+                key: 'time_constraint_type',
+                label: '時間制約',
+                type: 'badge',
+                styleRules: {
+                    default: 'bg-slate-100 text-slate-600',
+                    'NONE': 'bg-slate-50 text-slate-400',
+                    'RANGE': 'bg-blue-50 text-blue-600 border border-blue-100',
+                    'FIXED': 'bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold'
+                }
+            },
+            {
+                key: 'is_spot_only',
+                label: '種別',
+                type: 'badge',
+                styleRules: {
+                    default: 'bg-slate-50 text-slate-400',
+                    'true': 'bg-amber-100 text-amber-900 border-2 border-amber-500 font-black shadow-sm',
+                    'false': 'bg-slate-100 text-slate-500'
+                }
+            },
+            {
+                key: 'internal_note',
+                label: '備考',
+                type: 'text',
+                className: 'text-xs text-slate-500 truncate max-w-[150px]'
+            },
             { key: 'is_active', label: '状態', type: 'status' }
         ],
         fields: [
             { name: 'display_name', label: '地点名（表示用）', type: 'text', required: true, placeholder: '例: ○○スーパー(AM)' },
+            { name: 'area', label: '地域・エリア', type: 'text', placeholder: '例: 中央区, 六本木' },
             {
                 name: 'contractor_id',
                 label: '契約主体',
@@ -219,6 +251,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     valueKey: 'id'
                 }
             },
+            { name: 'collection_days', label: '回収曜日', type: 'days', className: 'col-span-2' },
             { name: 'target_item_category', label: '主要回収品目', type: 'tags', className: 'col-span-2', placeholder: '品目を選択...' },
             { name: 'address', label: '住所', type: 'text', className: 'col-span-2' },
             { name: 'site_contact_phone', label: '現場直通電話', type: 'tel' },
@@ -228,6 +261,27 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 type: 'text',
                 className: 'col-span-2',
                 placeholder: '例: 裏口から入場。天井低い。'
+            },
+            {
+                name: 'weighing_site_id',
+                label: '指定計量所',
+                type: 'text',
+                className: 'col-span-1',
+                placeholder: '計量所IDを入力...'
+            },
+            {
+                name: 'time_constraint_type',
+                label: '時間制限区分',
+                type: 'select',
+                options: ['NONE', 'RANGE', 'FIXED'],
+                className: 'col-span-1',
+                required: true
+            },
+            {
+                name: 'is_spot_only',
+                label: 'スポット専用フラグ',
+                type: 'switch',
+                className: 'col-span-1'
             },
             { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]

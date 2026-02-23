@@ -8,7 +8,11 @@ import {
     Lock,
     ChevronDown,
     Shield,
-    Trash2
+    Trash2,
+    FileText,
+    Calendar,
+    AlertTriangle,
+    Clock
 } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import useMasterCRUD from '../hooks/useMasterCRUD';
@@ -26,7 +30,8 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         loading,
         error,
         createItem,
-        updateItem
+        updateItem,
+        deleteItem
     } = useMasterCRUD<Record<string, any>>(schema);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -57,6 +62,13 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
             await createItem(formData);
         }
         setIsModalOpen(false);
+    };
+
+    const handleDelete = async (id: string | number) => {
+        if (window.confirm('このデータを削除（無効化）してもよろしいですか？')) {
+            await deleteItem(id);
+            setIsModalOpen(false);
+        }
     };
 
     if (error) return (
@@ -157,12 +169,28 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                     schema={schema}
                     initialData={editingItem}
                     onSave={handleSave}
+                    onDelete={editingItem ? () => handleDelete(editingItem[schema.primaryKey]) : undefined}
                     onCancel={() => setIsModalOpen(false)}
                 />
             </Modal>
         </div>
     );
 };
+
+function normalizeDays(value: any): string[] {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === 'object') {
+        const days: string[] = [];
+        const mapping: Record<string, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun', hol: 'Hol', oth: 'Oth' };
+        for (const [k, v] of Object.entries(value)) {
+            if (v === true && mapping[k.toLowerCase()]) {
+                days.push(mapping[k.toLowerCase()]);
+            }
+        }
+        return days;
+    }
+    return [];
+}
 
 function renderCell(item: Record<string, any>, col: MasterColumn) {
     const value = item[col.key];
@@ -214,27 +242,39 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
     }
 
     // Default Text with Multi-Row / SubLabel support
-    if (col.type === 'multi-row' || col.subLabelKey) {
+    if (col.type === 'multi-row' || col.subLabelKey || col.thirdLabelKey) {
         return (
             <div className="flex flex-col py-1">
                 <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-800 dark:text-slate-200 leading-tight">
                         {value || '-'}
                     </span>
-                    {item.site_contact_phone && (
-                        <div className="w-5 h-5 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                            <Phone size={10} className="stroke-[3]" />
-                        </div>
-                    )}
-                    {item.vehicle_restriction_type && item.vehicle_restriction_type !== 'NONE' && (
-                        <div className="w-5 h-5 flex items-center justify-center rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400">
-                            <Lock size={10} className="stroke-[3]" />
-                        </div>
-                    )}
+                    <div className="flex gap-0.5">
+                        {item.site_contact_phone && (
+                            <div className="w-5 h-5 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" title={item.site_contact_phone}>
+                                <Phone size={10} className="stroke-[3]" />
+                            </div>
+                        )}
+                        {item.vehicle_restriction_type && item.vehicle_restriction_type !== 'NONE' && (
+                            <div className="w-5 h-5 flex items-center justify-center rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400" title="車両制限あり">
+                                <Lock size={10} className="stroke-[3]" />
+                            </div>
+                        )}
+                        {item.internal_note && (
+                            <div className="w-5 h-5 flex items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" title={item.internal_note}>
+                                <FileText size={10} className="stroke-[2.5]" />
+                            </div>
+                        )}
+                    </div>
                 </div>
                 {col.subLabelKey && item[col.subLabelKey] && (
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium truncate max-w-[180px]">
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium truncate max-w-[200px]">
                         {item[col.subLabelKey]}
+                    </span>
+                )}
+                {col.thirdLabelKey && item[col.thirdLabelKey] && (
+                    <span className="text-[10px] text-emerald-600/80 dark:text-emerald-500/80 mt-1 leading-none font-mono truncate max-w-[250px]">
+                        {item[col.thirdLabelKey]}
                     </span>
                 )}
             </div>
@@ -257,6 +297,83 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
         );
     }
 
+    // Days Display (Weekly Schedule)
+    if (col.type === 'days') {
+        const days = normalizeDays(value);
+        if (days.length === 0) return <span className="text-slate-300">-</span>;
+
+        const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const extraDays = ['Hol', 'Oth'];
+        const dayLabels: Record<string, string> = {
+            'Mon': '月', 'Tue': '火', 'Wed': '水', 'Thu': '木', 'Fri': '金', 'Sat': '土', 'Sun': '日',
+            'Hol': '祝', 'Oth': '他'
+        };
+
+        const specialDaysMap: Record<string, number[]> = {};
+        const regularDays = days.filter(d => {
+            const match = d.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)([1-5])$/);
+            if (match) {
+                const day = match[1];
+                const week = parseInt(match[2], 10);
+                if (!specialDaysMap[day]) specialDaysMap[day] = [];
+                specialDaysMap[day].push(week);
+                return false;
+            }
+            return true;
+        });
+
+        return (
+            <div className="flex flex-wrap gap-0.5 max-w-[150px]">
+                {weekDays.map(d => {
+                    const isActive = regularDays.includes(d);
+                    let activeColor = 'bg-blue-500 text-white';
+                    if (d === 'Sat') activeColor = 'bg-cyan-500 text-white';
+                    if (d === 'Sun') activeColor = 'bg-rose-500 text-white';
+
+                    return (
+                        <div
+                            key={d}
+                            className={`w-4 h-4 rounded-sm flex items-center justify-center text-[9px] font-bold transition-all ${isActive
+                                ? activeColor + ' shadow-[0_1px_3px_rgba(0,0,0,0.1)]'
+                                : 'bg-slate-100 text-slate-300 dark:bg-slate-800'
+                                }`}
+                        >
+                            {dayLabels[d]}
+                        </div>
+                    );
+                })}
+                {extraDays.map(d => {
+                    const isActive = regularDays.includes(d);
+                    if (!isActive) return null; // 祝・他は設定されている時のみ表示する
+                    let activeColor = d === 'Hol' ? 'bg-rose-600 text-white' : 'bg-purple-600 text-white';
+
+                    return (
+                        <div
+                            key={d}
+                            className={`px-1.5 h-4 ml-0.5 rounded-sm flex items-center justify-center text-[9px] font-bold transition-all ${activeColor + ' shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
+                                }`}
+                        >
+                            {dayLabels[d]}
+                        </div>
+                    );
+                })}
+                {Object.entries(specialDaysMap).map(([day, weeks]) => {
+                    weeks.sort((a, b) => a - b);
+                    const label = `第${weeks.join(',')}(${dayLabels[day]})`;
+                    return (
+                        <div
+                            key={`${day}-special`}
+                            className="px-1.5 h-4 ml-0.5 rounded-sm flex items-center justify-center text-[9px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                        >
+                            {label}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+
     return (
         <span className="text-slate-600 dark:text-slate-400">
             {value || '-'}
@@ -264,13 +381,27 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
     );
 }
 
-function MasterForm({ schema, initialData, onSave, onCancel }: {
+function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
     schema: MasterSchema,
     initialData: Record<string, any> | null,
     onSave: (data: Record<string, any>) => Promise<void>,
+    onDelete?: () => Promise<void>,
     onCancel: () => void
 }) {
-    const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
+    const [formData, setFormData] = useState<Record<string, any>>(() => {
+        const initial = { ...(initialData || {}) };
+        schema.fields.forEach(f => {
+            if (f.type === 'days') {
+                initial[f.name] = normalizeDays(initial[f.name]);
+            }
+        });
+        return initial;
+    });
+
+    const [customWeek, setCustomWeek] = useState<string>('1');
+    const [customDay, setCustomDay] = useState<string>('Mon');
+
+
     // 品目マスタのデータを取得するためのフック（タグ選択用）
     const { data: allItems } = useMasterCRUD(MASTER_SCHEMAS.items);
 
@@ -352,6 +483,133 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
                                     <option key={opt} value={opt}>{opt}</option>
                                 ))}
                             </select>
+                        ) : field.type === 'days' ? (
+                            <div className="space-y-4 p-2 bg-slate-50/50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <div>
+                                    <div className="text-[10px] text-slate-500 mb-1.5 font-bold flex items-center gap-1"><Calendar size={12} /> 基本の回収曜日</div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => {
+                                            const labels: Record<string, string> = { 'Mon': '月', 'Tue': '火', 'Wed': '水', 'Thu': '木', 'Fri': '金', 'Sat': '土', 'Sun': '日' };
+                                            const currentDays = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                                            const isSelected = currentDays.includes(d);
+
+                                            return (
+                                                <button
+                                                    key={d}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nextDays = isSelected
+                                                            ? currentDays.filter((day: string) => day !== d)
+                                                            : [...currentDays, d];
+                                                        setFormData({ ...formData, [field.name]: nextDays });
+                                                    }}
+                                                    className={`w-9 h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center border-2 ${isSelected
+                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm scale-105'
+                                                        : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300 dark:bg-slate-800 dark:border-slate-700'
+                                                        }`}
+                                                >
+                                                    {labels[d]}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                                    <div className="text-[10px] text-slate-500 mb-1.5 font-bold flex items-center gap-1"><AlertTriangle size={12} /> 特殊稼働指定</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Hol', 'Oth'].map(d => {
+                                            const labels: Record<string, string> = { 'Hol': '祝日稼働', 'Oth': '不定期・その他' };
+                                            const currentDays = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                                            const isSelected = currentDays.includes(d);
+                                            const activeClass = d === 'Hol' ? 'bg-rose-100 text-rose-700 border-rose-300' : 'bg-purple-100 text-purple-700 border-purple-300';
+
+                                            return (
+                                                <button
+                                                    key={d}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nextDays = isSelected
+                                                            ? currentDays.filter((day: string) => day !== d)
+                                                            : [...currentDays, d];
+                                                        setFormData({ ...formData, [field.name]: nextDays });
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border-2 flex items-center gap-1.5 ${isSelected
+                                                        ? activeClass + ' shadow-sm scale-105'
+                                                        : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700'
+                                                        }`}
+                                                >
+                                                    <div className={`w-2 h-2 rounded-full ${isSelected ? (d === 'Hol' ? 'bg-rose-500' : 'bg-purple-500') : 'bg-slate-200 dark:bg-slate-600'}`} />
+                                                    {labels[d]}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                                    <div className="text-[10px] text-slate-500 mb-1.5 font-bold flex items-center gap-1"><Clock size={12} /> 変則的な周期指定（第N曜日）</div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <select
+                                            aria-label="第N週の選択"
+                                            className="px-2 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:ring-1 focus:border-indigo-500 focus:ring-indigo-500 text-slate-700 dark:text-white"
+                                            value={customWeek}
+                                            onChange={(e) => setCustomWeek(e.target.value)}
+                                        >
+                                            {[1, 2, 3, 4, 5].map(w => <option key={w} value={w}>第{w}週</option>)}
+                                        </select>
+                                        <select
+                                            aria-label="曜日の選択"
+                                            className="px-2 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:ring-1 focus:border-indigo-500 focus:ring-indigo-500 text-slate-700 dark:text-white"
+                                            value={customDay}
+                                            onChange={(e) => setCustomDay(e.target.value)}
+                                        >
+                                            <option value="Mon">月曜日</option>
+                                            <option value="Tue">火曜日</option>
+                                            <option value="Wed">水曜日</option>
+                                            <option value="Thu">木曜日</option>
+                                            <option value="Fri">金曜日</option>
+                                            <option value="Sat">土曜日</option>
+                                            <option value="Sun">日曜日</option>
+                                        </select>
+                                        <button
+                                            type="button"
+                                            aria-label="変則周期を追加"
+                                            onClick={() => {
+                                                const token = `${customDay}${customWeek}`;
+                                                const currentDays = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                                                if (!currentDays.includes(token)) {
+                                                    setFormData({ ...formData, [field.name]: [...currentDays, token] });
+                                                }
+                                            }}
+                                            className="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 active:scale-95 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800 transition-all"
+                                        >
+                                            追加
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {/* Display selected special tokens */}
+                                        {(Array.isArray(formData[field.name]) ? formData[field.name] : []).filter((d: string) => /^[A-Z][a-z]{2}[1-5]$/.test(d)).map((d: string) => {
+                                            const dayLabels: Record<string, string> = { 'Mon': '月', 'Tue': '火', 'Wed': '水', 'Thu': '木', 'Fri': '金', 'Sat': '土', 'Sun': '日' };
+                                            const day = d.substring(0, 3);
+                                            const week = d.substring(3);
+                                            return (
+                                                <span key={d} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800 shadow-sm animate-in zoom-in-50">
+                                                    第{week}({dayLabels[day] || day})
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const currentDays = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                                                            setFormData({ ...formData, [field.name]: currentDays.filter((day: string) => day !== d) });
+                                                        }}
+                                                        className="hover:text-indigo-400 bg-indigo-200/50 dark:bg-indigo-800/50 rounded-full p-0.5"
+                                                    >
+                                                        <X size={10} />
+                                                    </button>
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
                         ) : field.type === 'switch' ? (
                             <div className="flex items-center h-[42px]">
                                 <label className="relative inline-flex items-center cursor-pointer">
@@ -386,7 +644,18 @@ function MasterForm({ schema, initialData, onSave, onCancel }: {
                 <PointAccessSection pointId={initialData.id} />
             )}
 
-            <div className="flex items-center justify-end mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                <div>
+                    {onDelete && schema.fields.some(f => f.required && String(formData[f.name] || '').toLowerCase().includes('test')) && (
+                        <button
+                            type="button"
+                            onClick={onDelete}
+                            className="px-6 py-2 text-red-600 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 transition-colors"
+                        >
+                            データを削除
+                        </button>
+                    )}
+                </div>
                 <div className="flex items-center gap-3">
                     <button type="button" onClick={onCancel} className="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
                         キャンセル

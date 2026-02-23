@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
+import { useMasterData } from './hooks/useMasterData';
 
 import { DriverHeader } from './components/DriverHeader';
 import { TimeGrid } from './components/TimeGrid';
@@ -14,15 +15,22 @@ import { useAuth } from '../../contexts/AuthProvider';
 import { BoardJob, BoardDriver } from '../../types';
 import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
+import { AddJobModal } from './components/AddJobModal';
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
 
+    // 0. Master Data (Parallel Load)
+    const {
+        customers: masterPoints,
+        vehicles: masterVehicles,
+        isLoading: masterLoading
+    } = useMasterData();
 
+    // 1. Data & Logic Hook
     const today = new Date();
     const currentDateKey = today.toISOString().split('T')[0];
 
-    // 1. Data & Logic Hook
     const {
         masterDrivers,
         drivers, setDrivers,
@@ -34,7 +42,6 @@ export default function BoardCanvas() {
         handleSave, recordHistory, undo, redo,
         addColumn
     } = useBoardData(currentUser, currentDateKey);
-
 
     // 2. Drag & Drop Hook
     const driverColRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -52,58 +59,69 @@ export default function BoardCanvas() {
         recordHistory
     );
 
-
     // 3. UI State
     const [selectedCell, setSelectedCell] = useState<{ driverId: string, time: string } | null>(null);
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [pendingFilter, setPendingFilter] = useState('全て');
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-    const [modalState, setModalState] = useState<{ isOpen: boolean, type: string | null, targetId?: string | null }>({ isOpen: false, type: null });
+    const [isHeaderEditModalOpen, setIsHeaderEditModalOpen] = useState(false);
+    const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
+    const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
 
-    const selectedDriverForEdit = modalState.type === 'header' && modalState.targetId
-        ? drivers.find(d => d.id === modalState.targetId) || null
+    const selectedDriverForEdit = headerEditTargetId
+        ? drivers.find(d => d.id === headerEditTargetId) || null
         : null;
 
+    // 4. Handlers
     const handleSaveHeader = (updatedDriver: BoardDriver) => {
-        setDrivers(prev => prev.map(d => d.id === modalState.targetId ? updatedDriver : d));
+        setDrivers(prev => prev.map(d => d.id === headerEditTargetId ? updatedDriver : d));
         recordHistory();
     };
 
-
-    // 4. Handlers
-    const openHeaderEdit = (driverId: string) => {
-        setModalState({ isOpen: true, type: 'header', targetId: driverId });
+    const handleDeleteHeader = () => {
+        if (!headerEditTargetId) return;
+        setDrivers(prev => prev.filter(d => d.id !== headerEditTargetId));
+        setJobs(prev => prev.filter(j => j.driverId !== headerEditTargetId));
+        recordHistory();
     };
+
+    const handleAddManualJob = (job: BoardJob, reason: string) => {
+        if (!editMode) return;
+        console.log("[Board] Manually injecting job:", job.title, "Reason:", reason);
+        // Add to local state
+        const jobWithReason: BoardJob = { ...job, creation_reason: reason };
+        setJobs(prev => [...prev, jobWithReason]);
+        recordHistory();
+        setSelectedCell(null);
+        setIsAddJobModalOpen(false);
+    };
+
     const handleAssignPendingJob = (job: BoardJob) => {
-        if (!editMode || !selectedCell) {
-            console.warn("[Board] Assign failed: editMode or selectedCell missing", { editMode, selectedCell });
-            return;
-        }
-
-        console.log("[Board] Assigning job:", job.title, "to", selectedCell);
-
+        if (!editMode || !selectedCell) return;
         const newJob: BoardJob = {
             ...job,
             driverId: selectedCell.driverId,
             timeConstraint: selectedCell.time,
-            startTime: selectedCell.time // Added for legacy/internal compat
+            startTime: selectedCell.time
         };
-
         setJobs(prev => [...prev, newJob]);
         setPendingJobs(prev => prev.filter(j => j.id !== job.id));
         recordHistory();
         setSelectedCell(null);
-        // Keep sidebar open for bulk operations? Let's follow JS behavior: it closes if wanted or stays.
-        // Logic ensure 3 is working.
     };
 
-    if (isAuthLoading || !isDataLoaded) {
+    const openHeaderEdit = (driverId: string) => {
+        setHeaderEditTargetId(driverId);
+        setIsHeaderEditModalOpen(true);
+    };
+
+    if (isAuthLoading || !isDataLoaded || masterLoading) {
         return (
             <div className="h-full flex flex-col items-center justify-center bg-slate-900 gap-4">
                 <RefreshCcw className="animate-spin text-blue-500" size={48} />
                 <p className="text-slate-400 font-mono text-xs uppercase tracking-widest animate-pulse">
-                    {isAuthLoading ? 'Authenticating...' : 'Initializing Board...'}
+                    {isAuthLoading ? '認証中...' : '情報を読み込み中...'}
                 </p>
             </div>
         );
@@ -115,37 +133,24 @@ export default function BoardCanvas() {
             onMouseMove={(e) => handleBackgroundMouseMove(e.nativeEvent)}
             onMouseUp={(e) => handleBackgroundMouseUp(e.nativeEvent)}
             onClick={(e) => {
-                // background click to deselect
                 if (e.target === e.currentTarget) {
                     setSelectedCell(null);
                     setSelectedJobId(null);
                 }
             }}
         >
-            {/* Header / Action Bar */}
+            {/* Action Bar */}
             <div className="h-14 flex justify-between items-center px-4 bg-white border-b border-gray-200 shadow-sm z-30">
                 <div className="flex items-center gap-4">
-                    {/* タイトルは JS 版にはないが、将来のブラッシュアップ用に控えめに残すか、削除する。
-                        指示は「差分をなくす」なので、一旦 JS 版同様にタイトルなし（またはロゴのみ）にする。
-                        ここでは一旦削除し、アクションボタンを左側に寄せる構成にする。 */}
                     {isSyncing && <Database size={16} className="text-amber-500 animate-pulse" />}
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* Undo / Redo Buttons */}
                     <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-1">
-                        <button
-                            onClick={undo}
-                            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
-                            title="元に戻す"
-                        >
+                        <button onClick={undo} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all" title="元に戻す">
                             <Undo2 size={18} />
                         </button>
-                        <button
-                            onClick={redo}
-                            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
-                            title="やり直し"
-                        >
+                        <button onClick={redo} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all" title="やり直し">
                             <Redo2 size={18} />
                         </button>
                     </div>
@@ -171,19 +176,19 @@ export default function BoardCanvas() {
                         title={isSidebarOpen ? 'リストを閉じる' : '未配車リスト'}
                     >
                         <Clipboard size={18} />
-                        {pendingJobs.length > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-white">
-                                未{pendingJobs.length}
-                            </span>
-                        )}
+                        <span className={`absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white shadow-md transition-all duration-300
+                            ${pendingJobs.length > 0
+                                ? 'bg-gradient-to-br from-rose-500 to-pink-600'
+                                : 'bg-slate-300'}
+                        `}>
+                            {pendingJobs.length}
+                        </span>
                     </button>
                 </div>
             </div>
 
             <div className="flex flex-1 overflow-hidden relative">
-                {/* Scrollable Canvas */}
                 <div className="flex-1 overflow-auto relative h-full bg-[#f8fafc]">
-                    {/* DriverHeader はスクロール領域内に配置し、sticky で固定 */}
                     <DriverHeader
                         drivers={drivers}
                         onEditHeader={openHeaderEdit}
@@ -201,12 +206,9 @@ export default function BoardCanvas() {
                             draggingJobId={draggingJobId}
                             draggingSplitId={draggingSplitId}
                             onCellClick={(driverId, time) => {
-                                if (editMode) {
-                                    setSelectedCell({ driverId, time });
-                                    if (!isSidebarOpen) setIsSidebarOpen(true);
-                                } else {
-                                    setSelectedCell({ driverId, time });
-                                }
+                                if (!editMode) return;
+                                setSelectedCell({ driverId, time });
+                                setIsAddJobModalOpen(true);
                             }}
                             onCellDoubleClick={() => { }}
                             driverColRefs={driverColRefs}
@@ -250,22 +252,24 @@ export default function BoardCanvas() {
                 </div>
             </div>
 
-            {/* Status Footer */}
+            {/* Footer */}
             <div className="h-8 px-4 bg-slate-900 border-t border-white/5 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-6 text-slate-500">
                 <span className="flex items-center gap-2">
                     <div className={`w-1.5 h-1.5 rounded-full ${editMode ? 'bg-emerald-500' : 'bg-slate-700'}`} />
-                    {editMode ? 'Edit Mode Active' : 'Read Only View'}
+                    {editMode ? '編集モード（同期中）' : '閲覧モード（読み取り専用）'}
                 </span>
                 <span>Sanctuary Engine v3.0.0-ts</span>
-                <span className="ml-auto">Connected to Hub Layer</span>
+                <span className="ml-auto">サーバー接続済み</span>
             </div>
 
             <HeaderEditModal
-                isOpen={modalState.isOpen && modalState.type === 'header'}
-                onClose={() => setModalState({ isOpen: false, type: null })}
+                isOpen={isHeaderEditModalOpen}
+                onClose={() => setIsHeaderEditModalOpen(false)}
                 driver={selectedDriverForEdit}
                 masterDrivers={masterDrivers}
+                masterVehicles={masterVehicles}
                 onSave={handleSaveHeader}
+                onDelete={handleDeleteHeader}
             />
 
             <SaveReasonModal
@@ -275,6 +279,15 @@ export default function BoardCanvas() {
                     handleSave(JSON.stringify({ code: reasonCode, text: reasonText }));
                     setIsSaveModalOpen(false);
                 }}
+            />
+
+            <AddJobModal
+                isOpen={isAddJobModalOpen}
+                onClose={() => setIsAddJobModalOpen(false)}
+                driver={selectedCell ? drivers.find(d => d.id === selectedCell.driverId) || null : null}
+                time={selectedCell?.time || null}
+                masterPoints={masterPoints}
+                onAdd={handleAddManualJob}
             />
         </div>
     );

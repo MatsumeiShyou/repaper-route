@@ -114,11 +114,11 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
                 )}
             </div>
 
-            {/* Assignment Mode Information (TS Original Feature kept but in JS style) */}
+            {/* 配車割り当てモード情報 (日本人向け最適化) */}
             {selectedCell && (
                 <div className="p-3 bg-blue-600 text-white border-t border-blue-700">
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-0.5 opacity-80">Assignment Mode</p>
-                    <p className="text-xs font-bold">Select a job to assign to {selectedCell.time}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-0.5 opacity-80">配車実行モード</p>
+                    <p className="text-xs font-bold leading-relaxed">{selectedCell.time} への配車案件を選択してください</p>
                 </div>
             )}
         </div>

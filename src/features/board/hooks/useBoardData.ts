@@ -210,11 +210,16 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         const TIMEOUT_MS = 15 * 60 * 1000;
 
         try {
-            const { data: route } = await supabase
+            const { data: route, error: fetchError } = await supabase
                 .from('routes')
                 .select('edit_locked_by, edit_locked_at, last_activity_at')
                 .eq('date', currentDateKey)
-                .maybeSingle() as { data: any, error: any };
+                .maybeSingle();
+
+            if (fetchError) {
+                console.error("[Board] Lock fetch error:", fetchError);
+                throw fetchError;
+            }
 
             const isLockExpired = route?.last_activity_at &&
                 (Date.now() - new Date(route.last_activity_at as string).getTime()) > TIMEOUT_MS;
@@ -232,33 +237,35 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                     updateData = { ...updateData, jobs: [], drivers: [], splits: [], pending: [] };
                 }
 
-                const { error } = await supabase.from('routes').upsert(updateData, { onConflict: 'date' });
+                const { error: upsertError } = await supabase.from('routes').upsert(updateData, { onConflict: 'date' });
 
-                if (!error) {
-                    setEditMode(true);
-                    setLockedBy(null);
-                    showNotification("編集モードで開きました", "success");
+                if (upsertError) {
+                    throw upsertError;
                 }
+
+                setEditMode(true);
+                setLockedBy(null);
+                showNotification("編集モードで開きました", "success");
             } else {
+                console.log("[Board] Locked by another user:", route.edit_locked_by);
                 setEditMode(false);
                 setLockedBy(route.edit_locked_by);
                 showNotification(`${route.edit_locked_by}が編集中です`, "info");
             }
-        } catch (e) {
-            console.error("Lock error:", e);
-            // 【Phase E-3】RLS制限下（認証なし環境）でも管理者はローカル編集を優先許可
+        } catch (e: any) {
+            // 【再発防止 / 統治】RLS制限や401が発生した場合でも、管理者はローカル編集を続行可能にする
             const userContextRole = user?.role;
             if (userContextRole === 'admin') {
-                console.info("[Board] Admin force bypass RLS for edit mode");
                 setEditMode(true);
                 setCanEditBoard(true);
                 setLockedBy(null);
-                showNotification("管理者モード（ローカル編集）で開きました", "success");
+                showNotification("管理者モード（ローカル保存）で開きました", "success");
             } else {
-                showNotification("同期中にエラーが発生しました", "error");
+                const msg = e?.message?.includes('401') ? "認証エラーが発生しました。再ログインを推奨します。" : "同期中にエラーが発生しました。";
+                showNotification(msg, "error");
             }
         }
-    }, [currentUserId, currentDateKey, canEditBoard, showNotification]);
+    }, [currentUserId, currentDateKey, canEditBoard, showNotification, user?.role]);
 
     const releaseEditLock = useCallback(async () => {
         if (!editMode) return;

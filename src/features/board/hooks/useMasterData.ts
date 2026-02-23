@@ -32,7 +32,7 @@ export const useMasterData = () => {
             try {
                 // Fetch all master data in parallel with Type Safety
                 const [d, v, c, i, cid] = await Promise.all([
-                    supabase.from('drivers').select('*').order('display_order', { ascending: true }).order('id', { ascending: true }),
+                    supabase.from('drivers').select('*').order('display_order', { ascending: true }),
                     supabase.from('vehicles').select('*').order('id'),
                     supabase.from('master_collection_points').select('*').order('location_id'),
                     supabase.from('master_items').select('*').order('display_order'),
@@ -57,7 +57,7 @@ export const useMasterData = () => {
                     vehicles: (v.data || []) as MasterVehicle[],
                     customers: processedCustomers,
                     items: (i.data || []) as MasterItem[],
-                    customerItemDefaults: (cid.data || []) as CustomerItemDefault[]
+                    customerItemDefaults: (cid.data || []) as unknown as CustomerItemDefault[]
                 };
 
                 masterCache = newCache;

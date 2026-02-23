@@ -7,7 +7,9 @@ interface HeaderEditModalProps {
     onClose: () => void;
     driver: BoardDriver | null;
     masterDrivers: any[];
+    masterVehicles: any[];
     onSave: (updatedDriver: BoardDriver) => void;
+    onDelete?: () => void;
 }
 
 export const HeaderEditModal: React.FC<HeaderEditModalProps> = ({
@@ -15,7 +17,9 @@ export const HeaderEditModal: React.FC<HeaderEditModalProps> = ({
     onClose,
     driver,
     masterDrivers,
-    onSave
+    masterVehicles,
+    onSave,
+    onDelete
 }) => {
     const [course, setCourse] = useState('');
     const [selectedDriverId, setSelectedDriverId] = useState('');
@@ -79,28 +83,50 @@ export const HeaderEditModal: React.FC<HeaderEditModalProps> = ({
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">使用車両（通称/番号）</label>
-                    <input
-                        type="text"
+                    <select
                         value={vehicleCallsign}
                         onChange={(e) => setVehicleCallsign(e.target.value)}
-                        className="w-full border rounded-md p-2 text-sm"
-                        placeholder="例: 101号車"
-                    />
+                        className="w-full border rounded-md p-2 text-sm bg-white"
+                    >
+                        <option value="">（未選択）</option>
+                        {masterVehicles.map(v => (
+                            <option key={v.id} value={v.callsign || v.number || v.id}>
+                                {v.callsign ? `${v.callsign} (${v.number})` : v.number || v.id}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-4">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
-                    >
-                        キャンセル
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                    >
-                        保存
-                    </button>
+                <div className="flex justify-between items-center pt-4">
+                    <div>
+                        {course.toLowerCase().includes('test') && onDelete && (
+                            <button
+                                onClick={() => {
+                                    if (window.confirm('このコース（列）を削除しますか？')) {
+                                        onDelete();
+                                        onClose();
+                                    }
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 border border-red-200"
+                            >
+                                コース削除
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+                        >
+                            キャンセル
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                        >
+                            保存
+                        </button>
+                    </div>
                 </div>
             </div>
         </Modal>

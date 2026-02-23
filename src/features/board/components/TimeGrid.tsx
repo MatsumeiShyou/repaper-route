@@ -72,6 +72,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                                     backgroundColor: isSelected ? '#eff6ff' : 'transparent',
                                     cursor: 'pointer'
                                 }}
+                                data-sada-id={`cell-${driver.id}-${time}`}
                             />
                         );
                     })}
