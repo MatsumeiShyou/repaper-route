@@ -26,8 +26,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         loading,
         error,
         createItem,
-        updateItem,
-        deleteItem
+        updateItem
     } = useMasterCRUD<Record<string, any>>(schema);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -158,10 +157,6 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                     schema={schema}
                     initialData={editingItem}
                     onSave={handleSave}
-                    onDelete={async (id) => {
-                        await deleteItem(id);
-                        setIsModalOpen(false);
-                    }}
                     onCancel={() => setIsModalOpen(false)}
                 />
             </Modal>
@@ -269,11 +264,10 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
     );
 }
 
-function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
+function MasterForm({ schema, initialData, onSave, onCancel }: {
     schema: MasterSchema,
     initialData: Record<string, any> | null,
     onSave: (data: Record<string, any>) => Promise<void>,
-    onDelete: (id: any) => Promise<void>,
     onCancel: () => void
 }) {
     const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
@@ -358,6 +352,21 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
                                     <option key={opt} value={opt}>{opt}</option>
                                 ))}
                             </select>
+                        ) : field.type === 'switch' ? (
+                            <div className="flex items-center h-[42px]">
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={!!formData[field.name]}
+                                        onChange={(e) => setFormData({ ...formData, [field.name]: e.target.checked })}
+                                    />
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                    <span className="ml-3 text-sm font-medium text-slate-500 dark:text-slate-400">
+                                        {formData[field.name] ? '有効' : '無効'}
+                                    </span>
+                                </label>
+                            </div>
                         ) : (
                             <input
                                 type={field.type}
@@ -377,23 +386,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
                 <PointAccessSection pointId={initialData.id} />
             )}
 
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
-                <div>
-                    {initialData && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (window.confirm('本当に削除しますか？')) {
-                                    onDelete(initialData[schema.primaryKey]);
-                                }
-                            }}
-                            className="px-4 py-2 text-red-500 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors flex items-center gap-2"
-                        >
-                            <Trash2 size={18} />
-                            削除する
-                        </button>
-                    )}
-                </div>
+            <div className="flex items-center justify-end mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
                 <div className="flex items-center gap-3">
                     <button type="button" onClick={onCancel} className="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
                         キャンセル

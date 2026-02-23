@@ -19,3 +19,9 @@
 - [x] Explainable Normalization プロトコルの策定
 - [x] SADA (Semantic-Aware Delta Assertion) テスト基盤の実装
 - [x] 車両固定制約 (Vehicle Lock) の UI ブランキング実装
+- [x] 配車盤UI【高速・安定化】の初期実装
+- [x] 配車盤UIの【真の安定化】（初期化リセットとリクエスト並列化の両立）
+    - [x] 1. 読み込み開始時のステートリセット実装
+    - [x] 2. 並列取得と Race Condition 対策の統合
+    - [x] 3. 動作検証（10回中10回の成功を確認）
+- [x] 配車盤UI【根本解決】：useEffect 依存配列バグの修正による無限ループ排除

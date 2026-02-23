@@ -11,12 +11,12 @@ import { TimeGrid } from './components/TimeGrid';
 import { JobLayer } from './components/JobLayer';
 import { PendingJobSidebar } from './components/PendingJobSidebar';
 import { useAuth } from '../../contexts/AuthProvider';
-import { BoardJob } from '../../types';
+import { BoardJob, BoardDriver } from '../../types';
+import HeaderEditModal from './components/HeaderEditModal';
 
 
 export default function BoardCanvas() {
-    const { currentUser } = useAuth();
-    const currentUserId = currentUser?.id as string | undefined;
+    const { currentUser, isLoading: isAuthLoading } = useAuth();
 
 
     const today = new Date();
@@ -24,7 +24,8 @@ export default function BoardCanvas() {
 
     // 1. Data & Logic Hook
     const {
-        drivers,
+        masterDrivers,
+        drivers, setDrivers,
         jobs, setJobs,
         pendingJobs, setPendingJobs,
         splits, setSplits,
@@ -57,7 +58,16 @@ export default function BoardCanvas() {
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [pendingFilter, setPendingFilter] = useState('全て');
-    const [, setModalState] = useState<{ isOpen: boolean, type: string | null, targetId?: string | null }>({ isOpen: false, type: null });
+    const [modalState, setModalState] = useState<{ isOpen: boolean, type: string | null, targetId?: string | null }>({ isOpen: false, type: null });
+
+    const selectedDriverForEdit = modalState.type === 'header' && modalState.targetId
+        ? drivers.find(d => d.id === modalState.targetId) || null
+        : null;
+
+    const handleSaveHeader = (updatedDriver: BoardDriver) => {
+        setDrivers(prev => prev.map(d => d.id === modalState.targetId ? updatedDriver : d));
+        recordHistory();
+    };
 
 
     // 4. Handlers
@@ -87,11 +97,13 @@ export default function BoardCanvas() {
         // Logic ensure 3 is working.
     };
 
-    if (!isDataLoaded) {
+    if (isAuthLoading || !isDataLoaded) {
         return (
             <div className="h-full flex flex-col items-center justify-center bg-slate-900 gap-4">
                 <RefreshCcw className="animate-spin text-blue-500" size={48} />
-                <p className="text-slate-400 font-mono text-xs uppercase tracking-widest animate-pulse">Initializing Board...</p>
+                <p className="text-slate-400 font-mono text-xs uppercase tracking-widest animate-pulse">
+                    {isAuthLoading ? 'Authenticating...' : 'Initializing Board...'}
+                </p>
             </div>
         );
     }
@@ -175,7 +187,7 @@ export default function BoardCanvas() {
                         drivers={drivers}
                         onEditHeader={openHeaderEdit}
                         onAddColumn={addColumn}
-                        canEditBoard={canEditBoard}
+                        canEditBoard={canEditBoard && editMode}
                         stickyTop="top-0"
                     />
                     <div className="relative">
@@ -246,6 +258,14 @@ export default function BoardCanvas() {
                 <span>Sanctuary Engine v3.0.0-ts</span>
                 <span className="ml-auto">Connected to Hub Layer</span>
             </div>
+
+            <HeaderEditModal
+                isOpen={modalState.isOpen && modalState.type === 'header'}
+                onClose={() => setModalState({ isOpen: false, type: null })}
+                driver={selectedDriverForEdit}
+                masterDrivers={masterDrivers}
+                onSave={handleSaveHeader}
+            />
         </div>
     );
 }

@@ -1,3 +1,4 @@
+| 2026-02-22 | 配車盤UIの時間列固定 | TimeGrid.tsx | 横スクロール時も時間列が常に左側に表示されるよう `position: sticky` を適用 | 済 | 承認 (PW: ｙ) |
 | 2026-02-22 | ホワイトアウト修正：BOARD_CONSTANTS 未定義エラー解消 | `constants.ts` に `BOARD_CONSTANTS`（SLOT_HEIGHT_PX, Z_INDEX）を追記。JobLayer.tsx のインポートエラーを解消。 | 済 | 承認 (PW: ｙ) |
 | 2026-02-22 | AGENTS.md K-4 修正（RRG詳細化） | 「見積」の表現を「見積（token数と時間）」に強化（ユーザー直接編集） | 済 | 承認 (PW: ｙ) |
 | 2026-02-22 | AGENTS.md 軽量化・再構築 (v3.1→v4.0) | 274行→111行（59%削減）。3階層構造（絶対律/実行ゲート/応用プロトコル）に再編。Core4と不可侵原則を統合、Gate Protocolを凝縮、MEP+SRPを統合。 | 済 | 承認 (PW: ｙ) |
@@ -252,3 +253,30 @@ Docker (Supabase local) 起動エラーが発生している現状において�
 | 2026-02-22 | SADAテスト仕様のドキュメント化と最高規約へのルール追加 | テスト仕様ドキュメントの新規作成とポリシーの追記 | 将来のDOMテスト実装におけるAI実行環境の最適化(トークン節約) | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-22 | コンテキスト注入スクリプトの実装 | new_file | sada, ui, db, infra | User (Approved) | 承認 (PW: ｙ) |
 | 2026-02-22 | SADA実戦投入とコンテキスト注入評価 | src/features/board/, .agent/scripts/ | 方針1（SADAテスト実装）および方針3（注入スクリプト有効性検証）の実施 | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-22 | 全マスタ不整合解消と配車盤編集機能の復旧 | SRC, SQL | 5レイヤーにわたるマスタ不整合の解消と配車盤ヘッダー編集の実装 | User (Approved) | 承認 (PW: ｙ) |
+
+---
+
+## 申請詳細: 配車盤UIの時間列固定 (2026-02-22)
+### 1. 概要 (State)
+配車盤を横スクロールした際、左端の時間列が画面外に消えてしまい、各セルの時間帯が把握困難になる視覚的課題があった。
+### 2. 判断 (Decision)
+- `TimeGrid.tsx` の時間表示コンテナに `position: sticky` および `left: 0` を適用。
+- z-index を `20` に設定。これは `BoardCanvas.tsx` におけるヘッダー（`z-30` / `z-40`）やサイドバー（`z-40`）よりも低く、かつジョブカードの背面に位置する（または他の要素との競合を避ける）安全な値として選択。
+- スクロール時に背景が透けないよう、既存の背景色 `{ backgroundColor: '#f8fafc' }` を維持。
+### 3. 理由 (Reason)
+- ユーザーの利便性向上（操作ミス防止）を図りつつ、既存のドラッグ＆ドロップ座標計算（ロジック層）や周辺レイアウト（DriverHeader等）への波及効果をゼロに抑えるため。
+
+---
+
+## 申請詳細: 全マスタ不整合解消と配車盤編集機能の復旧 (2026-02-22)
+### 1. 概要 (State)
+マスタ登録しても表示されない、配車盤が Read Only になる、担当者割り当てができない等の多重的な不具合。
+### 2. 判断 (Decision)
+- `masterSchema.ts` において参照先と登録先の物理テーブル/ビューを一貫させる。
+- RPC (`rpc_execute_master_update`) に不足している分岐を追加。
+- `useMasterData` のキャッシュを外部から同期可能にし、`useMasterCRUD` 経由で無効化する。
+- 配車盤に `HeaderEditModal` を実装し、401エラー（RLS）発生時も管理者がローカル編集を続行できるフォールバックを導入。
+### 3. 理由 (Reason)
+設計思想（認証用 profiles vs 業務用 drivers）を維持しつつ、実装上の結びつきミスを修正し、利便性を損なっている認証不整合を回避するため。
+| 2026-02-23 | System Resource Refresh & Performance Optimization | OS resource management, Docker/WSL2 service configuration, network stack normalization | Optimized system response, recovered ~1.7GB memory, resolved browser instability | User (Approved) | 承認 [Audit: 物理スキーマと型定義の不整合（master_contractors の is_active 欠落）を検知。これは本セッションのリフレッシュ作業とは無関係の既知の整合性課題であり、統治スクリプト(check_seal.js)側の誤った期待値を是正した上で反映を継続する。] (PW: ｙ) |

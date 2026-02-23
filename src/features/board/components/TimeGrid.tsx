@@ -33,7 +33,16 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
     return (
         <div style={{ display: 'flex', minWidth: 'max-content' }}>
             {/* Time Indicators */}
-            <div style={{ width: '64px', minWidth: '64px', flexShrink: 0, backgroundColor: '#f8fafc', borderRight: '1px solid #e2e8f0' }}>
+            <div style={{
+                width: '64px',
+                minWidth: '64px',
+                flexShrink: 0,
+                backgroundColor: '#f8fafc',
+                borderRight: '1px solid #e2e8f0',
+                position: 'sticky',
+                left: 0,
+                zIndex: 20
+            }}>
                 {TIME_SLOTS.map(time => (
                     <div key={time} style={{ height: '32px', width: '64px', minWidth: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
                         {time.endsWith(':00') ? time : ''}

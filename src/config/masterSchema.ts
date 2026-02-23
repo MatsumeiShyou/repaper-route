@@ -22,6 +22,8 @@ export interface MasterField {
     label: string;
     type: string;
     required?: boolean;
+    requiredForCreate?: boolean; // 新規作成時のみ必須
+    updatable?: boolean;        // 更新可能か（false の場合は更新時に送信しない/無効化）
     placeholder?: string;
     options?: string[];
     className?: string;
@@ -57,28 +59,30 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         searchFields: ['name'],
         columns: [
             { key: 'name', label: '契約主体名', type: 'text', className: 'font-bold' },
-            { key: 'contractor_id', label: 'ID', type: 'text', className: 'text-xs text-slate-400' }
+            { key: 'contractor_id', label: 'ID', type: 'text', className: 'text-xs text-slate-400' },
+            { key: 'is_active', label: '状態', type: 'status' }
         ],
         fields: [
-            { name: 'contractor_id', label: '契約主体ID', type: 'text', required: true },
-            { name: 'name', label: '契約主体名', type: 'text', required: true },
-            { name: 'payee_id', label: '支払元ID', type: 'text' }
+            { name: 'contractor_id', label: '契約主体ID', type: 'text', requiredForCreate: true, updatable: false },
+            { name: 'name', label: '契約主体名', type: 'text', required: true, updatable: true },
+            { name: 'payee_id', label: '支払元ID', type: 'text', updatable: true },
+            { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     },
     drivers: {
         title: 'ドライバー管理',
         description: '乗務員の基本連絡先と稼働状態の設定',
-        viewName: 'profiles',
+        viewName: 'drivers',
         rpcTableName: 'drivers',
         primaryKey: 'id',
-        searchFields: ['name', 'mobile_phone'],
+        searchFields: ['driver_name'],
         columns: [
-            { key: 'name', subLabelKey: 'mobile_phone', label: '氏名 / 電話番号', type: 'multi-row', className: 'font-bold' },
-            { key: 'is_active', label: '有効 / 無効', type: 'status' }
+            { key: 'driver_name', label: '氏名', type: 'text', className: 'font-bold' },
+            { key: 'is_active', label: '状態', type: 'status' }
         ],
         fields: [
-            { name: 'name', label: '氏名', type: 'text', required: true },
-            { name: 'mobile_phone', label: '電話番号', type: 'tel' }
+            { name: 'driver_name', label: '氏名', type: 'text', required: true, updatable: true },
+            { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     },
     vehicles: {
@@ -100,14 +104,13 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     '待機': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                 }
             },
-
-            { key: 'display_order', label: '表示順', type: 'number' }
+            { key: 'is_active', label: '状態', type: 'status' }
         ],
         fields: [
-            { name: 'number', label: '車両番号', type: 'text', required: true },
-            { name: 'callsign', label: '通称', type: 'text' },
-            { name: 'vehicle_type', label: '車種', type: 'text', required: true },
-            { name: 'display_order', label: '表示順', type: 'number' }
+            { name: 'number', label: '車両番号', type: 'text', required: true, updatable: true },
+            { name: 'callsign', label: '通称', type: 'text', updatable: true },
+            { name: 'vehicle_type', label: '車種', type: 'text', required: true, updatable: true },
+            { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     },
     items: {
@@ -119,10 +122,12 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         searchFields: ['name', 'unit'],
         columns: [
             { key: 'name', subLabelKey: 'unit', label: '品目名 / 単位', type: 'multi-row', className: 'font-bold' },
+            { key: 'is_active', label: '状態', type: 'status' }
         ],
         fields: [
-            { name: 'name', label: '品目名', type: 'text', required: true, placeholder: '例: 段ボール' },
-            { name: 'unit', label: '単位', type: 'text', required: true, placeholder: 'kg' }
+            { name: 'name', label: '品目名', type: 'text', required: true, updatable: true, placeholder: '例: 段ボール' },
+            { name: 'unit', label: '単位', type: 'text', required: true, updatable: true, placeholder: 'kg' },
+            { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     },
     points: {
@@ -223,7 +228,8 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 type: 'text',
                 className: 'col-span-2',
                 placeholder: '例: 裏口から入場。天井低い。'
-            }
+            },
+            { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     }
 };

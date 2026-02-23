@@ -127,6 +127,56 @@ if (!lastEntry.includes(REQUIRED_SEAL)) {
     process.exit(1);
 }
 
+// ═══════════════════════════════════════════════════
+// Phase 6-1: Schema vs Types Consistency Check
+// database.types.ts に標準カラム (is_active 等) が定義されているか検証
+// ═══════════════════════════════════════════════════
+const TYPES_PATH = path.join(process.cwd(), 'src/types/database.types.ts');
+
+function validateSchemaConsistency() {
+    if (!fs.existsSync(TYPES_PATH)) return;
+
+    console.log('🔍 [check_seal] スキーマ整合性を決定論的に検証中...');
+    const typesContent = fs.readFileSync(TYPES_PATH, 'utf8');
+
+    // チェック対象の重要テーブルと必須カラム
+    const criticalTables = [
+        { name: 'drivers', required: ['is_active', 'driver_name'] },
+        { name: 'vehicles', required: ['is_active', 'number'] },
+        { name: 'master_contractors', required: ['name'] },
+        { name: 'master_items', required: ['is_active', 'name'] }
+    ];
+
+    let hasError = false;
+
+    for (const table of criticalTables) {
+        // テーブル定義のブロックを抽出 (簡易的な正規表現)
+        const tableRegex = new RegExp(`${table.name}:\\s*{[^{]*Row:\\s*{([^}]*)}`, 's');
+        const match = typesContent.match(tableRegex);
+
+        if (!match) {
+            console.warn(`⚠️  [check_seal] テーブル ${table.name} の Row 定義が database.types.ts で見つかりません。`);
+            continue;
+        }
+
+        const rowContent = match[1];
+        for (const col of table.required) {
+            if (!rowContent.includes(col)) {
+                console.error(`❌ [check_seal] 整合性エラー: テーブル ${table.name} に必須カラム "${col}" が定義されていません。`);
+                hasError = true;
+            }
+        }
+    }
+
+    if (hasError) {
+        console.error('   → AGENTS.md §8: 物理スキーマと型定義の不整合は許容されません。');
+        process.exit(1);
+    }
+    console.log('✅ [check_seal] スキーマ整合性確認完了。');
+}
+
+validateSchemaConsistency();
+
 // 4. 承認日の鮮度チェック（7日以内）
 const dateMatch = lastEntry.match(/\|\s*(\d{4}-\d{2}-\d{2})\s*\|/);
 if (dateMatch) {

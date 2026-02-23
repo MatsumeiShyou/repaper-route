@@ -2,16 +2,33 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase/client';
 import { MasterVehicle, MasterCustomer, MasterItem, CustomerItemDefault } from '../../../types';
 
+// モジュールレベルのキャッシュ
+let masterCache: {
+    drivers: any[];
+    vehicles: MasterVehicle[];
+    customers: MasterCustomer[];
+    items: MasterItem[];
+    customerItemDefaults: CustomerItemDefault[];
+} | null = null;
+
+export function invalidateMasterCache() {
+    masterCache = null;
+}
+
 export const useMasterData = () => {
-    const [drivers, setDrivers] = useState<any[]>([]); // Typed as any[] for now as per legacy processed form
-    const [vehicles, setVehicles] = useState<MasterVehicle[]>([]);
-    const [customers, setCustomers] = useState<MasterCustomer[]>([]);
-    const [items, setItems] = useState<MasterItem[]>([]);
-    const [customerItemDefaults, setCustomerItemDefaults] = useState<CustomerItemDefault[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [drivers, setDrivers] = useState<any[]>(masterCache?.drivers || []);
+    const [vehicles, setVehicles] = useState<MasterVehicle[]>(masterCache?.vehicles || []);
+    const [customers, setCustomers] = useState<MasterCustomer[]>(masterCache?.customers || []);
+    const [items, setItems] = useState<MasterItem[]>(masterCache?.items || []);
+    const [customerItemDefaults, setCustomerItemDefaults] = useState<CustomerItemDefault[]>(masterCache?.customerItemDefaults || []);
+    const [isLoading, setIsLoading] = useState(!masterCache);
 
     useEffect(() => {
         const fetchAll = async () => {
+            if (masterCache) {
+                setIsLoading(false);
+                return;
+            }
             try {
                 // Fetch all master data in parallel with Type Safety
                 const [d, v, c, i, cid] = await Promise.all([
@@ -35,13 +52,23 @@ export const useMasterData = () => {
                     id: point.location_id, // Map location_id -> id for UI compatibility
                 }));
 
-                setDrivers(processedDrivers);
-                if (v.data) setVehicles(v.data as MasterVehicle[]);
-                if (c.data) setCustomers(processedCustomers);
-                if (i.data) setItems(i.data as MasterItem[]);
-                if (cid.data) setCustomerItemDefaults(cid.data as CustomerItemDefault[]);
+                const newCache = {
+                    drivers: processedDrivers,
+                    vehicles: (v.data || []) as MasterVehicle[],
+                    customers: processedCustomers,
+                    items: (i.data || []) as MasterItem[],
+                    customerItemDefaults: (cid.data || []) as CustomerItemDefault[]
+                };
 
-                console.log('Master data loaded (TS):', {
+                masterCache = newCache;
+
+                setDrivers(newCache.drivers);
+                setVehicles(newCache.vehicles);
+                setCustomers(newCache.customers);
+                setItems(newCache.items);
+                setCustomerItemDefaults(newCache.customerItemDefaults);
+
+                console.log('Master data loaded and cached (TS):', {
                     drivers: processedDrivers.length,
                     vehicles: v.data?.length,
                     collection_points: processedCustomers.length

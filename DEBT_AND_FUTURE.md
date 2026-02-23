@@ -111,3 +111,34 @@
     - [x] **useMasterCRUD.ts Errors**: 静的検証困難な箇所を「是認された動的仕様（TBNY-SPEC-DYNAMIC）」として明文化し、負債を解消。
     - [x] **Master Data Layout Fixes**: 2026-02-22 セッションにて操作列のモーダル化と表示崩れ（z-index, スクロールバー）の対策済みを確認。
   - **Note**: 既存エラーは一旦是認し、別タスクで集中的に解消するか、`// @ts-ignore` 等で明示的に抑制してベースラインを作成する必要がある。
+
+---
+
+## 4. Legacy JS 資産 棚卸台帳（忘却防止）
+*Phase 16（JS 資産隔離・TS 昇格）により `src-legacy-js/` に退避された未移行資産のうち、将来的に再利用の可能性があるもの。*
+*調査日: 2026-02-23 / 判断: 最安全方針を採用（移行せず参考資料として保持）*
+
+### 保留資産（将来必要時に TS で再設計）
+
+| # | ファイル | 用途 | 再利用タイミング | 備考 |
+|---|---|---|---|---|
+| 1 | `hooks/useJobStateMachine.js` | 案件の状態遷移ロジック（到着→作業中→完了等） | 配車盤の高度化 / ドライバーアプリ連携時 | 状態遷移パターンの参考資料として価値あり |
+| 2 | `lib/eventRepository.js` | イベント（到着・完了等）の永続化 | ドライバーアプリ（Hands）実装時 | Supabase Edge Functions への再設計が必要 |
+| 3 | `lib/photoRepository.js` | 写真の Supabase Storage 保存 | ドライバーアプリの証拠写真機能実装時 | Storage バケットの設計参考 |
+| 4 | `lib/imageOptimizer.js` | クライアント側画像圧縮 | 写真機能実装時 | Canvas API ベースの手法として参考価値あり |
+| 5 | `lib/repositories/` (4件) | Job/Route/Customer/Item の CRUD 抽象化 | アーキテクチャ再設計時 | リポジトリパターンの設計参考 |
+
+### 廃棄済み資産（TS 版で完全置換済み）
+
+| # | ファイル | 対応する TS 版 | 削除日 |
+|---|---|---|---|
+| 1 | `hooks/useMasterCRUD.js` | `src/hooks/useMasterCRUD.ts` | 2026-02-23 |
+| 2 | `config/masterSchema.js` | `src/config/masterSchema.ts` | 2026-02-23 |
+| 3 | `lib/supabase.js` | `src/lib/supabase/client.ts` | 2026-02-23 |
+
+### 不要判断資産（現アーキテクチャで代替手段あり）
+
+| # | ファイル | 理由 |
+|---|---|---|
+| 1 | `hooks/useFeatureFlag.js` + `config/featureFlags.js` | 現 TS 版で未使用。必要時は TS で新規設計が安全 |
+| 2 | `services/gasApi.js` | GAS 連携は Supabase 直結アーキテクチャでは不要。外部連携時は Edge Functions を推奨 |

@@ -9,7 +9,7 @@ import {
 export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     const currentUserId = user?.id;
 
-    const { drivers: masterDrivers } = useMasterData();
+    const { drivers: masterDrivers, isLoading: masterLoading } = useMasterData();
     const { showNotification } = useNotification();
 
     // --- State ---
@@ -26,7 +26,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     // Lock & Permission State
     const [editMode, setEditMode] = useState(false);
     const [lockedBy, setLockedBy] = useState<string | null>(null);
-    const [canEditBoard, setCanEditBoard] = useState(user?.role === 'admin');
+    const [canEditBoard, setCanEditBoard] = useState(false);
 
     // History State
     const [history, setHistory] = useState<BoardHistory>({ past: [], future: [] });
@@ -44,7 +44,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     // ----------------------------------------
     // 2. Data Mapping (Adapters)
     // ----------------------------------------
-    const mapSupabaseToBoardJob = (j: any): BoardJob => ({
+    const mapSupabaseToBoardJob = useCallback((j: any): BoardJob => ({
         id: j.id,
         title: j.job_title,
         bucket: j.bucket_type || '',
@@ -55,121 +55,147 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         isSpot: j.bucket_type === 'スポット',
         timeConstraint: j.start_time || undefined,
         taskType: j.bucket_type === '特殊' ? 'special' : 'collection'
-    });
+    }), []);
+
+    const getDefaultDrivers = useCallback(() => ['A', 'B', 'C', 'D', 'E'].map(courseName => ({
+        id: `course_${courseName}`,
+        name: `${courseName}コース`,
+        driverName: '未割当',
+        currentVehicle: '未定',
+        course: courseName,
+        color: 'bg-gray-50 border-gray-200'
+    })), []);
 
     // ----------------------------------------
     // 3. Initialization & Data Loading
     // ----------------------------------------
+    const prevDateRef = useRef<string | null>(null);
+    const isFirstLoadRef = useRef(true);
+
     useEffect(() => {
+        let ignore = false;
         const initializeData = async () => {
-            if (!currentDateKey) return;
+            if (!currentDateKey || masterLoading) return;
+
+            const isDateChanged = prevDateRef.current !== currentDateKey;
+            prevDateRef.current = currentDateKey;
+
+            // --- Robust Sync Start ---
             setIsSyncing(true);
+
+            if (isFirstLoadRef.current) {
+                // First-time load: show loading screen
+                setIsDataLoaded(false);
+                setDrivers([]);
+            } else if (isDateChanged) {
+                // Soft Reset: keep headers, clear data to avoid flicker
+                setJobs([]);
+                setPendingJobs([]);
+                setDrivers(getDefaultDrivers());
+                setSplits([]);
+            }
+            setIsOffline(false);
             try {
-                // 1. Fetch Board Data
-                const { data, error } = await supabase
+                // 1. Fetch Board Data & Permissions in Parallel
+                const fetchRoutePromise = supabase
                     .from('routes')
                     .select('*')
                     .eq('date', currentDateKey)
-                    .maybeSingle() as { data: any, error: any };
+                    .maybeSingle();
 
-                if (error) throw error;
+                const fetchUnassignedJobsPromise = supabase
+                    .from('jobs')
+                    .select('*')
+                    .is('driver_id', null);
 
-                // Internal Helper for Job Sync
-                const fetchUnassignedJobsFallback = async (): Promise<BoardJob[]> => {
-                    const { data: unassignedJobs, error: jobsError } = await supabase
-                        .from('jobs')
-                        .select('*')
-                        .is('driver_id', null);
+                const fetchProfilePromise = currentUserId ? supabase
+                    .from('profiles')
+                    .select('can_edit_board, role')
+                    .eq('id', currentUserId)
+                    .maybeSingle() : Promise.resolve({ data: null, error: null });
 
-                    if (jobsError) {
-                        console.error('Failed to load unassigned jobs:', jobsError);
-                        return [];
-                    }
-                    return (unassignedJobs || []).map(mapSupabaseToBoardJob);
-                };
+                const [routeRes, jobsRes, profileRes] = await Promise.all([
+                    fetchRoutePromise,
+                    fetchUnassignedJobsPromise,
+                    fetchProfilePromise
+                ]) as [any, any, any];
 
+                if (ignore) return;
+
+                if (routeRes.error) {
+                    console.warn('[Board] Route fetch failed (likely RLS):', routeRes.error.message);
+                }
+                if (jobsRes.error) {
+                    console.warn('[Board] Jobs fetch failed (likely RLS):', jobsRes.error.message);
+                }
+
+                const data = routeRes.data;
+                const unassignedJobs = jobsRes.data;
+                const fallbackJobs = (unassignedJobs || []).map(mapSupabaseToBoardJob);
+
+                // getDefaultDrivers は外側の useCallback 版を使用
+
+                // ---------------------------------------------------------
+                // 3. Apply Fetched Data to State
+                // ---------------------------------------------------------
                 if (data) {
-                    if (data.jobs) setJobs(data.jobs as BoardJob[]);
+                    setJobs((data.jobs || []) as BoardJob[]);
                     if (data.drivers && Array.isArray(data.drivers) && data.drivers.length > 0) {
                         setDrivers(data.drivers as BoardDriver[]);
+                    } else {
+                        setDrivers(getDefaultDrivers());
                     }
-                    if (data.splits) setSplits(data.splits as BoardSplit[]);
+                    setSplits((data.splits || []) as BoardSplit[]);
 
                     // 【再発防止 / Single Source of Truth】
-                    // routes.pending に保存されているデータは「スナップショット」であり、
-                    // マスター jobs テーブルの更新（新規追加等）を反映していない可能性があります。
-                    // 常に jobs テーブル (driver_id IS NULL) を最新の候補リストとして取得し、
-                    // 保存済みデータと ID ベースでマージ（補完）することで、データの断絶を防ぎます。
-                    const latestUnassignedFromMaster = await fetchUnassignedJobsFallback();
-
+                    // routes.pending のスナップショットと、最新のマスター jobs テーブルをマージ
+                    const latestUnassignedFromMaster = fallbackJobs;
                     const savedPending = (data.pending || []) as BoardJob[];
-                    const savedIds = new Set(savedPending.map(j => j.id));
+                    const masterUnassignedIds = new Set(latestUnassignedFromMaster.map((j: BoardJob) => j.id));
 
-                    // routes に未保存の新しい案件のみを抽出して補完
-                    const newUnseenJobs = latestUnassignedFromMaster.filter(j => !savedIds.has(j.id));
-
-                    // さらに、routes に保存されている案件が jobs テーブル側で削除・変更（配車済み化）
-                    // されている可能性も考慮し、有効な（driver_id IS NULL のままの）案件のみを維持。
-                    const masterUnassignedIds = new Set(latestUnassignedFromMaster.map(j => j.id));
-                    const stillUnassignedSavedPending = savedPending.filter(j => masterUnassignedIds.has(j.id));
+                    const savedIds = new Set(savedPending.map((j: BoardJob) => j.id));
+                    const newUnseenJobs = latestUnassignedFromMaster.filter((j: BoardJob) => !savedIds.has(j.id));
+                    const stillUnassignedSavedPending = savedPending.filter((j: BoardJob) => masterUnassignedIds.has(j.id));
 
                     setPendingJobs([...stillUnassignedSavedPending, ...newUnseenJobs]);
-
                     setIsOffline(false);
                 } else {
-                    const fallbackJobs = await fetchUnassignedJobsFallback();
                     setJobs([]);
-                    setDrivers([]);
+                    setDrivers(getDefaultDrivers());
                     setSplits([]);
                     setPendingJobs(fallbackJobs);
                     setIsOffline(false);
                 }
 
-                // 2. Fetch User Permissions
-                if (currentUserId) {
-                    const { data: userProfile, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('can_edit_board, role')
-                        .eq('id', currentUserId)
-                        .maybeSingle() as { data: any, error: any };
-
-                    if (!profileError && userProfile) {
-                        const hasAdminRole = userProfile.role === 'admin' || user?.role === 'admin';
-                        setCanEditBoard(userProfile.can_edit_board || hasAdminRole);
-                    } else if (user?.role === 'admin') {
-                        // DBに存在しないモックユーザーであっても、コンテキスト上で管理者なら権限付与
-                        setCanEditBoard(true);
-                    }
+                // 2. Handle User Permissions (using data fetched in parallel)
+                if (currentUserId && profileRes.data) {
+                    const userProfile = profileRes.data;
+                    const userContextRole = user?.role;
+                    const hasAdminRole = userProfile.role === 'admin' || userContextRole === 'admin';
+                    setCanEditBoard(!!(userProfile.can_edit_board || hasAdminRole));
+                } else if (user?.role === 'admin') {
+                    setCanEditBoard(true);
+                } else {
+                    setCanEditBoard(false);
                 }
             } catch (err) {
-                console.warn("Supabase load failed, check offline status", err);
+                if (ignore) return;
+                console.warn("Board load failed, using fallback UI", err);
                 setIsOffline(true);
+                // Ensure UI doesn't break even on sync failure
+                setDrivers(getDefaultDrivers());
             } finally {
-                setIsDataLoaded(true);
-                setIsSyncing(false);
+                if (!ignore) {
+                    isFirstLoadRef.current = false;
+                    setIsDataLoaded(true);
+                    setIsSyncing(false);
+                }
             }
         };
 
         initializeData();
-    }, [currentDateKey, currentUserId, user?.role]);
-
-    // Phase 7: Default Course Initialization
-    useEffect(() => {
-        if (!isDataLoaded) return;
-        setDrivers(prev => {
-            if (prev.length === 0) {
-                return ['A', 'B', 'C', 'D', 'E'].map(courseName => ({
-                    id: `course_${courseName}`,
-                    name: `${courseName}コース`,
-                    driverName: '未割当',
-                    currentVehicle: '未定',
-                    course: courseName,
-                    color: 'bg-gray-50 border-gray-200'
-                }));
-            }
-            return prev;
-        });
-    }, [isDataLoaded]);
+        return () => { ignore = true; };
+    }, [currentDateKey, currentUserId, masterLoading, mapSupabaseToBoardJob, getDefaultDrivers]);
 
     // ----------------------------------------
     // 3. Lock Management
@@ -220,6 +246,17 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
             }
         } catch (e) {
             console.error("Lock error:", e);
+            // 【Phase E-3】RLS制限下（認証なし環境）でも管理者はローカル編集を優先許可
+            const userContextRole = user?.role;
+            if (userContextRole === 'admin') {
+                console.info("[Board] Admin force bypass RLS for edit mode");
+                setEditMode(true);
+                setCanEditBoard(true);
+                setLockedBy(null);
+                showNotification("管理者モード（ローカル編集）で開きました", "success");
+            } else {
+                showNotification("同期中にエラーが発生しました", "error");
+            }
         }
     }, [currentUserId, currentDateKey, canEditBoard, showNotification]);
 
@@ -251,14 +288,14 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         return () => clearInterval(interval);
     }, [editMode, currentDateKey, currentUserId]);
 
-    // Initial Lock Request
-    const lockRequestedRef = useRef(false);
+    // Initial Lock Request (Reset per Date)
+    const [lastLockedDate, setLastLockedDate] = useState<string | null>(null);
     useEffect(() => {
-        if (isDataLoaded && !lockRequestedRef.current) {
-            lockRequestedRef.current = true;
+        if (isDataLoaded && lastLockedDate !== currentDateKey) {
+            setLastLockedDate(currentDateKey);
             requestEditLock();
         }
-    }, [isDataLoaded, requestEditLock]);
+    }, [isDataLoaded, currentDateKey, lastLockedDate, requestEditLock]);
 
     // ----------------------------------------
     // 4. Persistence & Real-time
@@ -316,9 +353,14 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                 }
                 if (newData.updated_at && !editMode) {
                     if (newData.jobs) setJobs(newData.jobs);
-                    if (newData.drivers) setDrivers(newData.drivers);
+                    if (newData.drivers && Array.isArray(newData.drivers) && newData.drivers.length > 0) {
+                        setDrivers(newData.drivers);
+                    } else if (newData.drivers === null || (Array.isArray(newData.drivers) && newData.drivers.length === 0)) {
+                        // Keep current drivers if real-time update sends empty to avoid header flicker
+                        // unless it's a deliberate clear (not handled here for stability)
+                    }
                     if (newData.splits) setSplits(newData.splits);
-                    if (newData.pending && newData.pending.length > 0) setPendingJobs(newData.pending);
+                    if (newData.pending) setPendingJobs(newData.pending);
                 }
             })
             .subscribe();

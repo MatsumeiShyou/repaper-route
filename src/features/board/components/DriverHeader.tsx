@@ -1,6 +1,6 @@
 import React from 'react';
 import { BoardDriver } from '../../../types';
-import { User, Truck, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 
 interface DriverHeaderProps {
     drivers: BoardDriver[];

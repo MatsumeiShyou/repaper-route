@@ -1,5 +1,5 @@
 import React from 'react'
-import { useNotification, NotificationProvider } from './contexts/NotificationContext'
+import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider, useAuth } from './contexts/AuthProvider'
 import { ProfilePortal } from './components/ProfilePortal'
 import { RefreshCcw, Database } from 'lucide-react'
@@ -58,7 +58,7 @@ function AppContent() {
     }
 
     // Role Guard for Sanctuary Mode
-    if (currentUser.role !== 'admin' && currentUser.role !== 'ADMIN') {
+    if (currentUser.role !== 'admin') {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-6 text-center">
                 <h1 className="text-2xl font-black text-white mb-2">Access Denied</h1>
