@@ -1,3 +1,7 @@
+| 2026-02-23 | 保存時の理由記録プロセス（SDRモデル）の実装 | supabase/migrations, SaveReasonModal.tsx, useBoardData.ts | 理由コードと詳細入力のUI強制、および不変ログ（event_logs等）への記録を含むバックエンドRPCのSDR対応。 | 済 | 承認 (PW: ｙ) |
+| 2026-02-23 | 401 Unauthorized ホワイトアウト解消 & ErrorBoundary 導入 (Gate 物理構造登録含む) | ErrorBoundary.tsx, Gate.tsx, useAuth.ts | 認証失敗時のホワイトアウトを解消し、エラー境界コンポーネントを導入。Gateの物理構造に登録し、システム全体の堅牢性を向上。 | 済 | 承認 (PW: ｙ) |
+| 2026-02-23 | Smart Coloring（色衝突回避ロジック）の実装 | theme.ts, JobLayer.tsx | 18パレットのGlobal Cycling Modeを実現。ソート（ドライバー→時間）と衝突検知（上・左方向）に基づくSnakeパターン循環彩色、および車両不一致時の赤色スタイル上書きを実装。 | 済 | 承認 (PW: ｙ) |
+| 2026-02-23 | Z-Index階層の再定義と物理法則の確立 | constants.ts, JobLayer.tsx, TimeGrid.tsx | Z-100〜Z-0の9段階スタッキング順序を定義し、リサイズハンドル(Z-60)のstopPropagation強化、ロック領域(Z-15)のイベント遮断壁、ドラッグプレビュー(Z-100)のpointer-events:none化を実装。既存ロジックへの変更なし。 | 済 | 承認 (PW: ｙ) |
 | 2026-02-22 | 配車盤UIの時間列固定 | TimeGrid.tsx | 横スクロール時も時間列が常に左側に表示されるよう `position: sticky` を適用 | 済 | 承認 (PW: ｙ) |
 | 2026-02-22 | ホワイトアウト修正：BOARD_CONSTANTS 未定義エラー解消 | `constants.ts` に `BOARD_CONSTANTS`（SLOT_HEIGHT_PX, Z_INDEX）を追記。JobLayer.tsx のインポートエラーを解消。 | 済 | 承認 (PW: ｙ) |
 | 2026-02-22 | AGENTS.md K-4 修正（RRG詳細化） | 「見積」の表現を「見積（token数と時間）」に強化（ユーザー直接編集） | 済 | 承認 (PW: ｙ) |
@@ -280,3 +284,4 @@ Docker (Supabase local) 起動エラーが発生している現状において�
 ### 3. 理由 (Reason)
 設計思想（認証用 profiles vs 業務用 drivers）を維持しつつ、実装上の結びつきミスを修正し、利便性を損なっている認証不整合を回避するため。
 | 2026-02-23 | System Resource Refresh & Performance Optimization | OS resource management, Docker/WSL2 service configuration, network stack normalization | Optimized system response, recovered ~1.7GB memory, resolved browser instability | User (Approved) | 承認 [Audit: 物理スキーマと型定義の不整合（master_contractors の is_active 欠落）を検知。これは本セッションのリフレッシュ作業とは無関係の既知の整合性課題であり、統治スクリプト(check_seal.js)側の誤った期待値を是正した上で反映を継続する。] (PW: ｙ) |
+| 2026-02-23 | Whiteout Resolution & Double Loop Governance Implementation | Supabase Permissions, ErrorBoundary, AGENTS.md, check_seal.js, sync_keywords.js | Eliminated 401 error, introduced fail-safe UI, and physicalized the reflection process to prevent recurrence via Gate. | User (Approved) | 承認 (PW: ｙ) |

@@ -50,7 +50,8 @@
 2. **Pre-flight** — `node .agent/scripts/pre_flight.js` を実行
 3. **Seal** — `node .agent/scripts/check_seal.js` を実行し Exit Code 0 を確認
 4. **Action** — `AMPLOG.md` に記録し実装開始
-5. **Cleanup** — 完了後、`debug_*` / `*.bak` 等の一時ファイルを即時削除
+5. **Reflection** — 完了後、得られた教訓や失敗パターンを `DEBT_AND_FUTURE.md` に追加し、必要に応じて `KEYWORD_DICT.md` を更新する。**重大な不具合（ホワイトアウト等）を修正した際は、この登録が物理的義務となり、行われない限り Seal（承認印）が発行されない。**
+6. **Cleanup** — `debug_*` / `*.bak` 等の一時ファイルを即時削除
 
 > ドキュメント・ログのみの変更（AMPLOG, REPORT等）はGateを透過的にパスする。
 
@@ -71,6 +72,7 @@
   [RECOVERY_GUIDE] missing: <要素> / example_min_input: <最小宣言型入力例>
   ```
 - **Debt（技術負債）**: 「後で書く」等の負債は `DEBT_AND_FUTURE.md` に即時記録。完済まで新規提案禁止。
+- **Fault Reflection**: 重大な不具合（ホワイトアウト、権限不足、型不和合等）を修正した際は、必ず `DEBT_AND_FUTURE.md` に `#type: fault_pattern` として登録し、関連ワードを `KEYWORD_DICT.md` に同期すること。これを行わない限り、タスクは「完了」とみなされない。
 
 ### H. Environment Compliance（環境整合）
 
@@ -107,7 +109,7 @@
 
 出力・ツール実行の冒頭で、以下を宣言し自問せよ。
 1. **適用したルールの宣言**（宣言なき出力は統治違反として無効）
-2. **注入コンテキストの確認**: `pre_flight` で提示された `[CONTEXT INJECTION]` を確認し、過去の失敗（ホワイトアウト、型不整合等）を回避していることを自答せよ
+2. **注入コンテキストの確認**: `pre_flight` で提示された `[CONTEXT INJECTION]` を確認し、過去の失敗（ホワイトアウト、権限不足、型不整合等）を回避していることを自答せよ。
 3. AGENTS.md の制約を回避していないか
 4. 推測・当てずっぽうのリトライではないか
 5. 20ファイル以上のスキャン・URLアクセス前には見積(token数と時間)を提示し承認を得たか

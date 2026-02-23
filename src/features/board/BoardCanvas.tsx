@@ -13,7 +13,7 @@ import { PendingJobSidebar } from './components/PendingJobSidebar';
 import { useAuth } from '../../contexts/AuthProvider';
 import { BoardJob, BoardDriver } from '../../types';
 import HeaderEditModal from './components/HeaderEditModal';
-
+import { SaveReasonModal } from './components/SaveReasonModal';
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
@@ -58,6 +58,7 @@ export default function BoardCanvas() {
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [pendingFilter, setPendingFilter] = useState('全て');
+    const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [modalState, setModalState] = useState<{ isOpen: boolean, type: string | null, targetId?: string | null }>({ isOpen: false, type: null });
 
     const selectedDriverForEdit = modalState.type === 'header' && modalState.targetId
@@ -151,7 +152,7 @@ export default function BoardCanvas() {
 
                     {editMode && (
                         <button
-                            onClick={() => handleSave()}
+                            onClick={() => setIsSaveModalOpen(true)}
                             disabled={isSyncing}
                             className={`px-4 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
                                 ${isSyncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
@@ -265,6 +266,15 @@ export default function BoardCanvas() {
                 driver={selectedDriverForEdit}
                 masterDrivers={masterDrivers}
                 onSave={handleSaveHeader}
+            />
+
+            <SaveReasonModal
+                isOpen={isSaveModalOpen}
+                onClose={() => setIsSaveModalOpen(false)}
+                onCommit={(reasonCode, reasonText) => {
+                    handleSave(JSON.stringify({ code: reasonCode, text: reasonText }));
+                    setIsSaveModalOpen(false);
+                }}
             />
         </div>
     );

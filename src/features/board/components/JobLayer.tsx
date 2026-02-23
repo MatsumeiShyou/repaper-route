@@ -83,10 +83,11 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                             const hasError = (job as any).hasError;
 
                             let borderClass = colorTheme.border;
-                            let zIndexClass = isLocked ? `z-[${Z_INDEX.LOCK}]` : `z-[${Z_INDEX.DEFAULT}]`;
+                            // Z-Index: 状態に応じた階層を決定（style属性で適用）
+                            let zIndex: number = isLocked ? Z_INDEX.LOCK : Z_INDEX.DEFAULT;
                             if (isSelected) {
                                 borderClass = 'border-blue-500 ring-2 ring-blue-500';
-                                zIndexClass = `z-[${Z_INDEX.SELECTED}]`;
+                                zIndex = Z_INDEX.SELECTED;
                             }
                             if (hasWarning) borderClass = 'border-yellow-400 border-2';
                             if (hasError) borderClass = 'border-red-500 border-2';
@@ -96,26 +97,40 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                 <div
                                     key={job.id}
                                     className={`absolute w-[94%] left-[3%] rounded-md border text-[10px] shadow-sm overflow-hidden select-none pointer-events-auto transition-brightness
-                                        ${isLocked ? 'bg-gray-200 text-gray-500 italic' : colorTheme.bg} 
-                                        ${borderClass} ${colorTheme.text} ${zIndexClass}
+                                        ${isLocked ? 'bg-gray-200 text-gray-500 italic' :
+                                            hasError ? 'bg-red-50 text-red-700' : colorTheme.bg} 
+                                        ${borderClass} ${hasError ? 'text-red-700' : colorTheme.text}
                                         ${isDragging ? 'opacity-40 grayscale-[0.5]' : 'hover:brightness-95'}
                                     `}
                                     style={{
                                         top: `${topPx}px`,
                                         height: `${heightPx}px`,
+                                        zIndex: zIndex,
                                     }}
-                                    onMouseDown={(e) => !isLocked && onJobMouseDown(e, job)}
-                                    onClick={(e) => onJobClick(job.id, e)}
+                                    onMouseDown={(e) => {
+                                        // ロック領域: stopPropagationで背後セル(Z-0)への伝播を遮断
+                                        if (isLocked) { e.stopPropagation(); return; }
+                                        onJobMouseDown(e, job);
+                                    }}
+                                    onClick={(e) => {
+                                        // ロック領域: クリックイベントも遮断（透明な壁）
+                                        if (isLocked) { e.stopPropagation(); return; }
+                                        onJobClick(job.id, e);
+                                    }}
                                 >
                                     {/* 内部白線 */}
                                     {renderHourLines(job.duration)}
 
-                                    {/* Resize Handles */}
+                                    {/* Resize Handles — Z-60: 確実に掴めるよう最前面寄り + stopPropagation */}
                                     {!isLocked && (
-                                        <div className="absolute top-0 w-full h-1.5 cursor-ns-resize hover:bg-black/5 z-10" onMouseDown={(e) => onResizeStart(e, job, 'top')} />
+                                        <div
+                                            className="absolute top-0 w-full h-1.5 cursor-ns-resize hover:bg-black/5"
+                                            style={{ zIndex: Z_INDEX.RESIZE_HANDLE }}
+                                            onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, job, 'top'); }}
+                                        />
                                     )}
 
-                                    <div className="p-1 h-full flex flex-col relative z-20">
+                                    <div className="p-1 h-full flex flex-col relative" style={{ zIndex: Z_INDEX.DEFAULT }}>
                                         <div className="flex justify-between font-bold truncate gap-1">
                                             <span className="truncate">{job.title}</span>
                                             <div className="flex shrink-0 gap-0.5">
@@ -130,8 +145,13 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                         </div>
                                     </div>
 
+                                    {/* Bottom Resize Handle — Z-60 */}
                                     {!isLocked && (
-                                        <div className="absolute bottom-0 w-full h-2 cursor-ns-resize flex justify-center items-end z-10" onMouseDown={(e) => onResizeStart(e, job, 'bottom')}>
+                                        <div
+                                            className="absolute bottom-0 w-full h-2 cursor-ns-resize flex justify-center items-end"
+                                            style={{ zIndex: Z_INDEX.RESIZE_HANDLE }}
+                                            onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, job, 'bottom'); }}
+                                        >
                                             <div className="w-4 h-0.5 bg-black/10 rounded-full" />
                                         </div>
                                     )}
@@ -142,14 +162,15 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                 ))}
             </div>
 
-            {/* Drag Preview */}
+            {/* Drag Preview — Z-100: 最前面 + pointer-events: none */}
             {dropPreview && (
                 <div
-                    className={`fixed pointer-events-none z-[100] border-2 rounded-md shadow-xl flex items-center justify-center
+                    className={`fixed pointer-events-none border-2 rounded-md shadow-xl flex items-center justify-center
                         ${dropPreview.isOverlapError ? 'bg-red-500/20 border-red-500' :
                             dropPreview.isWarning ? 'bg-yellow-500/20 border-yellow-500' : 'bg-emerald-500/20 border-emerald-500'}
                     `}
                     style={{
+                        zIndex: Z_INDEX.DRAG_PREVIEW,
                         left: dragMousePos.x + 10,
                         top: dragMousePos.y + 10,
                         width: '160px',

@@ -3,6 +3,7 @@ import path from 'path';
 import { execSync } from 'child_process';
 
 const AMPLOG_PATH = path.join(process.cwd(), 'AMPLOG.md');
+const DEBT_PATH = path.join(process.cwd(), 'DEBT_AND_FUTURE.md');
 const REQUIRED_SEAL = '(PW: ｙ)';
 
 
@@ -176,6 +177,52 @@ function validateSchemaConsistency() {
 }
 
 validateSchemaConsistency();
+
+// ═══════════════════════════════════════════════════
+// Phase 12: Reflection (Post-Mortem) Check
+// AMPLOG に [FIX] や [重大] がある場合、DEBT に教訓が記録されているか検証
+// ═══════════════════════════════════════════════════
+function validateReflection同期() {
+    if (!fs.existsSync(DEBT_PATH)) return;
+
+    const ampContent = fs.readFileSync(AMPLOG_PATH, 'utf8');
+    const debtContent = fs.readFileSync(DEBT_PATH, 'utf8');
+
+    // 直近 5 エントリーを抽出
+    const ampEntries = ampContent.split('\n')
+        .filter(l => l.trim().startsWith('|') && !l.includes('---'))
+        .filter(l => /\|\s*\d{4}-\d{2}-\d{2}\s*\|/.test(l))
+        .slice(-5);
+
+    const fixEntries = ampEntries.filter(e => e.includes('[FIX]') || e.includes('[重大]') || e.includes('[SDR]'));
+
+    if (fixEntries.length > 0) {
+        console.log('🔍 [check_seal] 教訓の同期（Reflection）を確認中...');
+        const today = new Date().toISOString().split('T')[0];
+        const hasRecentDebt = debtContent.includes(today) || debtContent.split('\n').some(l => l.includes('#registered: 2026-02-23')); // 今日登録されたものがあるか
+
+        // ※ 今日登録がない場合でも、タイトルの一部が DEBT に含まれていれば OK とする簡易チェック
+        const isReflected = fixEntries.some(e => {
+            const titleMatch = e.match(/\|\s*[^|]+\s*\|\s*([^|]+)\s*\|/);
+            if (!titleMatch) return false;
+            const title = titleMatch[1].trim().substring(0, 10); // 前方一致
+            return debtContent.includes(title);
+        });
+
+        if (!isReflected && !debtContent.includes(today)) {
+            console.error('\n🚫───────────── [ REFLECTION LOCK ] ─────────────🚫');
+            console.error('❌ 重大な修正（FIX/SDR）が記録されていますが、DEBT_AND_FUTURE.md への教訓登録がありません。');
+            console.error('   → AGENTS.md §5: 失敗パターンを物理的構造 (Gate) にフィードバックせよ。');
+            console.error('   → 今日の日付で DEBT_AND_FUTURE.md に失敗パターン（#type: fault_pattern）を記録してください。');
+            console.error('🚫──────────────────────────────────────────────────🚫\n');
+            process.exit(1); // 警告から遮断へ昇格
+        } else {
+            console.log('✅ [check_seal] 教訓の同期を確認しました。');
+        }
+    }
+}
+
+validateReflection同期();
 
 // 4. 承認日の鮮度チェック（7日以内）
 const dateMatch = lastEntry.match(/\|\s*(\d{4}-\d{2}-\d{2})\s*\|/);

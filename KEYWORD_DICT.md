@@ -68,6 +68,7 @@ db
 │   ├── drivers
 │   ├── routes
 │   ├── profiles
+│   ├── permission
 │   └── supabase
 └── rpc
     └── rpc_execute_master_update
@@ -177,3 +178,4 @@ const injected = deduplicate([...critical, ...relevant]);
 | 日付 | 操作 | キーワード | 配置先 | 理由 |
 |---|---|---|---|---|
 | 2026-02-22 | 初期登録 | （全エントリ） | 全ドメイン | 辞書新規作成 |
+| 2026-02-23 | 追加 | permission | db/schema | DEBT#401 Whiteout で使用 |

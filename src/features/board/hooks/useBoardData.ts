@@ -122,11 +122,11 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
 
                 if (ignore) return;
 
-                if (routeRes.error) {
-                    console.warn('[Board] Route fetch failed (likely RLS):', routeRes.error.message);
-                }
-                if (jobsRes.error) {
-                    console.warn('[Board] Jobs fetch failed (likely RLS):', jobsRes.error.message);
+                if (routeRes.error || jobsRes.error || profileRes.error) {
+                    const err = routeRes.error || jobsRes.error || profileRes.error;
+                    console.error('[Board] Initialization fetch failed:', err);
+                    // Throw to be caught by ErrorBoundary instead of silent whiteout
+                    throw new Error(`Data fetch failed: ${err.message || 'Unknown error'}`);
                 }
 
                 const data = routeRes.data;

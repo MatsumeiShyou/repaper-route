@@ -98,12 +98,16 @@ function AppContent() {
     );
 }
 
+import { ErrorBoundary } from './components/ErrorBoundary'
+
 export default function App() {
     return (
-        <AuthProvider>
-            <NotificationProvider>
-                <AppContent />
-            </NotificationProvider>
-        </AuthProvider>
+        <ErrorBoundary name="GlobalApp">
+            <AuthProvider>
+                <NotificationProvider>
+                    <AppContent />
+                </NotificationProvider>
+            </AuthProvider>
+        </ErrorBoundary>
     )
 }

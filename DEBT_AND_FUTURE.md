@@ -46,12 +46,23 @@
 - [ ] **SADA: 32-bit Hash Collision Risk**
 #type: impl_debt
 #domain: sada
-#severity: medium
+#severity: low
 #trigger: [sada, simpleHash, hash]
 #registered: 2026-02-22
   - **現状**: 現在の32-bitハッシュは高速だが、大規模ツリーでの衝突リスクがある。
   - **リスク**: 【低】現在のプロジェクト規模では実害は低いが、将来的な誤検知の火種になる。
   - **解決策**: 必要に応じて 64-bit または 128-bit への移行を検討。現状は優先度：低。
+
+- [ ] **Supabase 401 Whiteout (Anon Role RLS)**
+#type: fault_pattern
+#domain: db
+#severity: critical
+#trigger: [supabase, routes, rpc, permission]
+#registered: 2026-02-23
+  - **現状**: モック/開発環境（認証未完了）では `anon` 権限で通信するが、新規作成したテーブル（routes等）やRPCに `anon` への権限（GRANT/RLS）が付与されておらず 401 Unauthorized が発生して画面が停止（ホワイトアウト）した。
+  - **リスク**: 【高】配車盤やマスタ画面が全く描画されず、ユーザーが「システムが壊れた」と誤認する。
+  - **解決策**: Supabase関連の実装時（特に新テーブル追加時）は、必ず `anon` ロールへのアクセス権限（SELECT/INSERT等）と RLS ポリシー (`TO anon`) をセットで実装すること。
+  - **物理構造**: `inject_context.js` (Gate) により、今後の開発時に本警告が自動注入される。
 
 ---
 

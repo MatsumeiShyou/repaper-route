@@ -1,6 +1,8 @@
 import React from 'react';
 import { BoardDriver, BoardJob, BoardSplit } from '../../../types';
-import { TIME_SLOTS } from '../logic/constants';
+import { TIME_SLOTS, BOARD_CONSTANTS } from '../logic/constants';
+
+const { Z_INDEX } = BOARD_CONSTANTS;
 
 interface TimeGridProps {
     drivers: BoardDriver[];
@@ -41,7 +43,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                 borderRight: '1px solid #e2e8f0',
                 position: 'sticky',
                 left: 0,
-                zIndex: 20
+                zIndex: Z_INDEX.PREVIEW
             }}>
                 {TIME_SLOTS.map(time => (
                     <div key={time} style={{ height: '32px', width: '64px', minWidth: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
