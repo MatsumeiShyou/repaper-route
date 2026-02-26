@@ -1,8 +1,8 @@
 import { Database } from '../types/database.types';
 
-type PublicSchema = Database['public'];
-type ViewName = keyof PublicSchema['Views'] | keyof PublicSchema['Tables'];
-type TableName = keyof PublicSchema['Tables'];
+export type PublicSchema = Database['public'];
+export type ViewName = keyof PublicSchema['Views'] | keyof PublicSchema['Tables'];
+export type TableName = keyof PublicSchema['Tables'];
 
 /**
  * マスタデータ定義の型
@@ -60,8 +60,8 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         searchFields: ['name'],
         columns: [
             { key: 'name', label: '契約主体名', type: 'text', className: 'font-bold' },
-            { key: 'contractor_id', label: 'ID', type: 'text', className: 'text-xs text-slate-400' },
-            { key: 'is_active', label: '状態', type: 'status' }
+            { key: 'payee_id', label: '支払元ID', type: 'text', className: 'text-xs text-slate-500 font-mono' },
+            { key: 'is_active', label: '有効状態', type: 'status' }
         ],
         fields: [
             { name: 'contractor_id', label: '契約主体ID', type: 'text', requiredForCreate: true, updatable: false },
@@ -78,11 +78,18 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         primaryKey: 'id',
         searchFields: ['driver_name'],
         columns: [
-            { key: 'driver_name', label: '氏名', type: 'text', className: 'font-bold' },
-            { key: 'is_active', label: '状態', type: 'status' }
+            { key: 'driver_name', subLabelKey: 'route_name', label: '氏名 / コース', type: 'text', className: 'font-bold' },
+            { key: 'vehicle_number', label: '担当車両', type: 'badge' },
+            { key: 'display_color', label: '表示色', type: 'text', className: 'text-xs font-mono uppercase' },
+            { key: 'display_order', label: '表示順', type: 'number' },
+            { key: 'is_active', label: '有効状態', type: 'status' }
         ],
         fields: [
             { name: 'driver_name', label: '氏名', type: 'text', required: true, updatable: true },
+            { name: 'route_name', label: '既定コース名', type: 'text', updatable: true, placeholder: '例: Aコース' },
+            { name: 'vehicle_number', label: '担当車両', type: 'text', updatable: true, placeholder: '例: 品川100あ1234' },
+            { name: 'display_color', label: '表示色 (Hex)', type: 'text', updatable: true, placeholder: '#FFFFFF' },
+            { name: 'display_order', label: '表示順', type: 'number', updatable: true },
             { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     },
@@ -105,7 +112,8 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     '待機': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                 }
             },
-            { key: 'is_active', label: '状態', type: 'status' }
+            { key: 'callsign', label: '通称', type: 'text', className: 'text-xs text-slate-500' },
+            { key: 'is_active', label: '有効状態', type: 'status' }
         ],
         fields: [
             { name: 'number', label: '車両番号', type: 'text', required: true, updatable: true },
@@ -122,12 +130,15 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         primaryKey: 'id',
         searchFields: ['name', 'unit'],
         columns: [
-            { key: 'name', subLabelKey: 'unit', label: '品目名 / 単位', type: 'multi-row', className: 'font-bold' },
-            { key: 'is_active', label: '状態', type: 'status' }
+            { key: 'name', label: '品目名', type: 'text', className: 'font-bold' },
+            { key: 'unit', label: '単位', type: 'badge' },
+            { key: 'display_order', label: '表示順', type: 'number' },
+            { key: 'is_active', label: '有効状態', type: 'status' }
         ],
         fields: [
             { name: 'name', label: '品目名', type: 'text', required: true, updatable: true, placeholder: '例: 段ボール' },
             { name: 'unit', label: '単位', type: 'text', required: true, updatable: true, placeholder: 'kg' },
+            { name: 'display_order', label: '表示順', type: 'number', updatable: true },
             { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     },
@@ -141,11 +152,17 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         columns: [
             {
                 key: 'display_name',
-                subLabelKey: 'area', // 名称の横に地域を表示
+                subLabelKey: 'furigana', // ふりがなを表示
                 thirdLabelKey: 'address',
-                label: '拠点/地域/住所',
+                label: '拠点/フリガナ/住所',
                 type: 'multi-row',
                 className: 'font-bold sticky left-0 bg-white dark:bg-slate-900 z-10 min-w-[280px] shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)]'
+            },
+            {
+                key: 'area', // 地域を独立カラムに変更
+                label: '地域',
+                type: 'text',
+                className: 'text-xs text-slate-500'
             },
             {
                 key: 'collection_days',
@@ -172,6 +189,40 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     'FIXED': 'bg-red-600 text-white font-black px-3 py-1 animate-pulse',
                     'FIXED_UNTIL_RETURN': 'bg-purple-600 text-white font-black px-3 py-1'
                 }
+            },
+            {
+                key: 'contractor_name',
+                label: '仕入先',
+                type: 'text',
+                className: 'text-xs text-slate-600'
+            },
+            {
+                key: 'company_phone',
+                label: '会社電話番号',
+                type: 'text',
+                className: 'text-xs font-mono'
+            },
+            {
+                key: 'manager_phone',
+                label: '担当者電話番号',
+                type: 'text',
+                className: 'text-xs font-mono'
+            },
+            {
+                key: 'special_type',
+                label: '特殊案件フラグ',
+                type: 'badge',
+                styleRules: {
+                    default: 'bg-slate-100 text-slate-600',
+                    'SITE_WORK': 'bg-amber-100 text-amber-800 border border-amber-200',
+                    'MAINTENANCE': 'bg-blue-100 text-blue-800 border border-blue-200'
+                }
+            },
+            {
+                key: 'recurrence_pattern',
+                label: '回収契機 (曜以外)',
+                type: 'text',
+                className: 'text-xs text-slate-500'
             },
             {
                 key: 'target_item_category',
@@ -206,37 +257,53 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 }
             },
             {
+                key: 'site_contact_phone',
+                label: '現場直通電話',
+                type: 'text',
+                className: 'text-xs font-mono'
+            },
+            {
                 key: 'internal_note',
                 label: '備考',
                 type: 'text',
                 className: 'text-xs text-slate-500 truncate max-w-[150px]'
             },
-            { key: 'is_active', label: '状態', type: 'status' }
+            { key: 'is_active', label: '有効状態', type: 'status' }
         ],
         fields: [
-            { name: 'display_name', label: '地点名（表示用）', type: 'text', required: true, placeholder: '例: ○○スーパー(AM)' },
-            { name: 'area', label: '地域・エリア', type: 'text', placeholder: '例: 中央区, 六本木' },
+            { name: 'display_name', label: '拠点名（表示用）', type: 'text', required: true, placeholder: '例: ○○スーパー(AM)' },
+            { name: 'furigana', label: 'ﾌﾘｶﾞﾅ（半角ｶﾅ）', type: 'text', placeholder: '例: ﾏﾙﾏﾙｽｰﾊﾟｰ' },
+            { name: 'area', label: '地域', type: 'text', placeholder: '例: 中央区, 六本木' },
             {
                 name: 'contractor_id',
-                label: '契約主体',
+                label: '仕入先 (契約主体)',
                 type: 'select',
-                required: true,
                 lookup: {
                     schemaKey: 'contractors',
                     labelKey: 'name',
                     valueKey: 'contractor_id'
                 }
             },
+            { name: 'company_phone', label: '会社電話番号', type: 'text', placeholder: '例: 03-1234-5678' },
+            { name: 'manager_phone', label: '担当者電話番号', type: 'text', placeholder: '例: 090-1234-5678' },
+            { name: 'address', label: '住所', type: 'text', placeholder: '東京都...' },
+            { name: 'weighing_site_id', label: '計量所', type: 'text', placeholder: 'K001' },
             {
                 name: 'visit_slot',
-                label: '便区分（スロット）',
+                label: '便区分',
                 type: 'select',
-                options: ['AM', 'PM', 'FREE'],
-                className: 'col-span-1'
+                options: ['FREE', 'AM', 'PM']
             },
             {
+                name: 'special_type',
+                label: '特殊案件フラグ',
+                type: 'select',
+                options: ['NONE', 'SITE_WORK', 'MAINTENANCE', 'OTHER']
+            },
+            { name: 'recurrence_pattern', label: '回収契機 (曜以外)', type: 'text', placeholder: '例: 第1月曜日' },
+            {
                 name: 'vehicle_restriction_type',
-                label: '車両制約タイプ',
+                label: '車両制限',
                 type: 'select',
                 options: ['NONE', 'FIXED', 'FIXED_UNTIL_RETURN'],
                 className: 'col-span-1'
@@ -253,7 +320,6 @@ export const MASTER_SCHEMAS: MasterSchemas = {
             },
             { name: 'collection_days', label: '回収曜日', type: 'days', className: 'col-span-2' },
             { name: 'target_item_category', label: '主要回収品目', type: 'tags', className: 'col-span-2', placeholder: '品目を選択...' },
-            { name: 'address', label: '住所', type: 'text', className: 'col-span-2' },
             { name: 'site_contact_phone', label: '現場直通電話', type: 'tel' },
             {
                 name: 'internal_note',
@@ -263,15 +329,8 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 placeholder: '例: 裏口から入場。天井低い。'
             },
             {
-                name: 'weighing_site_id',
-                label: '指定計量所',
-                type: 'text',
-                className: 'col-span-1',
-                placeholder: '計量所IDを入力...'
-            },
-            {
                 name: 'time_constraint_type',
-                label: '時間制限区分',
+                label: '時間制約',
                 type: 'select',
                 options: ['NONE', 'RANGE', 'FIXED'],
                 className: 'col-span-1',
@@ -279,7 +338,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
             },
             {
                 name: 'is_spot_only',
-                label: 'スポット専用フラグ',
+                label: '種別 (スポット)',
                 type: 'switch',
                 className: 'col-span-1'
             },

@@ -11,6 +11,8 @@ vi.mock('@/lib/supabase/client', () => ({
                     single: () => Promise.resolve({ data: null, error: null }),
                     maybeSingle: () => Promise.resolve({ data: null, error: null })
                 }),
+                is: () => chainable,
+                in: () => chainable,
                 order: () => chainable,
                 then: (resolve: any) => resolve({ data: [], error: null })
             };

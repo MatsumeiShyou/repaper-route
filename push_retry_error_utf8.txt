@@ -1,0 +1,43 @@
+﻿node.exe : Initialisi
+ng login role...
+発生場所 行:1 文字:1
++ & "C:\Program Files
+\nodejs/node.exe" "C:
+\Program Files\nodejs
+/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (Initial   
+ ising login role    
+...:String) [],     R
+emoteException
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+Connecting to remote 
+database...
+Remote migration vers
+ions not found in loc
+al migrations directo
+ry.
+
+Make sure your local 
+git repo is up-to-dat
+e. If the error persi
+sts, try repairing th
+e migration history t
+able:
+supabase migration re
+pair --status reverte
+d 20260208
+
+And update local migr
+ations to match remot
+e database:
+supabase db pull
+

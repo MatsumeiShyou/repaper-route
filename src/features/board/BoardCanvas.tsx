@@ -48,7 +48,7 @@ export default function BoardCanvas() {
     const {
         draggingJobId, draggingSplitId,
         dropPreview, dropSplitPreview,
-        dragMousePos, resizingState,
+        dragMousePos, dragOffset, resizingState,
         handleJobMouseDown, handleSplitMouseDown,
         handleResizeStart,
         handleBackgroundMouseMove, handleBackgroundMouseUp
@@ -206,9 +206,10 @@ export default function BoardCanvas() {
                             draggingJobId={draggingJobId}
                             draggingSplitId={draggingSplitId}
                             onCellClick={(driverId, time) => {
-                                if (!editMode) return;
-                                setSelectedCell({ driverId, time });
-                                setIsAddJobModalOpen(true);
+                                if (editMode) {
+                                    setSelectedCell({ driverId, time });
+                                    setIsAddJobModalOpen(true);
+                                }
                             }}
                             onCellDoubleClick={() => { }}
                             driverColRefs={driverColRefs}
@@ -228,6 +229,7 @@ export default function BoardCanvas() {
                             onJobClick={(id) => setSelectedJobId(id)}
                             selectedJobId={selectedJobId}
                             dragMousePos={dragMousePos}
+                            dragOffset={dragOffset}
                             dropPreview={dropPreview}
                         />
                     </div>

@@ -64,4 +64,4 @@ END $$;
 
 -- 6. RPC Functions
 GRANT EXECUTE ON FUNCTION public.rpc_execute_board_update(DATE, JSONB, TEXT, TEXT) TO anon;
-GRANT EXECUTE ON FUNCTION public.rpc_execute_master_update(TEXT, UUID, JSONB, JSONB, TEXT, TEXT, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.rpc_execute_master_update(TEXT, TEXT, JSONB, JSONB, TEXT, TEXT, TEXT) TO anon;

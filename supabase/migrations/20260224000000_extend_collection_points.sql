@@ -15,7 +15,8 @@ COMMENT ON COLUMN public.master_collection_points.time_constraint_type IS '時�
 COMMENT ON COLUMN public.master_collection_points.is_spot_only IS '定期回収リストから除外するスポット専用フラグ';
 
 -- 2. view_master_points の更新 (新カラムを含め、既存の構造を維持)
-CREATE OR REPLACE VIEW public.view_master_points AS
+DROP VIEW IF EXISTS public.view_master_points CASCADE;
+CREATE VIEW public.view_master_points AS
 SELECT 
     p.location_id as id,
     p.name,

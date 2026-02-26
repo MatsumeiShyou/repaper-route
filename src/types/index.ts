@@ -23,8 +23,12 @@ export interface SupabaseJob {
     customer_name: string | null;
     required_vehicle: string | null;
     start_time: string | null;
-    note: string | null;
-    special_notes: string | null;
+    visit_slot?: string | null;
+    weighing_site_id?: string | null;
+    company_phone?: string | null;
+    manager_phone?: string | null;
+    special_type?: string | null;
+    recurrence_pattern?: string | null;
     driver_id: string | null;
     updated_at: string;
 }
@@ -96,7 +100,13 @@ export interface MasterCustomer {
     id: string;
     location_id: string;
     name: string;
+    display_name?: string;
+    furigana?: string;
     area?: string;
+    company_phone?: string;
+    manager_phone?: string;
+    special_type?: string;
+    recurrence_pattern?: string;
 }
 
 export interface MasterItem {

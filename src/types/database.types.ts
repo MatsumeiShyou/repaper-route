@@ -413,6 +413,30 @@ export type Database = {
           },
         ]
       }
+      manual_injection_reasons: {
+        Row: {
+          id: string
+          reason_text: string
+          usage_count: number | null
+          last_used_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          reason_text: string
+          usage_count?: number | null
+          last_used_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          reason_text?: string
+          usage_count?: number | null
+          last_used_at?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       master_collection_points: {
         Row: {
           address: string | null
@@ -426,6 +450,7 @@ export type Database = {
           internal_note: string | null
           is_active: boolean | null
           is_spot: boolean | null
+          furigana: string | null
           latitude: number | null
           location_id: string
           longitude: number | null
@@ -444,6 +469,10 @@ export type Database = {
           weighing_site_id: string | null
           time_constraint_type: string | null
           is_spot_only: boolean | null
+          company_phone: string | null
+          manager_phone: string | null
+          special_type: string | null
+          recurrence_pattern: string | null
         }
         Insert: {
           address?: string | null
@@ -457,6 +486,7 @@ export type Database = {
           internal_note?: string | null
           is_active?: boolean | null
           is_spot?: boolean | null
+          furigana?: string | null
           latitude?: number | null
           location_id: string
           longitude?: number | null
@@ -487,6 +517,7 @@ export type Database = {
           internal_note?: string | null
           is_active?: boolean | null
           is_spot?: boolean | null
+          furigana?: string | null
           latitude?: number | null
           location_id?: string
           longitude?: number | null
@@ -816,6 +847,7 @@ export type Database = {
           contractor_name: string | null
           created_at: string | null
           display_name: string | null
+          furigana: string | null
           id: string | null
           internal_note: string | null
           is_active: boolean | null
@@ -830,6 +862,10 @@ export type Database = {
           vehicle_restriction_type: string | null
           visit_slot: string | null
           weighing_site_id: string | null
+          company_phone: string | null
+          manager_phone: string | null
+          special_type: string | null
+          recurrence_pattern: string | null
         }
         Relationships: [
           {

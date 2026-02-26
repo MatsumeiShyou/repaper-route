@@ -1,0 +1,172 @@
+﻿node.exe : Initialisi
+ng login role...
+発生場所 C:\Program Files
+\nodejs\npx.ps1:28 文字
+:12
++   $input | & $NODE_
+EXE $NPX_CLI_JS $args
++            ~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpeci
+fi    ed: (Initialisi
+ng     login role...:
+Stri    ng) [], Remot
+eExce    ption
+    + FullyQualifiedE
+r    rorId : NativeCo
+mm    andError
+ 
+Connecting to remote 
+database...
+Skipping migration 20
+260208_unify_units_to
+_kg.sql.bak... (file 
+name must match patte
+rn "<timestamp>_name.
+sql")
+Do you want to push t
+hese migrations to th
+e remote database?
+ 窶｢ 20260226010000_ad
+d_furigana.sql
+ 窶｢ 20260226020000_co
+mplete_point_columns.
+sql
+ 窶｢ 20260226030000_co
+mplete_anon_permissio
+ns.sql
+
+ [Y/n] Y
+Applying migration 20
+260226010000_add_furi
+gana.sql...
+NOTICE (42701): colum
+n "furigana" of relat
+ion "master_collectio
+n_points" already exi
+sts, skipping
+ERROR: cannot change 
+name of view column "
+address" to "furigana
+" (SQLSTATE 42P16)
+At statement: 3      
+                     
+                     
+                  
+-- 2. view_master_poi
+nts 縺ｮ譖ｴ譁ｰ (furigana 
+繧貞性繧√ｋ)              
+                
+CREATE OR REPLACE VIE
+W public.view_master_
+points AS            
+                  
+SELECT               
+                     
+                     
+                  
+    p.location_id as 
+id,                  
+                     
+                  
+    p.name,          
+                     
+                     
+                  
+    p.display_name,  
+                     
+                     
+                  
+    p.furigana, -- 霑ｽ
+蜉                   
+                     
+                  
+    p.address,       
+                     
+                     
+                  
+    p.note,          
+                     
+                     
+                  
+    p.internal_note, 
+                     
+                     
+                  
+    p.is_active,     
+                     
+                     
+                  
+    p.contractor_id, 
+                     
+                     
+                  
+    c.name as contrac
+tor_name,            
+                     
+                  
+    c.payee_id,      
+                     
+                     
+                  
+    p.weighing_site_i
+d,                   
+                     
+                  
+    p.time_constraint
+_type,               
+                     
+                  
+    p.is_spot_only,  
+                     
+                     
+                  
+    p.visit_slot,    
+                     
+                     
+                  
+    p.vehicle_restric
+tion_type,           
+                     
+                  
+    p.restricted_vehi
+cle_id,              
+                     
+                  
+    p.target_item_cat
+egory,               
+                     
+                  
+    p.site_contact_ph
+one,                 
+                     
+                  
+    p.created_at,    
+                     
+                     
+                  
+    p.updated_at     
+                     
+                     
+                  
+FROM                 
+                     
+                     
+                  
+    public.master_col
+lection_points p     
+                     
+                  
+LEFT JOIN            
+                     
+                     
+                  
+    public.master_con
+tractors c ON p.contr
+actor_id = c.contract
+or_id             
+Try rerunning the com
+mand with --debug to 
+troubleshoot the erro
+r.

@@ -1,8 +1,7 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import MasterDriverList from '../MasterDriverList';
 import { AITestBatcher } from '../../../test/ai/AITestBatcher';
-import { useMasterCRUD } from '../../../hooks/useMasterCRUD';
 
 // Mock hook
 const mockCRUD = vi.fn();

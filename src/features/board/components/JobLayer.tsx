@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Clock, AlertTriangle, Lock, Ban } from 'lucide-react';
+import { AlertTriangle, Lock, Ban } from 'lucide-react';
 import { BoardJob, BoardDriver, BoardSplit } from '../../../types';
 import { timeToMinutes } from '../logic/timeUtils';
 import { generateJobColorMap } from '../../core/config/theme';
@@ -18,6 +18,7 @@ interface JobLayerProps {
     dropPreview: any | null;
     dropSplitPreview: any | null;
     dragMousePos: { x: number, y: number };
+    dragOffset: { x: number, y: number };
     onJobMouseDown: (e: React.MouseEvent, job: BoardJob) => void;
     onSplitMouseDown: (e: React.MouseEvent, split: BoardSplit) => void;
     onResizeStart: (e: React.MouseEvent, job: BoardJob, direction: 'top' | 'bottom') => void;
@@ -31,6 +32,7 @@ export const JobLayer: React.FC<JobLayerProps> = ({
     selectedJobId,
     dropPreview,
     dragMousePos,
+    dragOffset,
     onJobMouseDown,
     onResizeStart,
     onJobClick
@@ -68,6 +70,24 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                         style={{ width: '180px', minWidth: '180px', flexShrink: 0 }}
                         className="relative h-full"
                     >
+                        {/* 100 Point Spec: Drop Target Shadow (Destination VIS) */}
+                        {dropPreview && dropPreview.driverId === driver.id && (
+                            <div
+                                className={`absolute w-[94%] left-[3%] rounded-md border-2 border-dashed pointer-events-none z-10 transition-all duration-75
+                                    ${dropPreview.isOverlapError ? 'bg-red-500/10 border-red-400' : 'bg-blue-500/10 border-blue-400'}
+                                `}
+                                style={{
+                                    top: `${((timeToMinutes(dropPreview.startTime) - 360) / 15) * SLOT_HEIGHT_PX}px`,
+                                    height: `${(dropPreview.duration / 15) * SLOT_HEIGHT_PX}px`,
+                                }}
+                            >
+                                <div className={`text-[10px] font-black px-1.5 py-0.5 rounded-sm m-1 inline-block
+                                    ${dropPreview.isOverlapError ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}
+                                `}>
+                                    {dropPreview.startTime} ➡
+                                </div>
+                            </div>
+                        )}
                         {jobs.filter(job => job.driverId === driver.id).map(job => {
                             const isDragging = draggingJobId === job.id;
                             const jobTime = job.startTime || job.timeConstraint || '06:00';
@@ -96,24 +116,19 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                             return (
                                 <div
                                     key={job.id}
-                                    className={`absolute w-[94%] left-[3%] rounded-md border text-[10px] shadow-sm overflow-hidden select-none pointer-events-auto transition-brightness
+                                    data-job-id={job.id}
+                                    className={`absolute w-[94%] left-[3%] rounded-md border text-xs font-bold leading-tight shadow-sm overflow-hidden pointer-events-auto transition-[filter,transform] duration-75 flex flex-col justify-center
                                         ${isLocked ? 'bg-gray-200 text-gray-500 italic' :
-                                            hasError ? 'bg-red-50 text-red-700' : colorTheme.bg} 
-                                        ${borderClass} ${hasError ? 'text-red-700' : colorTheme.text}
-                                        ${isDragging ? 'opacity-40 grayscale-[0.5]' : 'hover:brightness-95'}
+                                            hasError ? 'bg-red-50 text-red-900' : colorTheme.bg} 
+                                        ${borderClass} ${hasError ? 'border-red-500' : colorTheme.border} ${hasError ? '' : colorTheme.text}
+                                        ${isDragging ? 'opacity-40 shadow-none ring-0' : 'hover:brightness-95'}
                                     `}
                                     style={{
                                         top: `${topPx}px`,
                                         height: `${heightPx}px`,
                                         zIndex: zIndex,
                                     }}
-                                    onMouseDown={(e) => {
-                                        // ロック領域: stopPropagationで背後セル(Z-0)への伝播を遮断
-                                        if (isLocked) { e.stopPropagation(); return; }
-                                        onJobMouseDown(e, job);
-                                    }}
                                     onClick={(e) => {
-                                        // ロック領域: クリックイベントも遮断（透明な壁）
                                         if (isLocked) { e.stopPropagation(); return; }
                                         onJobClick(job.id, e);
                                     }}
@@ -124,13 +139,31 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                     {/* Resize Handles — Z-60: 確実に掴めるよう最前面寄り + stopPropagation */}
                                     {!isLocked && (
                                         <div
-                                            className="absolute top-0 w-full h-1.5 cursor-ns-resize hover:bg-black/5"
+                                            className="absolute top-0 left-0 right-0 h-[9px] cursor-ns-resize hover:bg-black/10 transition-colors rounded-t"
                                             style={{ zIndex: Z_INDEX.RESIZE_HANDLE }}
                                             onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, job, 'top'); }}
                                         />
                                     )}
 
-                                    <div className="p-1 h-full flex flex-col relative" style={{ zIndex: Z_INDEX.DEFAULT }}>
+                                    {/* 100 Point Prototype Drag Handle — Z-20 */}
+                                    {!isLocked && (
+                                        <div
+                                            className="absolute left-0 top-0 bottom-0 w-6 flex flex-col justify-center items-center cursor-grab active:cursor-grabbing hover:bg-black/5 rounded-l"
+                                            style={{ zIndex: Z_INDEX.DRAG_PREVIEW }}
+                                            onMouseDown={(e) => {
+                                                e.stopPropagation();
+                                                onJobMouseDown(e, job);
+                                            }}
+                                        >
+                                            <div className="flex gap-[1px]">
+                                                <div className="w-[2px] h-3 bg-black/20 rounded-full" />
+                                                <div className="w-[2px] h-3 bg-black/20 rounded-full" />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* コンテンツ保護領域 (テキスト等のイベント遮断) — Z-20 */}
+                                    <div className="p-1 pl-6 flex flex-col relative pointer-events-none" style={{ zIndex: Z_INDEX.DEFAULT }}>
                                         <div className="flex justify-between font-bold truncate gap-1">
                                             <span className="truncate">{job.title}</span>
                                             <div className="flex shrink-0 gap-0.5">
@@ -139,21 +172,20 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                                 {hasError && <Ban size={10} className="text-red-600" />}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1 opacity-70">
-                                            <Clock size={8} />
-                                            <span>{job.startTime || job.timeConstraint}</span>
-                                        </div>
+                                        {job.duration > 15 && (
+                                            <div className="flex items-center gap-1 opacity-75 font-normal text-[10px]">
+                                                <span>{job.startTime || job.timeConstraint} - ({job.duration}分)</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Bottom Resize Handle — Z-60 */}
                                     {!isLocked && (
                                         <div
-                                            className="absolute bottom-0 w-full h-2 cursor-ns-resize flex justify-center items-end"
+                                            className="absolute bottom-0 left-0 right-0 h-[9px] cursor-ns-resize hover:bg-black/10 transition-colors rounded-b"
                                             style={{ zIndex: Z_INDEX.RESIZE_HANDLE }}
                                             onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, job, 'bottom'); }}
-                                        >
-                                            <div className="w-4 h-0.5 bg-black/10 rounded-full" />
-                                        </div>
+                                        />
                                     )}
                                 </div>
                             );
@@ -171,9 +203,9 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                     `}
                     style={{
                         zIndex: Z_INDEX.DRAG_PREVIEW,
-                        left: dragMousePos.x + 10,
-                        top: dragMousePos.y + 10,
-                        width: '160px',
+                        left: `${dragMousePos.x - dragOffset.x}px`,
+                        top: `${dragMousePos.y - dragOffset.y - 7}px`, // 7px浮かせる
+                        width: '180px',
                         height: `${(dropPreview.duration / 15) * SLOT_HEIGHT_PX}px`
                     }}
                 >

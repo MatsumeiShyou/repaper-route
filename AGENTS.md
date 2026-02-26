@@ -58,8 +58,9 @@
 ### F. DB & DOM Governance
 
 - **DB同期**: コードとスキーマ（SQL）の変更は同一AMPで実施。手動変更厳禁。
+- **CLIアップグレード・プロトコル**: DB変更後、AIは環境に応じたDB反映手段（migration up や db push 等）をユーザーに促し、その後の `npx supabase gen types` 等による物理同期確認が完了するまで実装フェーズ（Action）への移行を禁止する。詳細は `docs/governance/DB_SYNC_PROTOCOL.md` を参照せよ。
 - **履歴管理**: `SCHEMA_HISTORY.md` に記録し `npx supabase db diff` を使用。
-- **SADA-First Rule**: AIによるDOM関連テストの実装を行う際は、常に **SADA（Semantic-Aware Delta Assertion）テスト方式** を第一選択（最優先）とすること。独自のDOM生HTML送信等による検証は極度なトークン消費を招くため原則禁止とする。利用仕様の詳細は `docs/testing/SADA_TESTING.md` を参照せよ。
+- **SADA-First Rule**: AIによるDOM関連テストの実装を行う際は、常に **SADA（Semantic-Aware Delta Assertion）テスト方式** を第一選択（最優先）とすること。独自のDOM生HTML送信等による検証は極度なトークン消費を招くため原則禁止しユーザーの承認（PW:`ｙ`）を必須とする。利用仕様の詳細は `docs/testing/SADA_TESTING.md` を参照せよ。
 - **検証義務**: 修正後はユーザーに動作確認を依頼し、最終承認を得ること。
 
 ### G. Stop & Debt Protocol

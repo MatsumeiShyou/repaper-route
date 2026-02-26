@@ -69,9 +69,13 @@ db
 │   ├── routes
 │   ├── profiles
 │   ├── permission
+│   ├── view
+│   ├── grant
 │   └── supabase
-└── rpc
-    └── rpc_execute_master_update
+├── rpc
+│   └── rpc_execute_master_update
+└── ops
+    └── migration
 ```
 
 ### infra（インフラ・環境関連）
@@ -179,3 +183,4 @@ const injected = deduplicate([...critical, ...relevant]);
 |---|---|---|---|---|
 | 2026-02-22 | 初期登録 | （全エントリ） | 全ドメイン | 辞書新規作成 |
 | 2026-02-23 | 追加 | permission | db/schema | DEBT#401 Whiteout で使用 |
+| 2026-02-25 | 追加 | migration, view, grant | db/schema, db/ops | VIEW再定義（42P16）およびGRANT引数不一致（42883）で使用 |

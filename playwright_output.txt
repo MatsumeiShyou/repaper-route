@@ -1,0 +1,34 @@
+[dotenv@17.3.1] injecting env (7) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[VLMClient] OPENAI_API_KEY is not set in environment variables. VLM tests will be skipped or fail.
+
+Running 1 test using 1 worker
+
+[1A[2K[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+[1A[2K[VLMClient] OPENAI_API_KEY is not set in environment variables. VLM tests will be skipped or fail.
+
+[1A[2K[1/1] [chromium] › tests\vlm\boardDrag.spec.ts:19:5 › Board Visual E2E Tests › Verify semantic drag jump bug is fixed
+[1A[2K  1) [chromium] › tests\vlm\boardDrag.spec.ts:19:5 › Board Visual E2E Tests › Verify semantic drag jump bug is fixed 
+
+    TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.lucide-users') to be visible[22m
+
+
+      12 |
+      13 |         // Wait for the board to load (wait for drivers or time grid to be visible)
+    > 14 |         await page.waitForSelector('.lucide-users', { state: 'visible', timeout: 10000 });
+         |                    ^
+      15 |         // Give it an extra second for layout stabilization
+      16 |         await page.waitForTimeout(1000);
+      17 |     });
+        at C:\Users\shiyo\開発中APP\RePaper Route\tests\vlm\boardDrag.spec.ts:14:20
+
+    Error Context: test-results\boardDrag-Board-Visual-E2E-075d3-ntic-drag-jump-bug-is-fixed-chromium\error-context.md
+
+
+[1A[2K  1 failed
+    [chromium] › tests\vlm\boardDrag.spec.ts:19:5 › Board Visual E2E Tests › Verify semantic drag jump bug is fixed 
+
+[36m  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.[39m
+^C

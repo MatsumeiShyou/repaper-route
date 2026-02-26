@@ -21,7 +21,7 @@ export const useBoardDragDrop = (
     splits: BoardSplit[],
     driverColRefs: React.MutableRefObject<Record<string, HTMLElement | null>>,
     setJobs: React.Dispatch<React.SetStateAction<BoardJob[]>>,
-    setSplits: React.Dispatch<React.SetStateAction<BoardSplit[]>>,
+    _setSplits: React.Dispatch<React.SetStateAction<BoardSplit[]>>, // unused but kept for interface match
     recordHistory: () => void,
     createProposal: ((state: any) => void) | null = null
 ) => {
@@ -93,11 +93,29 @@ export const useBoardDragDrop = (
         }
 
         setDraggingJobId(job.id);
-        const rect = e.currentTarget.getBoundingClientRect();
-        setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+
+        const cardElement = (e.currentTarget as HTMLElement).closest('[data-job-id]');
+        const rect = cardElement ? cardElement.getBoundingClientRect() : (e.currentTarget as HTMLElement).getBoundingClientRect();
+
+        // 1. カード内のどの位置を掴んだか（相対座標）を dragOffset に保持
+        setDragOffset({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        });
+
+        // 即座に初期位置のプレビューを描画するために現在のマウス座標も同期
+        setDragMousePos({
+            x: e.clientX,
+            y: e.clientY
+        });
+
+        // 2. ドラッグ開始時の絶対座標を保持（デルタ計算用）
+        // ここでは実装の簡潔化のため、dragOffset に「掴み位置」を、
+        // calculateDropTargetRef への Y 座標には「マウス位置 - 掴み位置」を渡す設計を徹底します。
+
         setDropPreview({
             driverId: job.driverId,
-            startTime: job.timeConstraint,
+            startTime: job.startTime || (job as any).timeConstraint,
             duration: job.duration,
             isOverlapError: false,
             isWarning: (job as any).hasWarning
@@ -150,15 +168,25 @@ export const useBoardDragDrop = (
                         newDuration = 15;
                         newStartMin = originalStartMin + (resizingState.originalDuration - 15);
                     }
-                    return { ...j, timeConstraint: minutesToTime(newStartMin), duration: newDuration };
+                    const newStartTime = minutesToTime(newStartMin);
+                    return {
+                        ...j,
+                        timeConstraint: newStartTime,
+                        startTime: newStartTime,
+                        duration: newDuration
+                    };
                 }
             }));
             return;
         }
 
         if (draggingJobId) {
-            const currentY = e.clientY - dragOffset.y;
-            setDropPreview(calculateDropTargetRef(e.clientX, currentY, draggingJobId));
+            try {
+                const currentY = e.clientY - dragOffset.y;
+                setDropPreview(calculateDropTargetRef(e.clientX, currentY, draggingJobId));
+            } catch (err) {
+                console.error("[DragDrop] Error calculating drop preview:", err);
+            }
         }
     }, [draggingJobId, resizingState, dragOffset, jobs, splits, drivers, driverColRefs]);
 
@@ -169,28 +197,33 @@ export const useBoardDragDrop = (
         }
 
         if (draggingJobId) {
-            const currentY = e.clientY - dragOffset.y;
-            const preview = calculateDropTargetRef(e.clientX, currentY, draggingJobId);
-            if (preview && !preview.isOverlapError) {
-                const target = jobs.find(j => j.id === draggingJobId);
-                if (target) {
-                    const proposedState = {
-                        ...target,
-                        timeConstraint: preview.startTime,
-                        driverId: preview.driverId,
-                        duration: preview.duration
-                    };
+            try {
+                const currentY = e.clientY - dragOffset.y;
+                const preview = calculateDropTargetRef(e.clientX, currentY, draggingJobId);
+                if (preview && !preview.isOverlapError) {
+                    const target = jobs.find(j => j.id === draggingJobId);
+                    if (target) {
+                        const proposedState = {
+                            ...target,
+                            timeConstraint: preview.startTime,
+                            driverId: preview.driverId,
+                            duration: preview.duration
+                        };
 
-                    if (createProposal) {
-                        createProposal(proposedState);
-                    } else {
-                        setJobs(prev => prev.map(j => j.id === draggingJobId ? proposedState : j));
-                        recordHistory();
+                        if (createProposal) {
+                            createProposal(proposedState);
+                        } else {
+                            setJobs(prev => prev.map(j => j.id === draggingJobId ? proposedState : j));
+                            recordHistory();
+                        }
                     }
                 }
+            } catch (err) {
+                console.error("[DragDrop] MouseUp Error:", err);
+            } finally {
+                setDraggingJobId(null);
+                setDropPreview(null);
             }
-            setDraggingJobId(null);
-            setDropPreview(null);
         }
     }, [draggingJobId, resizingState, dragOffset, jobs, recordHistory, createProposal]);
 
@@ -208,7 +241,7 @@ export const useBoardDragDrop = (
     return {
         draggingJobId, draggingSplitId,
         dropPreview, dropSplitPreview,
-        dragMousePos, resizingState,
+        dragMousePos, dragOffset, resizingState,
         handleJobMouseDown: handleMouseDownJob,
         handleResizeStart,
         handleSplitMouseDown,

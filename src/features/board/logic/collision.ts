@@ -88,7 +88,7 @@ export const calculateCollision = ({
         constraintResult = {
             ...checkRes,
             score: scoreRes.score,
-            reason: [...checkRes.reason, ...scoreRes.reason]
+            reason: [...(checkRes.reason || []), ...(scoreRes.reason || [])]
         };
     }
 

@@ -1,0 +1,80 @@
+﻿node.exe : Initialisi
+ng login role...
+発生場所 C:\Program Files
+\nodejs\npx.ps1:28 文字
+:12
++   $input | & $NODE_
+EXE $NPX_CLI_JS $args
++            ~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (Initial   
+ ising login role    
+...:String) [],     R
+emoteException
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+Connecting to remote 
+database...
+Skipping migration 20
+260208_unify_units_to
+_kg.sql.bak... (file 
+name must match patte
+rn "<timestamp>_name.
+sql")
+Do you want to push t
+hese migrations to th
+e remote database?
+ 窶｢ 20260223032505_fi
+x_anon_rls_all_tables
+.sql
+ 窶｢ 20260224000000_ex
+tend_collection_point
+s.sql
+ 窶｢ 20260224000001_ad
+d_manual_injection_re
+asons.sql
+ 窶｢ 20260224000100_up
+date_master_rpc_v100.
+sql
+ 窶｢ 20260225000000_re
+load_schema_x1.sql
+ 窶｢ 20260226010000_ad
+d_furigana.sql
+ 窶｢ 20260226020000_co
+mplete_point_columns.
+sql
+ 窶｢ 20260226030000_co
+mplete_anon_permissio
+ns.sql
+
+ [Y/n] Y
+Applying migration 20
+260223032505_fix_anon
+_rls_all_tables.sql..
+.
+ERROR: function publi
+c.rpc_execute_master_
+update(text, uuid, js
+onb, jsonb, text, tex
+t, text) does not exi
+st (SQLSTATE 42883)
+At statement: 2      
+                     
+                     
+                     
+                     
+                   
+GRANT EXECUTE ON FUNC
+TION public.rpc_execu
+te_master_update(TEXT
+, UUID, JSONB, JSONB,
+ TEXT, TEXT, TEXT) TO
+ anon              
+Try rerunning the com
+mand with --debug to 
+troubleshoot the erro
+r.

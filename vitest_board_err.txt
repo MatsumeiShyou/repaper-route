@@ -1,0 +1,15 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/shiyo/髢狗匱荳ｭAPP/RePaper Route[39m
+
+[90mstdout[2m | src/features/board/BoardCanvas.test.tsx[2m > [22m[2mBoardCanvas SADA Test[2m > [22m[2m繧ｵ繧､繝峨ヰ繝ｼ縺ｮ髢矩哩縺ｫ莨ｴ縺・そ繝槭Φ繝・ぅ繝・け蟾ｮ蛻・ｒ謚ｽ蜃ｺ縺励、I讀懆ｨｼ逕ｨ縺ｮ繝・・繧ｿ繧堤函謌舌☆繧・[22m[39mMaster data loaded and cached (TS): { drivers: [33m0[39m, vehicles: [33m0[39m, collection_points: [33m0[39m }
+Master data loaded and cached (TS): { drivers: [33m0[39m, vehicles: [33m0[39m, collection_points: [33m0[39m }
+
+ [31m笶ｯ[39m src/features/board/BoardCanvas.test.tsx [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 97[2mms[22m[39m
+[31m     [31mﾃ・[31m 繧ｵ繧､繝峨ヰ繝ｼ縺ｮ髢矩哩縺ｫ莨ｴ縺・そ繝槭Φ繝・ぅ繝・け蟾ｮ蛻・ｒ謚ｽ蜃ｺ縺励、I讀懆ｨｼ逕ｨ縺ｮ繝・・繧ｿ繧堤函謌舌☆繧・[39m[32m 96[2mms[22m[39m
+[31m     [31mﾃ・[31m 隱ｭ縺ｿ蜿悶ｊ蟆ら畑繝｢繝ｼ繝会ｼ・ditMode: false・峨〒繧ゅそ繝ｫ繧ｯ繝ｪ繝・け縺ｧ繧ｵ繧､繝峨ヰ繝ｼ縺碁幕縺上％縺ｨ繧堤｢ｺ隱阪☆繧・[39m[32m 0[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[90m (2)[39m
+[2m   Start at [22m 05:14:02
+[2m   Duration [22m 1.22s[2m (transform 211ms, setup 100ms, import 318ms, tests 97ms, environment 547ms)[22m
+

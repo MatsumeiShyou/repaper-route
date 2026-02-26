@@ -34,7 +34,7 @@ export const useMasterData = () => {
                 const [d, v, c, i, cid] = await Promise.all([
                     supabase.from('drivers').select('*').order('display_order', { ascending: true }),
                     supabase.from('vehicles').select('*').order('id'),
-                    supabase.from('master_collection_points').select('*').order('location_id'),
+                    supabase.from('view_master_points').select('*').order('id'),
                     supabase.from('master_items').select('*').order('display_order'),
                     supabase.from('customer_item_defaults').select('*')
                 ]);
@@ -49,7 +49,7 @@ export const useMasterData = () => {
                 // Process Customers (Adapter)
                 const processedCustomers: MasterCustomer[] = (c.data || []).map((point: any) => ({
                     ...point,
-                    id: point.location_id, // Map location_id -> id for UI compatibility
+                    // location_id による上書きを削除：view_master_points はネイティブに id (UUID) を持つ
                 }));
 
                 const newCache = {

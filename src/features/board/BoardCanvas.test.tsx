@@ -1,8 +1,9 @@
-import { render, fireEvent, screen } from '@testing-library/react';
+import { render, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import BoardCanvas from './BoardCanvas';
 import { AITestBatcher } from '../../test/ai/AITestBatcher';
 import { AuthProvider } from '../../contexts/AuthProvider';
+import { NotificationProvider } from '../../contexts/NotificationContext';
 
 const BASE_MOCK = {
     masterDrivers: [{ id: 'm1', name: 'ドライバーA' }],
@@ -29,7 +30,7 @@ vi.mock('./hooks/useBoardData', () => ({
     useBoardData: vi.fn(() => BASE_MOCK)
 }));
 
-vi.mock('./hooks/useMasterData', () => ({
+vi.mock('../../hooks/useMasterData', () => ({
     useMasterData: vi.fn(() => ({
         drivers: BASE_MOCK.drivers,
         vehicles: [],
@@ -51,9 +52,18 @@ describe('BoardCanvas SADA Test', () => {
 
         const { container } = render(
             <AuthProvider>
-                <BoardCanvas />
+                <NotificationProvider>
+                    <BoardCanvas />
+                </NotificationProvider>
             </AuthProvider>
         );
+
+        // データロード完了（スピナー消失）を待つ
+        await waitFor(() => {
+            expect(screen.queryByText(/認証中|Loading/i)).toBeNull();
+            // あるいは特定の要素が表示されるまで待つ
+            expect(screen.getByTitle('未配車リスト')).toBeDefined();
+        });
 
         // 1. 初期状態の記録
         batcher.start(container);
@@ -84,7 +94,7 @@ describe('BoardCanvas SADA Test', () => {
         console.log('--- SADA Prompt Data (Draft) ---');
         console.log(JSON.stringify(promptData, null, 2).substring(0, 500) + '...');
     });
-    it('読み取り専用モード（editMode: false）でもセルクリックでサイドバーが開くことを確認する', async () => {
+    it('読み取り専用モード（editMode: false）ではセルクリックで何も開かないことを確認する', async () => {
         const { useBoardData } = await import('./hooks/useBoardData');
         const mockedUseBoardData = vi.mocked(useBoardData);
 
@@ -96,21 +106,28 @@ describe('BoardCanvas SADA Test', () => {
 
         const { container } = render(
             <AuthProvider>
-                <BoardCanvas />
+                <NotificationProvider>
+                    <BoardCanvas />
+                </NotificationProvider>
             </AuthProvider>
         );
 
+        // データロード完了（スピナー消失）を待つ
+        await waitFor(() => {
+            expect(screen.queryByText(/認証中|Loading/i)).toBeNull();
+        });
+
         // セル（TimeGrid内のdiv）を取得してクリック
-        // TimeGrid内で cursor: pointer を持ち、onClick が設定されている要素を探す
         const cells = container.querySelectorAll('div[style*="cursor: pointer"]');
         expect(cells.length).toBeGreaterThan(0);
 
         // クリックイベントを発火
         fireEvent.click(cells[0]);
 
-        // サイドバーが表示されていることを確認
-        // PendingJobSidebar 内のタイトルテキストを検索
-        expect(screen.getByText(/未割当案件/)).toBeDefined();
-        expect(screen.getByTitle('リストを閉じる')).toBeDefined();
+        // サイドバーやモーダルが表示されていないことを確認
+        await waitFor(() => {
+            expect(screen.queryByText(/案件を手動追加/)).toBeNull();
+            expect(screen.queryByTitle('リストを閉じる')).toBeNull();
+        });
     });
 });

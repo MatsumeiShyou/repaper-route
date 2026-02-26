@@ -16,7 +16,7 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
         try {
             setLoading(true);
             const { data: res, error: err } = await supabase
-                .from(schema.viewName)
+                .from(schema.viewName as unknown as any) // suppress type error dynamically
                 .select('*');
 
             if (err) throw err;

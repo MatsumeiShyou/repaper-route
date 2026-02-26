@@ -64,15 +64,18 @@
   - **解決策**: Supabase関連の実装時（特に新テーブル追加時）は、必ず `anon` ロールへのアクセス権限（SELECT/INSERT等）と RLS ポリシー (`TO anon`) をセットで実装すること。
   - **物理構造**: `inject_context.js` (Gate) により、今後の開発時に本警告が自動注入される。
 
-- [ ] **Magic String Guard for Delete (Master Modals)**
-#type: impl_debt
-#domain: ui
-#severity: low
-#trigger: [delete, guard, test, magic-string]
-#registered: 2026-02-23
-  - **現状**: マスタ系モーダルにおいて、誤操作防止とテスト簡易化のため、名称欄に `"test"` が含まれる場合のみ削除を許可するロジックを導入。
-  - **リスク**: 【低】将来的に "test" という正規の名称を持つデータを削除できなくなる、または仕様を知らない管理者が混乱する可能性がある。
-  - **解決策**: 本稼働前、あるいは正式なロールベースの削除権限管理が導入されたタイミングで、このマジックストリング依存を解消する。
+- [ ] **Unapproved Browser Use (SADA-First Rule Violation)**
+#type: fault_pattern
+#domain: governance
+#severity: high
+#trigger: [browser, sada, verification, gate]
+#registered: 2026-02-24
+  - **事象**: 開発サーバー起動確認時、憲法 § 2.F (SADA-First Rule) で禁止されている「無承認でのブラウザ検証（DOM閲覧）」を自己判断で実行した。
+  - **原因**: 画面描画の有無という物理的事実を「効率的」に確認しようとし、「統治（プロセス）」を軽視したことによる。
+  - **対策**: 今後、いかなる理由があろうともブラウザツール（browser_subagent等）を使用する際は、必ず事前に SADA で代替可能かを自問し、それでも必要な場合は個別の承認（ｙ）を得る。
+  - **物理構造**: 本記録をもって、今後の `pre_flight` 時に統治遵守の警告として注入される。
+
+- [ ] **SADA: 32-bit Hash Collision Risk**
 
 ---
 
@@ -80,8 +83,14 @@
 *テストおよび開発過程で発生したエラーからの学び。*
 
 - **型不整合の早期発見 (2026-02-22)**
+  - [ ] [L] `database.types.ts` の一部プロパティが `Insert` / `Update` で漏れている可能性があるため、全テーブルの再洗出しが必要。
   - **事象**: `AITestBatcher` の内部プロパティ名 (`steps`) とテスト側の参照 (`actions`) が乖離し、実行時まで気付けなかった。
   - **対策**: 今後、新設するユーティリティクラスには JS Doc または型定義ファイルを徹底し、VS Code 上での補完精度を高める。また、`npm run type-check` をテスト前に実行する習慣を徹底する。
+
+# Reflection: Fault Patterns
+- #type: fault_pattern, #severity: high, #title: 物理DB同期漏れによる型幻覚
+    - **事象**: マイグレーションファイルを作成しただけで、物理DB（リモート）への適用を失念し、型定義だけを先行して修正した結果、実行時にDBエラーが発生するリスクが生じた。
+    - **対策**: `docs/governance/DB_SYNC_PROTOCOL.md` に従い、実装前に必ず `npx supabase gen types` で物理カラムの存在を検証すること。
 
 - **Windows PowerShell 環境でのログ損壊 (2026-02-22)**
   - **事象**: `>` リダイレクトによるログ出力が UTF-16 になり、AI ツールで読み取れない事象が発生。
@@ -181,3 +190,30 @@
   - **事象**: `MasterPointList.sada.test.tsx` や `BoardCanvas.test.tsx` 等のSADAテスト実行時、`_createServer` 内部での例外発生や `Failed to load url .../src/test/setup.ts` といったViteコアレベルのエラーが頻発し、テストプロセスがクラッシュする。
   - **リスク**: 【高】ReactコンポーネントのUIレンダリングを介したセマンティック差分検証（SADA）が自動で実行できず、デグレードの検知が手動に依存する状態となっている。
   - **解決策**: Vite、Vitest の設定ファイル（`vite.config.ts`, `vitest.config.ts`）、およびグローバルモック層（`setup.ts`）の依存・エンコーディング設定などをゼロベースで見直し、安定したテスト実行環境を再構築する。（本件では暫定的にブラウザでの目視検証で代替した）
+
+- [ ] **不完全な状態更新によるリサイズ不具合 (2026-02-24)**
+#type: fault_pattern
+#domain: ui
+#severity: medium
+#trigger: [resize, top-handle, state-sync, BoardJob]
+  - **事象**: ジョブカードの上辺リサイズ時、`timeConstraint` のみ更新し `startTime` を更新し忘れたため、カードが上へ伸びず下へ伸びる（描画上の不整合）が発生した。
+  - **原因**: `BoardJob` 型に `startTime` (表示用) と `timeConstraint` (制約用) が重複して存在していることへの認識不足。
+  - **対策**: `BoardJob` の時間操作時は、必ず両方のフィールドをセットで更新する。また、将来的に型定義の正規化（フィールド一本化）を検討する。
+
+- [ ] **VIEWの再定義（42P16）およびGRANT引数不一致（42883）によるpushブロック (2026-02-25)**
+#type: fault_pattern
+#domain: db, governance
+#severity: high
+#trigger: [migration, view, CREATE OR REPLACE, GRANT, rpc]
+  - **事象**: `npx supabase db push` 実行時、`view_master_points` の途中に新規カラムを追加しようとした際「42P16 (cannot change name of view column)」エラーが発生。また、別のファイルにて `rpc_execute_master_update` への `GRANT` 文の引数定義が現行と異なっていたため「42883 (does not exist)」エラーが発生、pushが完全にブロックされた。
+  - **原因**: (1) PostgreSQLにおいて、VIEWの `CREATE OR REPLACE` は末尾へのカラム追加しか許容されず、途中への挿入や変更ができない制限を知悉していなかった。(2) 過去のマイグレーションで関数シグネチャ（引数）が変更された後、それ以前のマイグレーションファイルの `GRANT` 文を追従させていなかった。
+  - **対策**: (1) VIEWの定義を変更する際（特にカラム順序変更や型変更を含む場合）は、安易に `CREATE OR REPLACE` を使わず `DROP VIEW IF EXISTS <name> CASCADE; CREATE VIEW <name> AS ...` の手順を標準とする。(2) マイグレーションエラー発生時は当てずっぽうな再実行を避け、必ずエラー出力（ログ）から該当ファイルとSQLSTATEを特定するステップバイステップ解析を行うこと。
+
+- [ ] **VLMテスト（Playwright等）のブラウザ環境起因エラー (2026-02-26)**
+#type: impl_debt
+#domain: qa
+#severity: medium
+#trigger: [test, e2e, playwright, vlm, dangerouslyAllowBrowser]
+  - **事象**: スキーマ統合（Phase 2）後のテスト実行時、`tests/vlm/boardDrag.spec.ts` などのVLMテストでブラウザ環境未構築に伴うエラーが発生し、全体のテスト通過（Zero Baseline）の判定を阻害した。
+  - **リスク**: 【中】UIのE2Eテストが自動化ラインで実行できず、VLMによる機能検証が機能しなくなる。
+  - **解決策**: 後日、Playwright等のE2Eテスト環境設定を見直し、ブラウザの実行権限やテストランナーの分離（VLM用とUnit用）を適切に行う。

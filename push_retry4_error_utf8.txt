@@ -1,0 +1,199 @@
+﻿node.exe : Initialisi
+ng login role...
+発生場所 C:\Program Files
+\nodejs\npx.ps1:28 文字
+:12
++   $input | & $NODE_
+EXE $NPX_CLI_JS $args
++            ~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (Initial   
+ ising login role    
+...:String) [],     R
+emoteException
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+Connecting to remote 
+database...
+Skipping migration 20
+260208_unify_units_to
+_kg.sql.bak... (file 
+name must match patte
+rn "<timestamp>_name.
+sql")
+Do you want to push t
+hese migrations to th
+e remote database?
+ 窶｢ 20260224000000_ex
+tend_collection_point
+s.sql
+ 窶｢ 20260224000001_ad
+d_manual_injection_re
+asons.sql
+ 窶｢ 20260224000100_up
+date_master_rpc_v100.
+sql
+ 窶｢ 20260225000000_re
+load_schema_x1.sql
+ 窶｢ 20260226010000_ad
+d_furigana.sql
+ 窶｢ 20260226020000_co
+mplete_point_columns.
+sql
+ 窶｢ 20260226030000_co
+mplete_anon_permissio
+ns.sql
+
+ [Y/n] Y
+Applying migration 20
+260224000000_extend_c
+ollection_points.sql.
+..
+NOTICE (42701): colum
+n "weighing_site_id" 
+of relation "master_c
+ollection_points" alr
+eady exists, skipping
+NOTICE (42701): colum
+n "time_constraint_ty
+pe" of relation "mast
+er_collection_points"
+ already exists, skip
+ping
+NOTICE (42701): colum
+n "is_spot_only" of r
+elation "master_colle
+ction_points" already
+ exists, skipping
+ERROR: cannot drop co
+lumns from view (SQLS
+TATE 42P16)          
+     
+At statement: 5      
+                     
+                     
+     
+-- 2. view_master_poi
+nts 縺ｮ譖ｴ譁ｰ (譁ｰ繧ｫ繝ｩ繝繧
+貞性繧√∵里蟄倥・讒矩繧堤ｶｭ謖・ 
+ 
+CREATE OR REPLACE VIE
+W public.view_master_
+points AS            
+     
+SELECT               
+                     
+                     
+     
+    p.location_id as 
+id,                  
+                     
+     
+    p.name,          
+                     
+                     
+     
+    p.display_name,  
+                     
+                     
+     
+    p.address,       
+                     
+                     
+     
+    p.note,          
+                     
+                     
+     
+    p.internal_note, 
+                     
+                     
+     
+    p.is_active,     
+                     
+                     
+     
+    p.contractor_id, 
+                     
+                     
+     
+    c.name as contrac
+tor_name,            
+                     
+     
+    c.payee_id,      
+                     
+                     
+     
+    -- 譁ｰ隕剰ｿｽ蜉繧ｫ繝ｩ繝
+                     
+                     
+     
+    p.weighing_site_i
+d,                   
+                     
+     
+    p.time_constraint
+_type,               
+                     
+     
+    p.is_spot_only,  
+                     
+                     
+     
+    -- 譌｢蟄倥き繝ｩ繝縺ｮ邯呎価
+                     
+                     
+   
+    p.visit_slot,    
+                     
+                     
+     
+    p.vehicle_restric
+tion_type,           
+                     
+     
+    p.restricted_vehi
+cle_id,              
+                     
+     
+    p.target_item_cat
+egory,               
+                     
+     
+    p.site_contact_ph
+one,                 
+                     
+     
+    p.created_at,    
+                     
+                     
+     
+    p.updated_at     
+                     
+                     
+     
+FROM                 
+                     
+                     
+     
+    public.master_col
+lection_points p     
+                     
+     
+LEFT JOIN            
+                     
+                     
+     
+    public.master_con
+tractors c ON p.contr
+actor_id = c.contract
+or_id
+Try rerunning the com
+mand with --debug to 
+troubleshoot the erro
+r.

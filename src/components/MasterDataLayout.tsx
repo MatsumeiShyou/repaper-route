@@ -38,6 +38,66 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Record<string, any> | null>(null);
 
+    // 列の表示順管理
+    const storageKey = `master_col_order_${schema.rpcTableName}`;
+    const [orderedColumns, setOrderedColumns] = useState<MasterColumn[]>(schema.columns);
+    const [draggedColIndex, setDraggedColIndex] = useState<number | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+    // localStorage から並び順を復元
+    useEffect(() => {
+        const savedOrder = localStorage.getItem(storageKey);
+        if (savedOrder) {
+            try {
+                const orderKeys = JSON.parse(savedOrder) as string[];
+                const reordered = orderKeys
+                    .map(key => schema.columns.find(c => c.key === key))
+                    .filter((c): c is MasterColumn => !!c);
+
+                // 新しく追加されたカラムがあれば末尾に追加
+                const newCols = schema.columns.filter(c => !orderKeys.includes(c.key));
+                setOrderedColumns([...reordered, ...newCols]);
+            } catch (e) {
+                console.error('Failed to load column order', e);
+            }
+        } else {
+            setOrderedColumns(schema.columns);
+        }
+    }, [schema.rpcTableName, schema.columns]);
+
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+        setDraggedColIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+        // ドラッグ中の見た目を調整するためのクラス付与などはここ
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        setDragOverIndex(index);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedColIndex(null);
+        setDragOverIndex(null);
+    };
+
+    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+        e.preventDefault();
+        if (draggedColIndex === null || draggedColIndex === dropIndex) return;
+
+        const nextColumns = [...orderedColumns];
+        const [movedCol] = nextColumns.splice(draggedColIndex, 1);
+        nextColumns.splice(dropIndex, 0, movedCol);
+
+        setOrderedColumns(nextColumns);
+
+        // localStorage に保存
+        const orderKeys = nextColumns.map(c => c.key);
+        localStorage.setItem(storageKey, JSON.stringify(orderKeys));
+
+        handleDragEnd();
+    };
+
     const filteredData = data.filter(item => {
         if (!searchQuery) return true;
         return schema.searchFields.some(field =>
@@ -123,12 +183,24 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                         <table className="w-full text-left border-separate border-spacing-0 min-w-max">
                             <thead className="sticky top-0 z-20">
                                 <tr className="bg-slate-50 dark:bg-slate-800 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                                    {schema.columns.map((col) => (
+                                    {orderedColumns.map((col, idx) => (
                                         <th
                                             key={col.key}
-                                            className={`px-6 py-4 border-b border-slate-200 dark:border-slate-800 ${col.className?.includes('sticky') ? 'sticky left-0 bg-slate-50 dark:bg-slate-800 z-30' : ''}`}
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, idx)}
+                                            onDragOver={(e) => handleDragOver(e, idx)}
+                                            onDragEnd={handleDragEnd}
+                                            onDrop={(e) => handleDrop(e, idx)}
+                                            className={`px-6 py-4 border-b border-slate-200 dark:border-slate-800 cursor-move transition-all
+                                                ${col.className?.includes('sticky') ? 'sticky left-0 bg-slate-50 dark:bg-slate-800 z-30' : ''}
+                                                ${dragOverIndex === idx ? 'border-l-4 border-l-blue-500 bg-blue-50/50' : ''}
+                                                ${draggedColIndex === idx ? 'opacity-30' : ''}
+                                            `}
                                         >
-                                            {col.label}
+                                            <div className="flex items-center gap-2">
+                                                {col.label}
+                                                <div className="opacity-0 group-hover:opacity-100 text-slate-300">⋮⋮</div>
+                                            </div>
                                         </th>
                                     ))}
                                 </tr>
@@ -140,8 +212,8 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                                         className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
                                         onClick={() => handleEdit(item)}
                                     >
-                                        {schema.columns.map(col => (
-                                            <td key={col.key} className={`px-6 py-4 whitespace-nowrap text-sm ${col.className || ''}`}>
+                                        {orderedColumns.map(col => (
+                                            <td key={col.key} className={`px-6 py-4 whitespace-nowrap text-sm ${col.className || ''} ${col.className?.includes('sticky') ? 'sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/80 z-10' : ''}`}>
                                                 {renderCell(item, col)}
                                             </td>
                                         ))}
@@ -287,9 +359,9 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
         if (tagList.length === 0) return <span className="text-slate-400">-</span>;
 
         return (
-            <div className="flex flex-wrap gap-1 py-1">
+            <div className="flex flex-nowrap gap-1 py-1 overflow-hidden">
                 {tagList.map(tag => (
-                    <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
+                    <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 whitespace-nowrap">
                         {tag}
                     </span>
                 ))}
@@ -323,7 +395,7 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
         });
 
         return (
-            <div className="flex flex-wrap gap-0.5 max-w-[150px]">
+            <div className="flex flex-nowrap gap-0.5">
                 {weekDays.map(d => {
                     const isActive = regularDays.includes(d);
                     let activeColor = 'bg-blue-500 text-white';

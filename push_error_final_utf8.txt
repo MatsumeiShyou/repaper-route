@@ -1,0 +1,37 @@
+﻿node.exe : Initialisi
+ng login role...
+発生場所 行:1 文字:1
++ & "C:\Program Files
+\nodejs/node.exe" "C:
+\Program Files\nodejs
+/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (Initial   
+ ising login role    
+...:String) [],     R
+emoteException
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+Connecting to remote 
+database...
+Found local migration
+ files to be inserted
+ before the last migr
+ation on remote datab
+ase.
+
+Rerun the command wit
+h --include-all flag 
+to apply these migrat
+ions:
+supabase\migrations\2
+0260208_unify_units_t
+o_kg.sql
+

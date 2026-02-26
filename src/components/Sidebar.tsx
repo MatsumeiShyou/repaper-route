@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    LayoutDashboard, Truck, Users, Settings, Database,
+    LayoutDashboard, Truck, Users, Settings,
     MapPin, Box, Shield, Activity, LogOut
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
