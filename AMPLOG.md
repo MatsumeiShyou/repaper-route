@@ -499,7 +499,8 @@ Docker (Supabase local) 起動エラーが発生している現状において�
 | 2026-02-24 | dragOffset 未定義による実行時エラーの修正 | BoardCanvas.tsx, useBoardDragDrop.ts | ドラッグ座標の分離管理導入時に発生した、フック戻り値とコンポーネント側の不整合（未定義エラー）を解消。画面の正常描画を復旧。 | 済 | 承認 (PW: ｙ) |
 | 2026-02-25 | 統治機構「Fast-Path（バイパス）」要件の定義 | docs/governance/FAST_PATH.md | 軽微なUI修正や文言変更に対する統治オーバーヘッド削減のため、SADAテストや厳密な事前チェックをスキップできるFast-Path基準を策定。 | 済 | 承認 (PW: ｙ) |
 | 2026-02-25 | Phase 2: スキーマ同期（Entity）のSSOT化の実装と検証完了 | 各種TypeScriptファイル, BoardCanvas.test.tsx | DB自動生成型（database.types.ts）とフロントエンド型（masterSchema.ts）を統合。Zero Baseline達成とVitestエラー検証を追加完了。 | 済 | 承認 (PW: ｙ) |
-| 2026-02-26 | Phase 3: Shared Reasons 実装とテストインフラ安定化の実装完了 | src/features/board/hooks/useSharedReasons.ts, vitest.config.js 等 | 共有理由リストの実装完遂とテスト環境のクラッシュ（__dirname参照エラー等）を解決しテストの全パスを達成 | 済 | 承認済 |
+| 2026-02-26 | Phase 3: Shared Reasons 実装とテストインフラ安定化の実装完了 | src/features/board/hooks/useSharedReasons.ts, vitest.config.js 等 | 共有理由リストの実装完遂とテスト環境のクラッシュ（__dirname参照エラー等）を解決しテストの全パスを達成 | 済 | 承認 (PW: ｙ) |
+| 2026-02-26 | Phase 4: ドラッグ距離の修正と座標コンテナ化 | src/features/board/components/JobLayer.tsx, src/features/board/hooks/useBoardDragDrop.ts | ドラッグ時のカードプレビュー位置がカーソルから離れるバグを修正。コンテナ（TimeGrid）相対座標を用いた計算とabsolute配置により正確な追従を復旧した。 | 済 | 承認 (PW: ｙ) |
 
 ---
 
@@ -519,4 +520,14 @@ Docker (Supabase local) 起動エラーが発生している現状において�
   - Decision: manual_injection_reasons への保存読込ロジックと、vitestコンフィグの最適化を実施する。
   - Reason: ユーザー要望「１（Phase 3）」の着手としての必然的なスコープであるため。
 
-STATUS: 承認待 (PW: ｙ)
+STATUS: 承認済 (PW: ｙ)
+
+[Audit: Proposal] Phase 4: ドラッグ距離の修正とSADA検証
+- 目的: 案件カードドラッグ時のプレビュー要素とマウスカーソルの乖離（Y方向距離のエラー）修正。
+- 対象: JobLayer.tsx, useBoardDragDrop.ts, BoardCanvas.tsx (Ref引渡し)
+- SDR構造:
+  - State: TimeGridスクロール座標とグローバルマウスY座標が混同計算され、プレビュー表示が下にズレていた（fixed配置にも問題あり）。
+  - Decision: TimeGridのコンテナRefを取得し、ローカル相対座標を計算。プレビューはabsoluteとしてTimeGrid内に表示させる。
+  - Reason: 直感的なUI操作（DOM着陸地点への正確なフィードバック）を実現するため。
+
+STATUS: 承認済 (PW: ｙ)

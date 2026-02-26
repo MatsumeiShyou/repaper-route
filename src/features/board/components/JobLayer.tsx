@@ -197,7 +197,7 @@ export const JobLayer: React.FC<JobLayerProps> = ({
             {/* Drag Preview — Z-100: 最前面 + pointer-events: none */}
             {dropPreview && (
                 <div
-                    className={`fixed pointer-events-none border-2 rounded-md shadow-xl flex items-center justify-center
+                    className={`absolute pointer-events-none border-2 rounded-md shadow-xl flex items-center justify-center
                         ${dropPreview.isOverlapError ? 'bg-red-500/20 border-red-500' :
                             dropPreview.isWarning ? 'bg-yellow-500/20 border-yellow-500' : 'bg-emerald-500/20 border-emerald-500'}
                     `}

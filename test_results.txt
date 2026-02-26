@@ -1,17 +1,21 @@
 ﻿
+> repaper-route@1.0.0 test
+> vitest --watch=false
+
+
 [1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/shiyo/髢狗匱荳ｭAPP/RePaper Route[39m
 
+ [31m笶ｯ[39m pg_fix/node_modules/pg-protocol/dist/outbound-serializer.test.js [2m([22m[2m0 test[22m[2m)[22m
  [31m笶ｯ[39m temp_pg/node_modules/pg-protocol/dist/inbound-parser.test.js [2m([22m[2m0 test[22m[2m)[22m
  [31m笶ｯ[39m pg_fix/node_modules/pg-protocol/dist/inbound-parser.test.js [2m([22m[2m0 test[22m[2m)[22m
- [31m笶ｯ[39m pg_fix/node_modules/pg-protocol/dist/outbound-serializer.test.js [2m([22m[2m0 test[22m[2m)[22m
  [31m笶ｯ[39m temp_pg/node_modules/pg-protocol/dist/outbound-serializer.test.js [2m([22m[2m0 test[22m[2m)[22m
 [90mstdout[2m | src/test/ai/SemanticExtractor.test.tsx[2m > [22m[2mSemanticExtractor Prototype[2m > [22m[2mhandles pseudo-elements if supported by jsdom/testing-library
 [22m[39mButton name from pseudo-element: 
 
- [32m笨・[39m src/test/ai/SemanticExtractor.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 323[2mms[22m[39m
- [31m笶ｯ[39m src/features/board/BoardCanvas.test.tsx [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 247[2mms[22m[39m
-[31m     [31mﾃ・[31m 繧ｵ繧､繝峨ヰ繝ｼ縺ｮ髢矩哩縺ｫ莨ｴ縺・そ繝槭Φ繝・ぅ繝・け蟾ｮ蛻・ｒ謚ｽ蜃ｺ縺励、I讀懆ｨｼ逕ｨ縺ｮ繝・・繧ｿ繧堤函謌舌☆繧・[39m[32m 238[2mms[22m[39m
-[31m     [31mﾃ・[31m 隱ｭ縺ｿ蜿悶ｊ蟆ら畑繝｢繝ｼ繝会ｼ・ditMode: false・峨〒繧ゅそ繝ｫ繧ｯ繝ｪ繝・け縺ｧ繧ｵ繧､繝峨ヰ繝ｼ縺碁幕縺上％縺ｨ繧堤｢ｺ隱阪☆繧・[39m[32m 7[2mms[22m[39m
+ [32m笨・[39m src/test/ai/SemanticExtractor.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 276[2mms[22m[39m
+ [31m笶ｯ[39m src/features/board/BoardCanvas.test.tsx [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 252[2mms[22m[39m
+[31m     [31mﾃ・[31m 繧ｵ繧､繝峨ヰ繝ｼ縺ｮ髢矩哩縺ｫ莨ｴ縺・そ繝槭Φ繝・ぅ繝・け蟾ｮ蛻・ｒ謚ｽ蜃ｺ縺励、I讀懆ｨｼ逕ｨ縺ｮ繝・・繧ｿ繧堤函謌舌☆繧・[39m[32m 220[2mms[22m[39m
+[31m     [31mﾃ・[31m 隱ｭ縺ｿ蜿悶ｊ蟆ら畑繝｢繝ｼ繝会ｼ・ditMode: false・峨〒繧ゅそ繝ｫ繧ｯ繝ｪ繝・け縺ｧ繧ｵ繧､繝峨ヰ繝ｼ縺碁幕縺上％縺ｨ繧堤｢ｺ隱阪☆繧・[39m[32m 30[2mms[22m[39m
 [90mstdout[2m | src/features/admin/__tests__/MasterDriverList.sada.test.tsx[2m > [22m[2mMasterDriverList SADA Verification[2m > [22m[2mshould reflect correct semantic status (Active/Inactive) from data
 [22m[39mSADA_PROMPT_DATA: {
   "goal": "Ensure that drivers with is_active:true are semantically represented as \"Active\" or equivalent positive state in the UI.",
@@ -520,15 +524,13 @@
   "steps": []
 }
 
- [32m笨・[39m src/features/admin/__tests__/MasterDriverList.sada.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 555[2mms[22m[39m
-     [33m[2m笨・[22m[39m should reflect correct semantic status (Active/Inactive) from data [33m 553[2mms[22m[39m
- [32m笨・[39m src/components/MasterDataLayout.sada.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1265[2mms[22m[39m
-     [33m[2m笨・[22m[39m captures semantic changes when opening and closing the creation modal [33m 858[2mms[22m[39m
-     [33m[2m笨・[22m[39m captures semantic changes when filtering the list [33m 405[2mms[22m[39m
- [32m笨・[39m pg_fix/node_modules/pg-protocol/src/outbound-serializer.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m笨・[39m pg_fix/node_modules/pg-protocol/src/inbound-parser.test.ts [2m([22m[2m48 tests[22m[2m)[22m[32m 18[2mms[22m[39m
- [32m笨・[39m src/test/ai/AITestBatcher.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 250[2mms[22m[39m
- [32m笨・[39m temp_pg/node_modules/pg-protocol/src/inbound-parser.test.ts [2m([22m[2m48 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m笨・[39m src/features/admin/__tests__/MasterDriverList.sada.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 585[2mms[22m[39m
+     [33m[2m笨・[22m[39m should reflect correct semantic status (Active/Inactive) from data [33m 583[2mms[22m[39m
+ [32m笨・[39m src/components/MasterDataLayout.sada.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1124[2mms[22m[39m
+     [33m[2m笨・[22m[39m captures semantic changes when opening and closing the creation modal [33m 867[2mms[22m[39m
+ [32m笨・[39m temp_pg/node_modules/pg-protocol/src/inbound-parser.test.ts [2m([22m[2m48 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m笨・[39m pg_fix/node_modules/pg-protocol/src/outbound-serializer.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m笨・[39m pg_fix/node_modules/pg-protocol/src/inbound-parser.test.ts [2m([22m[2m48 tests[22m[2m)[22m[32m 17[2mms[22m[39m
 [90mstdout[2m | src/features/admin/__tests__/MasterPointList.sada.test.tsx[2m > [22m[2mMasterPointList SADA Test[2m > [22m[2m螟牙援蜻ｨ譛滂ｼ育ｬｬN譖懈律・峨・蜈･蜉帙→繝舌ャ繧ｸ繝ｬ繝ｳ繝繝ｪ繝ｳ繧ｰ繧呈､懆ｨｼ縺吶ｋ
 [22m[39m--- Periodic SADA Prompt Data ---
 {
@@ -578,14 +580,15 @@
         "children": [],
        ...
 
- [32m笨・[39m src/features/admin/__tests__/MasterPointList.sada.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1725[2mms[22m[39m
-     [33m[2m笨・[22m[39m 螟牙援蜻ｨ譛滂ｼ育ｬｬN譖懈律・峨・蜈･蜉帙→繝舌ャ繧ｸ繝ｬ繝ｳ繝繝ｪ繝ｳ繧ｰ繧呈､懆ｨｼ縺吶ｋ [33m 1724[2mms[22m[39m
- [32m笨・[39m temp_pg/node_modules/pg-protocol/src/outbound-serializer.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m笨・[39m src/test/smoke.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m笨・[39m src/test/ai/AITestBatcher.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 173[2mms[22m[39m
+ [32m笨・[39m src/features/admin/__tests__/MasterPointList.sada.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1449[2mms[22m[39m
+     [33m[2m笨・[22m[39m 螟牙援蜻ｨ譛滂ｼ育ｬｬN譖懈律・峨・蜈･蜉帙→繝舌ャ繧ｸ繝ｬ繝ｳ繝繝ｪ繝ｳ繧ｰ繧呈､懆ｨｼ縺吶ｋ [33m 1448[2mms[22m[39m
+ [32m笨・[39m temp_pg/node_modules/pg-protocol/src/outbound-serializer.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 5[2mms[22m[39m
 [90mstdout[2m | tests/vlm/boardDrag.spec.ts
-[22m[39m[dotenv@17.3.1] injecting env (0) from .env -- tip: 笞呻ｸ・ load multiple .env files with { path: ['.env.local', '.env'] }
+[22m[39m[dotenv@17.3.1] injecting env (0) from .env -- tip: 屏・・ run anywhere with `dotenvx run -- yourcommand`
 
  [31m笶ｯ[39m tests/vlm/boardDrag.spec.ts [2m([22m[2m0 test[22m[2m)[22m
+ [32m笨・[39m src/test/smoke.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
 [90mstdout[2m | src/features/board/ManualInjectionSADA.test.tsx[2m > [22m[2mManual Injection SADA Test[2m > [22m[2m譯井ｻｶ縺ｮ謇句虚豕ｨ蜈･繝輔Ο繝ｼ縺ｮ繧ｻ繝槭Φ繝・ぅ繝・け蟾ｮ蛻・ｒ險倬鹸縺吶ｋ
 [22m[39m[Board] Manually injecting job: 蝨ｰ轤ｹA Reason: 蠖捺律萓晞ｼ縺ｮ縺溘ａ
 --- SADA VERIFICATION DATA START ---
@@ -2997,11 +3000,11 @@
 }
 --- SADA VERIFICATION DATA END ---
 
- [32m笨・[39m src/features/board/ManualInjectionSADA.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 2287[2mms[22m[39m
-     [33m[2m笨・[22m[39m 譯井ｻｶ縺ｮ謇句虚豕ｨ蜈･繝輔Ο繝ｼ縺ｮ繧ｻ繝槭Φ繝・ぅ繝・け蟾ｮ蛻・ｒ險倬鹸縺吶ｋ [33m 2285[2mms[22m[39m
+ [32m笨・[39m src/features/board/ManualInjectionSADA.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 2010[2mms[22m[39m
+     [33m[2m笨・[22m[39m 譯井ｻｶ縺ｮ謇句虚豕ｨ蜈･繝輔Ο繝ｼ縺ｮ繧ｻ繝槭Φ繝・ぅ繝・け蟾ｮ蛻・ｒ險倬鹸縺吶ｋ [33m 2008[2mms[22m[39m
 
 [2m Test Files [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m11 passed[39m[22m[90m (17)[39m
 [2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m163 passed[39m[22m[90m (165)[39m
-[2m   Start at [22m 04:49:53
-[2m   Duration [22m 4.55s[2m (transform 2.37s, setup 2.33s, import 3.78s, tests 6.71s, environment 20.32s)[22m
+[2m   Start at [22m 04:47:36
+[2m   Duration [22m 4.28s[2m (transform 1.82s, setup 2.20s, import 3.21s, tests 5.92s, environment 19.98s)[22m
 

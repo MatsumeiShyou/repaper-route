@@ -45,6 +45,7 @@ export default function BoardCanvas() {
 
     // 2. Drag & Drop Hook
     const driverColRefs = useRef<Record<string, HTMLElement | null>>({});
+    const gridContainerRef = useRef<HTMLDivElement>(null);
     const {
         draggingJobId, draggingSplitId,
         dropPreview, dropSplitPreview,
@@ -55,6 +56,7 @@ export default function BoardCanvas() {
     } = useBoardDragDrop(
         jobs, drivers, splits,
         driverColRefs,
+        gridContainerRef,
         setJobs, setSplits,
         recordHistory
     );
@@ -196,7 +198,7 @@ export default function BoardCanvas() {
                         canEditBoard={canEditBoard && editMode}
                         stickyTop="top-0"
                     />
-                    <div className="relative">
+                    <div className="relative" ref={gridContainerRef}>
                         <TimeGrid
                             drivers={drivers}
                             jobs={jobs}

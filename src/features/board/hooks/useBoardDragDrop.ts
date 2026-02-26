@@ -20,6 +20,7 @@ export const useBoardDragDrop = (
     drivers: BoardDriver[],
     splits: BoardSplit[],
     driverColRefs: React.MutableRefObject<Record<string, HTMLElement | null>>,
+    gridContainerRef: React.RefObject<HTMLDivElement>,
     setJobs: React.Dispatch<React.SetStateAction<BoardJob[]>>,
     _setSplits: React.Dispatch<React.SetStateAction<BoardSplit[]>>, // unused but kept for interface match
     recordHistory: () => void,
@@ -138,20 +139,32 @@ export const useBoardDragDrop = (
             return;
         }
 
+        let relativeStartY = e.clientY;
+        if (gridContainerRef.current) {
+            const containerRect = gridContainerRef.current.getBoundingClientRect();
+            relativeStartY = e.clientY - containerRect.top;
+        }
+
         setResizingState({
             id: job.id,
             direction,
-            startY: e.clientY,
+            startY: relativeStartY,
             originalStartTime: job.timeConstraint,
             originalDuration: job.duration
         });
     };
 
     const handleWindowMouseMove = useCallback((e: MouseEvent) => {
-        setDragMousePos({ x: e.clientX, y: e.clientY });
+        let relativeY = e.clientY;
+        if (gridContainerRef.current) {
+            const containerRect = gridContainerRef.current.getBoundingClientRect();
+            relativeY = e.clientY - containerRect.top;
+        }
+
+        setDragMousePos({ x: e.clientX, y: relativeY });
 
         if (resizingState) {
-            const deltaY = e.clientY - resizingState.startY;
+            const deltaY = relativeY - resizingState.startY;
             const deltaBlocks = Math.round(deltaY / CELL_HEIGHT_PX);
             const deltaMinutes = deltaBlocks * 15;
 
@@ -182,7 +195,7 @@ export const useBoardDragDrop = (
 
         if (draggingJobId) {
             try {
-                const currentY = e.clientY - dragOffset.y;
+                const currentY = relativeY - dragOffset.y;
                 setDropPreview(calculateDropTargetRef(e.clientX, currentY, draggingJobId));
             } catch (err) {
                 console.error("[DragDrop] Error calculating drop preview:", err);
@@ -198,7 +211,12 @@ export const useBoardDragDrop = (
 
         if (draggingJobId) {
             try {
-                const currentY = e.clientY - dragOffset.y;
+                let relativeY = e.clientY;
+                if (gridContainerRef.current) {
+                    const containerRect = gridContainerRef.current.getBoundingClientRect();
+                    relativeY = e.clientY - containerRect.top;
+                }
+                const currentY = relativeY - dragOffset.y;
                 const preview = calculateDropTargetRef(e.clientX, currentY, draggingJobId);
                 if (preview && !preview.isOverlapError) {
                     const target = jobs.find(j => j.id === draggingJobId);
