@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
+import { useBoardValidation } from './hooks/useBoardValidation';
 import { useMasterData } from './hooks/useMasterData';
 
 import { DriverHeader } from './components/DriverHeader';
@@ -16,6 +17,7 @@ import { BoardJob, BoardDriver } from '../../types';
 import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
+import { AlertTriangle } from 'lucide-react';
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
@@ -61,6 +63,8 @@ export default function BoardCanvas() {
         recordHistory
     );
 
+    // 2.5. Board Validation (Logic Base 全域連動)
+    const validation = useBoardValidation(jobs, drivers, splits);
     // 3. UI State
     const [selectedCell, setSelectedCell] = useState<{ driverId: string, time: string } | null>(null);
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -159,7 +163,15 @@ export default function BoardCanvas() {
 
                     {editMode && (
                         <button
-                            onClick={() => setIsSaveModalOpen(true)}
+                            onClick={() => {
+                                if (!validation.isValid) {
+                                    const proceed = window.confirm(
+                                        `⚠️ ${validation.summary}\n\nこのまま保存しますか？`
+                                    );
+                                    if (!proceed) return;
+                                }
+                                setIsSaveModalOpen(true);
+                            }}
                             disabled={isSyncing}
                             className={`px-4 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
                                 ${isSyncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
@@ -167,6 +179,9 @@ export default function BoardCanvas() {
                         >
                             <Save size={16} />
                             {isSyncing ? '保存中...' : '保存'}
+                            {!validation.isValid && (
+                                <AlertTriangle size={14} className="text-amber-500 ml-1" />
+                            )}
                         </button>
                     )}
 
@@ -261,7 +276,17 @@ export default function BoardCanvas() {
                     {editMode ? '編集モード（同期中）' : '閲覧モード（読み取り専用）'}
                 </span>
                 <span>Sanctuary Engine v3.0.0-ts</span>
-                <span className="ml-auto">サーバー接続済み</span>
+                <span className="ml-auto flex items-center gap-2">
+                    {!validation.isValid && (
+                        <span className="flex items-center gap-1 text-amber-400">
+                            <AlertTriangle size={10} />
+                            {validation.summary}
+                        </span>
+                    )}
+                    {validation.isValid && (
+                        <span className="text-emerald-600">✓ {validation.summary}</span>
+                    )}
+                </span>
             </div>
 
             <HeaderEditModal
