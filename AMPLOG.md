@@ -501,6 +501,7 @@ Docker (Supabase local) 起動エラーが発生している現状において�
 | 2026-02-25 | Phase 2: スキーマ同期（Entity）のSSOT化の実装と検証完了 | 各種TypeScriptファイル, BoardCanvas.test.tsx | DB自動生成型（database.types.ts）とフロントエンド型（masterSchema.ts）を統合。Zero Baseline達成とVitestエラー検証を追加完了。 | 済 | 承認 (PW: ｙ) |
 | 2026-02-26 | Phase 3: Shared Reasons 実装とテストインフラ安定化の実装完了 | src/features/board/hooks/useSharedReasons.ts, vitest.config.js 等 | 共有理由リストの実装完遂とテスト環境のクラッシュ（__dirname参照エラー等）を解決しテストの全パスを達成 | 済 | 承認 (PW: ｙ) |
 | 2026-02-26 | Phase 4: ドラッグ距離の修正と座標コンテナ化 | src/features/board/components/JobLayer.tsx, src/features/board/hooks/useBoardDragDrop.ts | ドラッグ時のカードプレビュー位置がカーソルから離れるバグを修正。コンテナ（TimeGrid）相対座標を用いた計算とabsolute配置により正確な追従を復旧した。 | 済 | 承認 (PW: ｙ) |
+| 2026-02-27 | Phase 5: マスター未登録データの完全パージとモック起因の不整合解消 | supabase/migrations, 関連フロントエンド | 過去のモックデータ（customer_id=null等）を削除し外部キー制約を付与。UI層の冗長なnullチェックも除去しシステムを正典化する。 | 済 | 承認済 (PW: ｙ) |
 
 ---
 

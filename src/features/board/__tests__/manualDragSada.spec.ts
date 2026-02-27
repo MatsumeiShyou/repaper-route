@@ -4,7 +4,7 @@ import { useBoardDragDrop } from '../hooks/useBoardDragDrop';
 import { BoardJob } from '../../../types';
 
 describe('useBoardDragDrop Manual Job Offset Calculation (SADA)', () => {
-    it('手動追加直後の案件をドラッグした際、dragMousePosがコンテナの相対座標に初期化されること', () => {
+    it('案件をドラッグした際、dropPreviewが相対座標を基に正確に計算・更新されること', () => {
         // Mock Container Ref (TimeGrid)
         const mockContainerRect = {
             top: 100, // Container is 100px from the top of the viewport
@@ -21,7 +21,14 @@ describe('useBoardDragDrop Manual Job Offset Calculation (SADA)', () => {
         mockContainer.getBoundingClientRect = vi.fn().mockReturnValue(mockContainerRect);
 
         const gridContainerRef = { current: mockContainer };
-        const driverColRefs = { current: {} };
+        // モックカラム（X:200でマッチ）
+        const mockDriverColRect = {
+            top: 100, left: 200, right: 380, bottom: 900, width: 180, height: 800, x: 200, y: 100, toJSON: () => { }
+        };
+        const mockDriverCol = document.createElement('div');
+        mockDriverCol.getBoundingClientRect = vi.fn().mockReturnValue(mockDriverColRect);
+        const driverColRefs = { current: { 'driver-1': mockDriverCol } };
+
         const setJobs = vi.fn();
         const setSplits = vi.fn();
         const recordHistory = vi.fn();
@@ -29,8 +36,8 @@ describe('useBoardDragDrop Manual Job Offset Calculation (SADA)', () => {
         const mockJob: BoardJob = {
             id: 'manual-123',
             title: 'Test Job',
-            driverId: 'driver-1',
-            timeConstraint: '10:00',
+            driverId: 'driver-1', // Initially set to driver-1
+            timeConstraint: '10:00', // 10:00 (10*60=600 min). Top= 240/15*32 = 512px
             duration: 30,
             bucket: 'スポット'
         } as any;
@@ -46,55 +53,53 @@ describe('useBoardDragDrop Manual Job Offset Calculation (SADA)', () => {
             recordHistory
         ));
 
-        // シミュレーション: ユーザーが画面上で Y=250 の位置にあるカードを掴む
-        // コンテナの top が 100 なので、相対座標は 250 - 100 = 150 になるべき
-
-        // カード自身の位置モック
+        // カード自体の表示位置 (絶対座標) 
+        // コンテナTop 100 + 相対Top 512 = 612px
         const mockCardRect = {
-            top: 250, // Absolute viewport Y
-            left: 300,
+            top: 612,
+            left: 200,
             width: 150,
             height: 60,
-            bottom: 310,
-            right: 450,
-            x: 300,
-            y: 250,
+            bottom: 672,
+            right: 350,
+            x: 200,
+            y: 612,
             toJSON: () => { }
         };
         const mockCardElement = document.createElement('div');
         mockCardElement.setAttribute('data-job-id', 'manual-123');
         mockCardElement.getBoundingClientRect = vi.fn().mockReturnValue(mockCardRect);
 
-        const mockEvent = {
+        // シミュレーション1: ドラッグ開始（Down） - マウスは絶対Y=622 (カード上部から10pxの場所)
+        const mockDownEvent = {
             button: 0,
-            clientX: 320, // 掴んだX座標
-            clientY: 260, // 掴んだY座標 (絶対座標)
+            clientX: 250,
+            clientY: 622,
             currentTarget: mockCardElement,
             stopPropagation: vi.fn()
         } as unknown as React.MouseEvent;
 
         act(() => {
-            result.current.handleJobMouseDown(mockEvent, mockJob);
+            result.current.handleJobMouseDown(mockDownEvent, mockJob);
         });
 
-        // 1. dragOffsetの確認（カード内での掴んだ位置: 260 - 250 = 10）
-        expect(result.current.dragOffset.y).toBe(10);
+        expect(result.current.draggingJobId).toBe('manual-123');
+        expect(result.current.dropPreview?.startTime).toBe('10:00'); // ドラッグ中の初期値
 
-        // 2. dragMousePosの初期値の確認（相対座標へ変換されているか）
-        // e.clientY(260) - container.top(100) = 160
-        expect(result.current.dragMousePos.y).toBe(160);
+        // シミュレーション2: ドラッグ移動（Move） - マウスを絶対Y=718（カードが下に96px移動：15分枠×3=45分増加）
+        // 期待値: 新しい開始時間は 10:45
+        const mockMoveEvent = new MouseEvent('mousemove', {
+            clientX: 250,
+            clientY: 718
+        });
 
-        // 3. この状態でのプレビューのTop描画座標を計算する
-        // JobLayer の式: top = dragMousePos.y - dragOffset.y - 7
-        const previewTop = result.current.dragMousePos.y - result.current.dragOffset.y - 7;
+        act(() => {
+            result.current.handleBackgroundMouseMove(mockMoveEvent);
+        });
 
-        // 期待値: 160 - 10 - 7 = 143 (相対座標として描画されるべき位置)
-        // もし直っていなければ、ここは 260 - 10 - 7 = 243 となり、大きく乖離する
-
-        console.log(`[SADA Diagnostic] Drag Offset Y: ${result.current.dragOffset.y}`);
-        console.log(`[SADA Diagnostic] Drag Mouse Pos Y (Relative): ${result.current.dragMousePos.y}`);
-        console.log(`[SADA Diagnostic] Calculated Preview Top: ${previewTop}`);
-
-        expect(previewTop).toBe(143);
+        // 答え合わせ: dropPreview が正しくオフセットを加味して新しい時間（10:45）を計算していること
+        expect(result.current.dropPreview).toBeTruthy();
+        console.log(`[SADA Diagnostic] Updated Preview Start Time: ${result.current.dropPreview?.startTime}`);
+        expect(result.current.dropPreview?.startTime).toBe('10:45');
     });
 });

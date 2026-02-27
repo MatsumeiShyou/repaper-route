@@ -5,7 +5,7 @@ import { JobLayer } from '../components/JobLayer';
 import { BoardJob } from '../../../types';
 
 describe('JobLayer SADA Preview Calculation', () => {
-    it('手動追加案件をドラッグした際のプレビューのtop属性が正確に計算されること', () => {
+    it('ドロップターゲットの影（プレビュー）のtop属性が正確に計算されること', () => {
         const mockJob: BoardJob = {
             id: 'manual-123',
             title: 'Test Delivery',
@@ -15,13 +15,6 @@ describe('JobLayer SADA Preview Calculation', () => {
             bucket: 'スポット',
             isSpot: true
         } as any;
-
-        // 手動追加時のドラッグ状態をモック
-        // - コンテナはY=100から始まる
-        // - カードは絶対Y=250で掴まれる（コンテナ相対150）
-        // - マウスの絶対Y=260、相対Y=160
-        // - オフセット計算: dragOffset.y = 10 (カード内から下へ10pxの位置を掴んだ)
-        // 期待値: top = dragMousePos.y(160) - dragOffset.y(10) - 7 = 143px
 
         const { container } = render(
             <JobLayer
@@ -33,14 +26,12 @@ describe('JobLayer SADA Preview Calculation', () => {
                 selectedJobId={null}
                 dropPreview={{
                     driverId: 'driver-A',
-                    startTime: '10:00',
+                    startTime: '10:00', // start time 10:00 = 600 minutes
                     duration: 30,
                     isOverlapError: false,
                     isWarning: false
                 }}
                 dropSplitPreview={null}
-                dragMousePos={{ x: 200, y: 160 }} // relative coordinate already calculated
-                dragOffset={{ x: 0, y: 10 }}
                 resizingState={null}
                 onJobMouseDown={vi.fn()}
                 onSplitMouseDown={vi.fn()}
@@ -50,8 +41,8 @@ describe('JobLayer SADA Preview Calculation', () => {
         );
 
         // プレビューコンテナのDOMを探索
-        // プレビューは "absolute pointer-events-none border-2..." のクラスを持つ
-        const previewElement = container.querySelector('.pointer-events-none.absolute');
+        // プレビュー（ドロップ先の影）は "border-dashed" のクラスを持つ
+        const previewElement = container.querySelector('.border-dashed');
 
         expect(previewElement).toBeTruthy();
 
@@ -60,7 +51,8 @@ describe('JobLayer SADA Preview Calculation', () => {
             const topMatch = styleAttr.match(/top:\s*([^;]+)/);
             const topValue = topMatch ? topMatch[1].trim() : '';
             console.log(`[SADA Diagnostic] Preview style top attribute: ${topValue}`);
-            expect(topValue).toBe('143px');
+            // (10:00 - 06:00) = 4 hours = 240 minutes. 240 / 15 * 32 = 512px
+            expect(topValue).toBe('512px');
         }
     });
 });
