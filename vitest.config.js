@@ -22,7 +22,7 @@ export default defineConfig({
         'dist/',
       ],
     },
-    exclude: ['src-legacy-js', 'node_modules', 'dist', '.idea', '.git', '.cache'],
+    exclude: ['src-legacy-js', 'node_modules', 'dist', '.idea', '.git', '.cache', 'pg_fix', 'temp_pg', '.agent', 'tests/vlm'],
   },
   resolve: {
     alias: {
