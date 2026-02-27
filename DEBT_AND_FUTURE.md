@@ -140,7 +140,18 @@
     - [x] **useBoardData.ts Errors**: Resolved by explicit type assertions for Supabase single queries.
     - [x] **useMasterCRUD.ts Errors**: 静的検証困難な箇所を「是認された動的仕様（TBNY-SPEC-DYNAMIC）」として明文化し、負債を解消。
     - [x] **Master Data Layout Fixes**: 2026-02-22 セッションにて操作列のモーダル化と表示崩れ（z-index, スクロールバー）の対策済みを確認。
-  - **Note**: 既存エラーは一旦是認し、別タスクで集中的に解消するか、`// @ts-ignore` 等で明示的に抑制してベースラインを作成する必要がある。
+  - **Note**: 既存エラーは一旦宣認し、別タスクで集中的に解消するか、`// @ts-ignore` 等で明示的に抑制してベースラインを作成する必要がある。
+
+- [x] **Strict Master-First Architecture Definition (Spot Jobs Handling)**
+#type: arch_decision
+#domain: db, logic, ui
+#severity: high
+#trigger: [jobs, foreign-key, spot-job, master_collection_points]
+#registered: 2026-02-28
+  - **現状**: Phase 5の実装により `jobs.customer_id` に厳格なFK制約が課された。
+  - **判断**: スポット案件であっても「使い捨て」を許容せず、すべて事前に `master_collection_points` への登録を必須とする「Strict Master-First アーキテクチャ」を正典として確定した。
+  - **理由**: システム上の Single Source of Truth を維持し、将来の経理連携等のデータ負債を防ぐため。
+  - **将来のUX課題**: マスタ登録の強制による現場の手間（摩擦）を減らすため、突発追加時には「簡易マスタ登録と案件生成を1アクションで行うUIモジュール」の設計を Future Feature と定める。
 
 ---
 
