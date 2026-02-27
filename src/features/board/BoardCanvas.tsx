@@ -49,7 +49,7 @@ export default function BoardCanvas() {
     const {
         draggingJobId, draggingSplitId,
         dropPreview, dropSplitPreview,
-        dragMousePos, dragOffset, resizingState,
+        resizingState,
         handleJobMouseDown, handleSplitMouseDown,
         handleResizeStart,
         handleBackgroundMouseMove, handleBackgroundMouseUp
@@ -230,8 +230,6 @@ export default function BoardCanvas() {
                             onResizeStart={handleResizeStart}
                             onJobClick={(id) => setSelectedJobId(id)}
                             selectedJobId={selectedJobId}
-                            dragMousePos={dragMousePos}
-                            dragOffset={dragOffset}
                             dropPreview={dropPreview}
                         />
                     </div>

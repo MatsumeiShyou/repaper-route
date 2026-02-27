@@ -17,8 +17,6 @@ interface JobLayerProps {
     resizingState: any | null;
     dropPreview: any | null;
     dropSplitPreview: any | null;
-    dragMousePos: { x: number, y: number };
-    dragOffset: { x: number, y: number };
     onJobMouseDown: (e: React.MouseEvent, job: BoardJob) => void;
     onSplitMouseDown: (e: React.MouseEvent, split: BoardSplit) => void;
     onResizeStart: (e: React.MouseEvent, job: BoardJob, direction: 'top' | 'bottom') => void;
@@ -31,8 +29,6 @@ export const JobLayer: React.FC<JobLayerProps> = ({
     draggingJobId,
     selectedJobId,
     dropPreview,
-    dragMousePos,
-    dragOffset,
     onJobMouseDown,
     onResizeStart,
     onJobClick
@@ -194,40 +190,7 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                 ))}
             </div>
 
-            {/* Drag Preview — Z-100: 最前面 + pointer-events: none */}
-            {dropPreview && (
-                <div
-                    className={`absolute pointer-events-none border-2 rounded-md shadow-xl flex items-center justify-center
-                        ${dropPreview.isOverlapError ? 'bg-red-500/20 border-red-500' :
-                            dropPreview.isWarning ? 'bg-yellow-500/20 border-yellow-500' : 'bg-emerald-500/20 border-emerald-500'}
-                    `}
-                    style={{
-                        zIndex: Z_INDEX.DRAG_PREVIEW,
-                        left: `${dragMousePos.x - dragOffset.x}px`,
-                        top: `${dragMousePos.y - dragOffset.y - 7}px`, // 7px浮かせる
-                        width: '180px',
-                        height: `${(dropPreview.duration / 15) * SLOT_HEIGHT_PX}px`
-                    }}
-                >
-                    <div className="flex flex-col items-center gap-1 p-2">
-                        <span className={`text-[10px] font-bold px-1.5 rounded shadow-sm
-                            ${dropPreview.isOverlapError ? 'bg-red-500 text-white' :
-                                dropPreview.isWarning ? 'bg-yellow-500 text-white' : 'bg-emerald-500 text-white'}
-                        `}>
-                            {dropPreview.startTime}
-                        </span>
-                        {dropPreview.isOverlapError && (
-                            <div className="flex flex-col items-center gap-1">
-                                <Ban size={12} className="text-red-500" />
-                                <div className="text-[8px] text-red-600 bg-red-50 px-1 py-0.5 rounded font-bold text-center leading-tight">
-                                    {dropPreview.logicResult?.reason?.filter((r: string) => r.includes('不可')).map((r: string) => r.replace('【不可】', '')).join('\n') || '配置不可'}
-                                </div>
-                            </div>
-                        )}
-                        {dropPreview.isWarning && <AlertTriangle size={12} className="text-yellow-500" />}
-                    </div>
-                </div>
-            )}
+            {/* Drag Preview はユーザー要望により削除 */}
         </div>
     );
 };

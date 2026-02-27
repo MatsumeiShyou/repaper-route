@@ -519,6 +519,15 @@ Docker (Supabase local) 起動エラーが発生している現状において�
   - State: 過去フェーズでUI側のShared Reasonsガワは完成したがDBとは未接続。またSADA実行時にVite起因エラーが頻発している。
   - Decision: manual_injection_reasons への保存読込ロジックと、vitestコンフィグの最適化を実施する。
   - Reason: ユーザー要望「１（Phase 3）」の着手としての必然的なスコープであるため。
+STATUS: 承認済 (PW: ｙ)
+
+[Audit: Proposal] Phase 5: マスター未登録データの完全パージとモック起因の不整合解消
+- 目的: 開発初期のモックデータ（マスタ非連動のjobsレコード）の削除と、再発防止の外部キー制約追加
+- 対象: jobs テーブル, master_collection_points テーブル
+- SDR構造:
+  - State: jobs テーブル内に `customer_id` が NULL のまま残存しているテスト用レコードが5件あり、配車盤操作時にバグや不整合の要因となっている。
+  - Decision: これらの孤立レコードを物理削除し、`jobs.customer_id` から `master_collection_points.location_id` への Foreign Key 制約を明示的に追加する。
+  - Reason: 「マスタにない案件は存在し得ない」という業務の正典（データ整合性）をハードウェアレベル(DB)で強制し、無用なアプリ側の例外処理やUI不具合を防ぐため。
 
 STATUS: 承認済 (PW: ｙ)
 
