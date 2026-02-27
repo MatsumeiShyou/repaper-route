@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import Modal from '../../../components/Modal';
 import { BoardJob, BoardDriver } from '../../../types';
-import { MapPin, AlertTriangle } from 'lucide-react';
+import { MapPin, AlertTriangle, Plus } from 'lucide-react';
 import { useSharedReasons } from '../hooks/useSharedReasons';
+import { supabase } from '../../../lib/supabase/client';
+import { invalidateMasterCache } from '../hooks/useMasterData';
 
 interface AddJobModalProps {
     isOpen: boolean;
@@ -26,6 +28,13 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
     const [reason, setReason] = useState('');
     const [reasonMode, setReasonMode] = useState<'list' | 'direct' | 'save'>('list');
     const { savedReasons, recordReasonUsage } = useSharedReasons(isOpen);
+
+    // --- 簡易マスタ登録モード ---
+    const [isNewPointMode, setIsNewPointMode] = useState(false);
+    const [newPointName, setNewPointName] = useState('');
+    const [newPointFurigana, setNewPointFurigana] = useState('');
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [registerError, setRegisterError] = useState<string | null>(null);
 
     const KANA_GROUPS = ['全', 'あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ'];
     const KANA_MAPPING: Record<string, string> = {
@@ -96,6 +105,10 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
             setReason('');
             setSearchGroup('全');
             setReasonMode('list');
+            setIsNewPointMode(false);
+            setNewPointName('');
+            setNewPointFurigana('');
+            setRegisterError(null);
         } catch (error: any) {
             console.error('Failed to inject job or save reason:', error);
             alert(`データベースの保存に失敗しました。\n詳細: ${error?.message || error?.details || 'Unknown Error'}`);
@@ -169,6 +182,94 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                         <div className="p-12 text-center text-slate-400 text-xs">該当する回収先が見つかりません</div>
                     )}
                 </div>
+
+                {/* 簡易マスタ登録フォーム */}
+                {!isNewPointMode ? (
+                    <button
+                        onClick={() => setIsNewPointMode(true)}
+                        className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-all"
+                        data-sada-id="open-quick-register"
+                    >
+                        <Plus size={14} />
+                        一覧にない場合→新規登録して追加
+                    </button>
+                ) : (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2" data-sada-id="quick-register-form">
+                        <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">簡易マスタ登録</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            <input
+                                type="text"
+                                value={newPointName}
+                                onChange={(e) => setNewPointName(e.target.value)}
+                                placeholder="名称（必須）"
+                                className="border rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                data-sada-id="quick-register-name"
+                            />
+                            <input
+                                type="text"
+                                value={newPointFurigana}
+                                onChange={(e) => setNewPointFurigana(e.target.value)}
+                                placeholder="フリガナ"
+                                className="border rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                data-sada-id="quick-register-furigana"
+                            />
+                        </div>
+                        {registerError && (
+                            <p className="text-[10px] text-red-600">{registerError}</p>
+                        )}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => { setIsNewPointMode(false); setRegisterError(null); }}
+                                className="flex-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border rounded hover:bg-slate-50"
+                            >
+                                戻る
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!newPointName.trim()) {
+                                        setRegisterError('名称は必須です');
+                                        return;
+                                    }
+                                    setIsRegistering(true);
+                                    setRegisterError(null);
+                                    try {
+                                        const newId = `spot-${Date.now()}`;
+                                        const { error: rpcErr } = await (supabase as any).rpc('rpc_execute_master_update', {
+                                            p_table_name: 'master_collection_points',
+                                            p_core_data: {
+                                                location_id: newId,
+                                                name: newPointName.trim(),
+                                                display_name: newPointName.trim(),
+                                                furigana: newPointFurigana.trim() || null,
+                                                is_active: true
+                                            },
+                                            p_reason: '配車盤からの簡易マスタ登録（スポット案件対応）'
+                                        });
+                                        if (rpcErr) throw rpcErr;
+                                        invalidateMasterCache();
+                                        // 登録成功→即座に選択状態にする
+                                        setSelectedPointId(newId);
+                                        setIsNewPointMode(false);
+                                        setNewPointName('');
+                                        setNewPointFurigana('');
+                                    } catch (err: any) {
+                                        console.error('[QuickRegister] Failed:', err);
+                                        setRegisterError(`登録失敗: ${err?.message || err?.details || 'Unknown'}`);
+                                    } finally {
+                                        setIsRegistering(false);
+                                    }
+                                }}
+                                disabled={isRegistering || !newPointName.trim()}
+                                className={`flex-1 px-3 py-1.5 text-xs font-bold text-white rounded transition-all
+                                    ${isRegistering || !newPointName.trim() ? 'bg-slate-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
+                                `}
+                                data-sada-id="quick-register-submit"
+                            >
+                                {isRegistering ? '登録中...' : '登録して選択'}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="space-y-2">
                     <div className="flex items-center justify-between mb-1">
