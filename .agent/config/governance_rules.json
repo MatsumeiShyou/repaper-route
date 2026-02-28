@@ -1,0 +1,52 @@
+{
+    "rules": [
+        {
+            "id": "H-1",
+            "name": "Windowsシェル互換性（&&禁止）",
+            "section": "AGENTS.md §H",
+            "pattern": " && ",
+            "include": [
+                "package.json",
+                ".agent/scripts/*.js",
+                ".github/workflows/*.yml"
+            ],
+            "message": "PowerShell 5.1互換性のため '&&' は使用不可です。';' 等で代替してください。"
+        },
+        {
+            "id": "B-4",
+            "name": "AIロジック排除",
+            "section": "AGENTS.md §B-4",
+            "pattern": "(TODO:|FIXME:).*AI",
+            "include": [
+                "src/**/*.ts",
+                "src/**/*.tsx"
+            ],
+            "message": "AIによる内部ロジック決定を示唆するTODOは禁止されています。決定論的アルゴリズムを明示してください。"
+        },
+        {
+            "id": "LEGACY",
+            "name": "Legacy JS資産の隔離違反",
+            "section": "AGENTS.md §H",
+            "pattern": "from ['\"].*(src-legacy-js/|Legacy JS).+['\"]",
+            "include": [
+                "src/**/*.ts",
+                "src/**/*.tsx"
+            ],
+            "message": "Legacy JS資産への直接参照は禁止されています。必要に応じてTSへ移行してください。"
+        }
+    ],
+    "exemptPatterns": [
+        "^AMPLOG\\.md$",
+        "^GOVERNANCE_REPORT\\.md$",
+        "^SCHEMA_HISTORY\\.md$",
+        "^DEBT_AND_FUTURE\\.md$",
+        "^task\\.md$",
+        "^implementation_plan\\.md$",
+        "^walkthrough\\.md$",
+        "^\\.agent[\\\\/].*\\.md$",
+        "^\\.gemini[\\\\/]",
+        "debug_",
+        "\\.bak$",
+        "\\.tmp$"
+    ]
+}
