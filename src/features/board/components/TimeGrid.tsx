@@ -12,8 +12,9 @@ interface TimeGridProps {
     dropPreview: any | null;
     draggingJobId: string | null;
     draggingSplitId: string | null;
-    onCellClick: (driverId: string, time: string) => void;
+    onCellClick: (driverId: string, time: string, e: React.MouseEvent) => void;
     onCellDoubleClick: (driverId: string, time: string) => void;
+
     driverColRefs: React.MutableRefObject<Record<string, HTMLElement | null>>;
     isCellOccupied: (driverId: string, time: string) => boolean;
 }
@@ -64,15 +65,19 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                         return (
                             <div
                                 key={time}
-                                onClick={() => onCellClick(driver.id, time)}
+                                onClick={(e) => onCellClick(driver.id, time, e)}
                                 onDoubleClick={() => onCellDoubleClick(driver.id, time)}
+
                                 style={{
                                     height: '32px',
                                     borderBottom: '1px solid #f1f5f9',
                                     backgroundColor: isSelected ? '#eff6ff' : 'transparent',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    transition: 'all 0.1s ease-out'
                                 }}
                                 data-sada-id={`cell-${driver.id}-${time}`}
+                                data-sada-selected={isSelected ? "true" : "false"}
+                                className={isSelected ? 'ring-2 ring-blue-500 ring-inset z-10' : ''}
                             />
                         );
                     })}

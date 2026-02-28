@@ -4,6 +4,52 @@ import path from 'path';
 
 const DEBT_PATH = path.join(process.cwd(), 'DEBT_AND_FUTURE.md');
 const DICT_PATH = path.join(process.cwd(), 'KEYWORD_DICT.md');
+const REGISTRY_PATH = path.join(process.cwd(), 'ANTIPATTERN_REGISTRY.jsonl');
+
+/**
+ * [外部記憶] ANTIPATTERN_REGISTRY を読み込み、タスクに関連するパターンを最大3件返す
+ * R-3対策: max 3件 / R-4対策: expires_days フィルタリング
+ */
+function loadAntiPatterns(taskText) {
+    if (!fs.existsSync(REGISTRY_PATH)) return [];
+
+    const today = new Date();
+    const entries = fs.readFileSync(REGISTRY_PATH, 'utf8')
+        .split('\n').filter(l => l.trim())
+        .map(l => { try { return JSON.parse(l); } catch { return null; } })
+        .filter(Boolean);
+
+    // R-4: TTL フィルタリング（expires_days が設定されていれば期限切れは除外）
+    const alive = entries.filter(e => {
+        if (!e.expires_days) return true;
+        const created = new Date(e.date);
+        const diff = (today - created) / (1000 * 60 * 60 * 24);
+        return diff <= e.expires_days;
+    });
+
+    // タスクテキストとのキーワードマッチング（pattern / related_files / description）
+    const lowerTask = taskText.toLowerCase();
+    const matched = alive.filter(e => {
+        const searchText = [
+            e.pattern || '',
+            e.description || '',
+            ...(e.related_files || [])
+        ].join(' ').toLowerCase();
+
+        // タスクのキーワードがエントリのテキストと1語以上一致するか
+        return lowerTask.split(/[\s,./\\-]+/).some(word =>
+            word.length > 3 && searchText.includes(word)
+        );
+    });
+
+    // severity: high を優先して最大3件
+    const sorted = matched.sort((a, b) => {
+        const order = { high: 0, medium: 1, low: 2 };
+        return (order[a.severity] ?? 1) - (order[b.severity] ?? 1);
+    });
+
+    return sorted.slice(0, 3);
+}
 
 function loadDictionary() {
     if (!fs.existsSync(DICT_PATH)) return {};
@@ -96,11 +142,28 @@ async function main() {
         triggerCounts[t] >= 2 && !allDictKeywords.has(t)
     );
 
-    if (matchedMedium.length === 0 && critical.length === 0 && candidates.length === 0) {
+    // ── ANTIPATTERN_REGISTRY 注入 ──
+    const antiPatterns = loadAntiPatterns(task);
+    let apOut = '';
+    if (antiPatterns.length > 0) {
+        apOut += `\n## [ANTIPATTERN ALERT] 過去の失敗パターン（最大3件）\n\n`;
+        apOut += `> ⚠️ このセクションは ANTIPATTERN_REGISTRY より自動注入されました。\n`;
+        apOut += `> 実装前に必ず確認し、同種ミスを防いでください。\n\n`;
+        antiPatterns.forEach(e => {
+            const note = e.human_note ? `\n   👤 Human Note: ${e.human_note}` : '';
+            apOut += `### [${e.id}] ${e.pattern} (${e.severity})\n`;
+            apOut += `- **何が起きたか**: ${e.description}\n`;
+            apOut += `- **トリガー**: ${e.trigger}\n`;
+            apOut += `- **修正方法**: ${e.fix}${note}\n\n`;
+        });
+    }
+
+    if (matchedMedium.length === 0 && critical.length === 0 && candidates.length === 0 && antiPatterns.length === 0) {
         process.exit(0);
     }
 
-    let out = ``;
+    // apOut を既存の out と結合（ANTIPATTERN は先頭に表示）
+    let out = apOut;
     if (critical.length > 0 || matchedMedium.length > 0) {
         out += `## [CONTEXT INJECTION] 過去の関連失敗パターン\n\n`;
         out += `> このセクションは inject_context.js により自動生成されました。\n`;

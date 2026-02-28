@@ -1,5 +1,7 @@
 import { vi } from 'vitest';
-import '@testing-library/jest-dom';
+if (typeof window !== 'undefined') {
+    require('@testing-library/jest-dom');
+}
 
 // Supabase Mock
 vi.mock('@/lib/supabase/client', () => ({
@@ -30,32 +32,30 @@ vi.mock('@/lib/supabase/client', () => ({
     }
 }));
 
-// ResizeObserver Mock
-global.ResizeObserver = class ResizeObserver {
-    observe() { }
-    unobserve() { }
-    disconnect() { }
-};
+// DOM Mocks (Conditional)
+if (typeof window !== 'undefined') {
+    Element.prototype.scrollIntoView = vi.fn();
+    HTMLCanvasElement.prototype.getContext = vi.fn();
+    Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: vi.fn().mockImplementation(query => ({
+            matches: false,
+            media: query,
+            onchange: null,
+            addListener: vi.fn(), // Deprecated
+            removeListener: vi.fn(), // Deprecated
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+        })),
+    });
+    (window as any).PointerEvent = class PointerEvent extends Event { } as any;
+}
 
-// Canvas Confetti Mock
-vi.mock('canvas-confetti', () => ({
-    default: vi.fn()
-}));
-
-// DOM Mocks
-Element.prototype.scrollIntoView = vi.fn();
-HTMLCanvasElement.prototype.getContext = vi.fn();
-Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: vi.fn().mockImplementation(query => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(), // Deprecated
-        removeListener: vi.fn(), // Deprecated
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-    })),
-});
-window.PointerEvent = class PointerEvent extends Event { } as any;
+if (typeof global !== 'undefined' && (global as any).ResizeObserver === undefined) {
+    (global as any).ResizeObserver = class ResizeObserver {
+        observe() { }
+        unobserve() { }
+        disconnect() { }
+    };
+}

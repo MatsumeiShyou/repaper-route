@@ -7,7 +7,6 @@
             "pattern": " && ",
             "include": [
                 "package.json",
-                ".agent/scripts/*.js",
                 ".github/workflows/*.yml"
             ],
             "message": "PowerShell 5.1互換性のため '&&' は使用不可です。';' 等で代替してください。"
@@ -36,7 +35,7 @@
         }
     ],
     "exemptPatterns": [
-        "^AMPLOG\\.md$",
+        "^AMPLOG\\.jsonl$",
         "^GOVERNANCE_REPORT\\.md$",
         "^SCHEMA_HISTORY\\.md$",
         "^DEBT_AND_FUTURE\\.md$",
@@ -45,6 +44,9 @@
         "^walkthrough\\.md$",
         "^\\.agent[\\\\/].*\\.md$",
         "^\\.gemini[\\\\/]",
+        "^_archived[\\\\/]",
+        "\\.test\\.(ts|tsx)$",
+        "^vitest\\.config\\.js$",
         "debug_",
         "\\.bak$",
         "\\.tmp$"

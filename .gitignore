@@ -132,3 +132,6 @@ test_output.txt
 
 # 自動生成レポート (追跡するとコミットループが発生するため除外)
 GOVERNANCE_REPORT.md
+
+# Antigravity Session State
+.agent/session/active_task.json

@@ -1,18 +1,30 @@
-# プロジェクト統治タスク (v4.0)
+# Task: Fundamental Governance Upgrade [Sanctuary Sync]
 
-## 現在進行中: 負債清算と物理的統治の強化
-- [x] Phase 1: 負債の清算と整理
-- [x] Phase 2: AGENTS.md への統治定義追加
-- [x] Phase 3: check_seal.js への検証ロジック実装
-- [x] Phase 6: [SCHEMA] 決定論的マイグレーション同期の実装
-- [x] Phase 7: [TASK] タスク・実行密結合制約と自動循環の実装
-- [x] Phase 8: [ENV] 憲法の物理コード化（GovLint）の実装
-    - [x] 8.3 憲法違反コードによる物理ブロックテスト
-- [x] Phase 9: AGENTS.md 最適化の反映と再発防止策の記録
+## Status: In-Progress
+## Last Updated: 2026-02-28T20:22:00Z
 
-## 完了済みマイルストーン
-- [x] 物理的統治ゲート (Pre-flight/Seal) の有効化
-- [x] 負債の物理的検証 (Debt-Block Logic)
-- [x] マイグレーション同期の決定論的検証 (Git Link)
-- [x] タスク・実行密結合制約 (Task Lock)
-- [x] タスク自動完了更新 (Auto-Tick)
+## Intent / Context
+- Implementing Sanctuary Governance to eliminate friction between meta-intent and physical proof.
+- Fixing deadlocks in pre_flight.js using Repair Lane.
+- Formalizing Sanctuary Protocol in AGENTS.md and automating task.md sync.
+- Transition & Verification: Correcting markers and final walkthrough sync.
+
+## Execution Timeline (Auto-generated)
+### Phase 1: Infrastructure & Session State 
+- [x] Phase 1: Infrastructure & Session State
+
+### Phase 2: pre_flight.js Redesign 
+- [x] Phase 2: pre_flight.js Redesign
+
+### Phase 3: Automation Script (sync_governance.js) 
+- [x] Phase 3: Automation Script (sync_governance.js)
+
+### Phase 4: Constitution Update (AGENTS.md) 
+- [x] Phase 4: Constitution Update (AGENTS.md)
+
+### Phase 5: Transition & Verification [/]
+- [/] Phase 5: Transition & Verification
+
+
+> [!NOTE]
+> このファイルは Sanctuary Governance により自動生成されています。手動編集は sync_governance.js により上書きされます。

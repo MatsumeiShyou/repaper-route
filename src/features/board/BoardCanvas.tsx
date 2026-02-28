@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 
 import {
     Save, Clipboard, RefreshCcw, Database, Undo2, Redo2
@@ -7,17 +7,25 @@ import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
 import { useBoardValidation } from './hooks/useBoardValidation';
 import { useMasterData } from './hooks/useMasterData';
+import { LogicResult } from '../logic/types';
+import { TIME_SLOTS } from '../board/logic/constants';
+
 
 import { DriverHeader } from './components/DriverHeader';
+
 import { TimeGrid } from './components/TimeGrid';
 import { JobLayer } from './components/JobLayer';
 import { PendingJobSidebar } from './components/PendingJobSidebar';
 import { useAuth } from '../../contexts/AuthProvider';
 import { BoardJob, BoardDriver } from '../../types';
+
 import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
 import { AlertTriangle } from 'lucide-react';
+import { CellHUD } from './components/CellHUD';
+
+
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
@@ -74,12 +82,44 @@ export default function BoardCanvas() {
     const [isHeaderEditModalOpen, setIsHeaderEditModalOpen] = useState(false);
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
+    const [lastClickPos, setLastClickPos] = useState({ x: 0, y: 0 });
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+    // Phase 6: Predictive Validation (Hook must be before early return)
+    const selectionViolation = useMemo(() => {
+        if (!selectedCell) return null;
+
+        const driver = drivers.find(d => d.id === selectedCell.driverId);
+        if (!driver) return null;
+
+        const driverJobs = jobs.filter(j => j.driverId === selectedCell.driverId);
+
+        if (driverJobs.length >= 8) {
+            return {
+                isFeasible: false,
+                violations: [{
+                    type: '積載量超過' as const,
+                    message: '案件数が上限に達しています',
+                    currentValue: driverJobs.length,
+                    limitValue: 8
+                }],
+                score: 0,
+                reason: ['上限超過']
+            } as LogicResult;
+        }
+
+        return { isFeasible: true, violations: [], score: 100, reason: [] } as LogicResult;
+    }, [selectedCell, drivers, jobs]);
 
     const selectedDriverForEdit = headerEditTargetId
         ? drivers.find(d => d.id === headerEditTargetId) || null
         : null;
 
     // 4. Handlers
+    const handleMouseDown = (e: React.MouseEvent) => {
+        setMousePos({ x: e.clientX, y: e.clientY });
+    };
+
     const handleSaveHeader = (updatedDriver: BoardDriver) => {
         setDrivers(prev => prev.map(d => d.id === headerEditTargetId ? updatedDriver : d));
         recordHistory();
@@ -95,7 +135,6 @@ export default function BoardCanvas() {
     const handleAddManualJob = (job: BoardJob, reason: string) => {
         if (!editMode) return;
         console.log("[Board] Manually injecting job:", job.title, "Reason:", reason);
-        // Add to local state
         const jobWithReason: BoardJob = { ...job, creation_reason: reason };
         setJobs(prev => [...prev, jobWithReason]);
         recordHistory();
@@ -133,9 +172,43 @@ export default function BoardCanvas() {
         );
     }
 
+
+
+
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (!editMode || isAddJobModalOpen) return;
+
+        if (e.key === 'Escape') {
+            setSelectedCell(null);
+            return;
+        }
+
+        if (selectedCell) {
+            const currentDriverIdx = drivers.findIndex(d => d.id === selectedCell.driverId);
+            const currentTimeIdx = TIME_SLOTS.indexOf(selectedCell.time);
+
+            if (e.key === 'ArrowUp' && currentTimeIdx > 0) {
+                setSelectedCell({ ...selectedCell, time: TIME_SLOTS[currentTimeIdx - 1] });
+            } else if (e.key === 'ArrowDown' && currentTimeIdx < TIME_SLOTS.length - 1) {
+                setSelectedCell({ ...selectedCell, time: TIME_SLOTS[currentTimeIdx + 1] });
+            } else if (e.key === 'ArrowLeft' && currentDriverIdx > 0) {
+                setSelectedCell({ ...selectedCell, driverId: drivers[currentDriverIdx - 1].id });
+            } else if (e.key === 'ArrowRight' && currentDriverIdx < drivers.length - 1) {
+                setSelectedCell({ ...selectedCell, driverId: drivers[currentDriverIdx + 1].id });
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                setIsAddJobModalOpen(true);
+            }
+        }
+    };
+
     return (
         <div
-            className="h-full flex flex-col bg-slate-50 relative overflow-hidden select-none"
+            className="h-full flex flex-col bg-slate-50 relative overflow-hidden select-none outline-none"
+            tabIndex={0}
+            data-sada-id="board-canvas-root"
+            onKeyDown={handleKeyDown}
+            onMouseDown={handleMouseDown}
             onMouseMove={(e) => handleBackgroundMouseMove(e.nativeEvent)}
             onMouseUp={(e) => handleBackgroundMouseUp(e.nativeEvent)}
             onClick={(e) => {
@@ -222,10 +295,21 @@ export default function BoardCanvas() {
                             dropPreview={dropPreview}
                             draggingJobId={draggingJobId}
                             draggingSplitId={draggingSplitId}
-                            onCellClick={(driverId, time) => {
+                            onCellClick={(driverId: string, time: string, e: React.MouseEvent) => {
                                 if (editMode) {
-                                    setSelectedCell({ driverId, time });
-                                    setIsAddJobModalOpen(true);
+                                    const isSame = selectedCell?.driverId === driverId && selectedCell?.time === time;
+                                    const dx = Math.abs(e.clientX - mousePos.x);
+                                    const dy = Math.abs(e.clientY - mousePos.y);
+
+                                    // Guard against drag mis-clicks (3px threshold)
+                                    if (dx > 3 || dy > 3) return;
+
+                                    if (isSame) {
+                                        setIsAddJobModalOpen(true);
+                                    } else {
+                                        setSelectedCell({ driverId, time });
+                                        setLastClickPos({ x: e.clientX, y: e.clientY });
+                                    }
                                 }
                             }}
                             onCellDoubleClick={() => { }}
@@ -247,6 +331,19 @@ export default function BoardCanvas() {
                             selectedJobId={selectedJobId}
                             dropPreview={dropPreview}
                         />
+
+                        {/* Cell Selection HUD */}
+                        {selectedCell && editMode && (
+                            <CellHUD
+                                x={lastClickPos.x - (gridContainerRef.current?.getBoundingClientRect().left || 0)}
+                                y={lastClickPos.y - (gridContainerRef.current?.getBoundingClientRect().top || 0)}
+                                onAdd={() => setIsAddJobModalOpen(true)}
+                                onClose={() => setSelectedCell(null)}
+                                violation={selectionViolation}
+                            />
+                        )}
+
+
                     </div>
                 </div>
 

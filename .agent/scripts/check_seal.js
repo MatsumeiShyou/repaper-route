@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 
-const AMPLOG_PATH = path.join(process.cwd(), 'AMPLOG.md');
+const AMPLOG_PATH = path.join(process.cwd(), 'AMPLOG.jsonl');
 const DEBT_PATH = path.join(process.cwd(), 'DEBT_AND_FUTURE.md');
 const REQUIRED_SEAL = '(PW: ｙ)';
 
@@ -93,10 +93,10 @@ if (fs.existsSync(BYPASS_TIMESTAMP_PATH)) {
 // 最終AMPLOGエントリーに承認印 (PW: ｙ) があるか検証する
 // ═══════════════════════════════════════════════════
 
-// 1. AMPLOG.md の存在確認
+// 1. AMPLOG.jsonl の存在確認
 if (!fs.existsSync(AMPLOG_PATH)) {
-    console.error('❌ [check_seal] AMPLOG.md が存在しません。');
-    console.error('   → AGENTS.md §1: 全てのAMP結果を AMPLOG.md に記録せよ。');
+    console.error('❌ [check_seal] AMPLOG.jsonl が存在しません。');
+    console.error('   → AGENTS.md §1: 全てのAMP結果を AMPLOG.jsonl に記録せよ。');
     process.exit(1);
 }
 
@@ -141,50 +141,31 @@ try {
 }
 
 
-// 2. AMPLOG エントリーの抽出 (JSONL 優先)
-const AMPLOG_JSONL_PATH = path.join(process.cwd(), 'AMPLOG.jsonl');
+// 2. AMPLOG エントリーの抽出 (JSONL 正典)
+console.log('🔍 [check_seal] AMPLOG.jsonl を決定論的に検証中...');
+const jsonlLines = fs.readFileSync(AMPLOG_PATH, 'utf8').trim().split('\n').filter(line => line.trim() !== "");
+
 let lastEntryData = null;
 let lastEntryDisplay = "";
 
-if (fs.existsSync(AMPLOG_JSONL_PATH)) {
-    console.log('🔍 [check_seal] AMPLOG.jsonl を決定論的に検証中...');
-    const jsonlLines = fs.readFileSync(AMPLOG_JSONL_PATH, 'utf8').trim().split('\n').filter(line => line.trim() !== "");
-
-    for (let i = jsonlLines.length - 1; i >= 0; i--) {
-        try {
-            const entry = JSON.parse(jsonlLines[i]);
-            lastEntryData = entry;
-            lastEntryDisplay = `[${entry.date}] ${entry.item}: ${entry.summary} (Seal: ${entry.detail?.status || 'N/A'})`;
-            break;
-        } catch (e) {
-            continue;
-        }
+for (let i = jsonlLines.length - 1; i >= 0; i--) {
+    try {
+        const entry = JSON.parse(jsonlLines[i]);
+        lastEntryData = entry;
+        lastEntryDisplay = `[${entry.date}] ${entry.item}: ${entry.summary} (Seal: ${entry.detail?.status || 'N/A'})`;
+        break;
+    } catch (e) {
+        continue;
     }
 }
 
-// JSONL がない、またはパース失敗時は Markdown にフォールバック
 if (!lastEntryData) {
-    const content = fs.readFileSync(AMPLOG_PATH, 'utf8');
-    const lines = content.split('\n').filter(l => l.trim().startsWith('|') && !l.includes('---'));
-    const dataLines = lines.filter(l => /\|\s*\d{4}-\d{2}-\d{2}\s*\|/.test(l));
-
-    if (dataLines.length === 0) {
-        console.error('❌ [check_seal] AMPLOG.md にエントリーが存在しません。');
-        console.error('   → 実装を開始する前に AMP を申請・記録してください。');
-        process.exit(1);
-    }
-
-    const lastLine = dataLines[dataLines.length - 1];
-    lastEntryData = {
-        date: (lastLine.match(/\|\s*(\d{4}-\d{2}-\d{2})\s*\|/) || [])[1],
-        isSealValid: lastLine.includes(REQUIRED_SEAL),
-        fullLine: lastLine
-    };
-    lastEntryDisplay = lastLine.trim();
-} else {
-    const status = lastEntryData.detail?.status || lastEntryData.summary || "";
-    lastEntryData.isSealValid = status.includes(REQUIRED_SEAL);
+    console.error('❌ [check_seal] AMPLOG.jsonl に有効なエントリーが存在しません。');
+    process.exit(1);
 }
+
+const status = lastEntryData.detail?.status || lastEntryData.summary || "";
+lastEntryData.isSealValid = status.includes(REQUIRED_SEAL);
 
 // 3. 最終エントリーの承認印を検証
 if (!lastEntryData.isSealValid) {

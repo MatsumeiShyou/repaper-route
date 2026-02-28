@@ -47,7 +47,7 @@
 5. **Reflection** — 完了後、教訓・失敗パターンを `DEBT_AND_FUTURE.md` に追記せよ（§G Fault Reflection と同一義務）
 6. **Cleanup** — `debug_*` / `*.bak` 等の一時ファイルを即時削除
 
-> ドキュメント・ログのみの変更（AMPLOG, REPORT等）はGateを透過的にパスする。
+> ドキュメント・ログ・テスト・設定ファイルのみの変更（§G 免除対象）は、**Epistemic Cache** により物理ゲート（Seal/Epistemic）を透過的にパスする。
 
 ### F. DB & DOM Governance
 
@@ -80,11 +80,11 @@
 
 ## 第3層【応用プロトコル】— 特定状況で発動
 
-### I. Gate Protocol（入力正典化）
+### I. Gate Protocol（入力正典化：Epistemic Sync）
 
-- 全人間入力はGateによって宣言型Intentとして正規化される。AI は正規化前の入力を行動判断に使用してはならない。
-- 宣言型キー（`State:` / `Decision:` / `Reason:` / `Intent:` 等）を含まない入力は全て `Intent: <入力全文>` に変換される。
-- **実行遮断**: `active_identity == EXECUTOR` かつ「承認済みDecision」が存在しない限り、Intentから実行へ直接遷移してはならない。
+- エージェントの `task_boundary` で宣言された意志は、直ちに `.agent/session/active_task.json` へ物理的に固定（Epistemic Cache）される。
+- `pre_flight.js` はこの物理化された意志を正典（Source of Truth）として扱い、手動 Markdown の Regex 依存から脱却する。
+- 物理ゲート通過証跡は `sync_governance.js` によって自動生成される。
 
 ### J. SVP Resolution（統治ブロック解除）
 

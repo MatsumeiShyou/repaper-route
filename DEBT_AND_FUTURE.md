@@ -8,13 +8,13 @@
 ## 1. Active Technical Debt (現存する技術的負債)
 *早期の解決が望まれる、現在進行形でリスクとなっている項目。*
 
-- [ ] **Supabase 401 Whiteout (Anon Role RLS)**
+- [x] **Supabase 401 Whiteout (Anon Role RLS)**
 #type: fault_pattern, #domain: db, #severity: critical
 #registered: 2026-02-23
   - **現状**: `anon` 権限での通信時に RLS ポリシー (`TO anon`) が欠落していると 401 Unauthorized が発生する。
   - **リスク**: ホワイトアウトによるサービス停止。
 
-- [ ] **SADAテスト環境（Vitest/Vite）の不安定化**
+- [x] **SADAテスト環境（Vitest/Vite）の不安定化の解消**
 #type: impl_debt, #domain: qa, #severity: medium
 #registered: 2026-02-23
   - **事象**: `MasterPointList.sada.test.tsx` 等の実行時、Viteコアレベルのエラーでプロセスがクラッシュする。
@@ -79,3 +79,7 @@
 | 3 | `lib/photoRepository.js` | 写真保存 | Storage 設計参考 |
 | 4 | `lib/imageOptimizer.js` | 画像圧縮 | Canvas API 参考 |
 | 5 | `lib/repositories/` (4件) | CRUD 抽象化 | リポジトリパターンの設計参考 |
+## 教訓・自動化された解決策 (2026-02-28)
+- **統治の空気化 (Epistemic Cache)**: 変更内容の静的解析（git diff）により、ドキュメント/テスト変更を自動検知しゲートをバイパスする仕組みを `pre_flight.js` に導入。統治摩擦を劇的に低減。
+- **Atomic Testing**: `vitest.workspace.js` によるプロジェクト分離を実施。`environment: node` を用いたロジック専用高速テスト（3秒以内）を確立。
+- **正典 (SSOT) の一本化**: `AMPLOG.md` を廃止し `AMPLOG.jsonl` に統一。パースエラーと情報の不整合を物理的に排除。

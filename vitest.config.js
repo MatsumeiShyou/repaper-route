@@ -9,8 +9,6 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -22,9 +20,6 @@ export default defineConfig({
         'dist/',
       ],
     },
-    exclude: ['src-legacy-js', 'node_modules', 'dist', '.idea', '.git', '.cache', 'pg_fix', 'temp_pg', '.agent', 'tests/vlm'],
-  },
-  resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
