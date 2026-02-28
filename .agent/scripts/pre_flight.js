@@ -16,7 +16,7 @@ const SCRIPTS_DIR = path.join(PROJECT_ROOT, '.agent', 'scripts');
 function runCheck(name, command) {
     console.log(`\n🚀 [Pre-flight] Running ${name}...`);
     try {
-        const output = execSync(command, { cwd: PROJECT_ROOT, encoding: 'utf8', shell: true, stdio: ['inherit', 'pipe', 'inherit'] });
+        const output = execSync(command, { cwd: PROJECT_ROOT, encoding: 'utf8', shell: true, stdio: ['ignore', 'pipe', 'inherit'] });
         console.log(output);
         return true;
     } catch (err) {

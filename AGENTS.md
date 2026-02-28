@@ -22,7 +22,7 @@
 - **C-1 No Leakage**: APIキー・PW等のハードコード厳禁。
 - **C-2 Honesty**: 捏造禁止。不明点は「不明」と明示。
 - **C-3 Retreat**: 低品質コード生成リスクがある場合は即時撤退。
-- **C-4 No Guessing**: 情報不足時は推測実装禁止。Stop Protocolを発動せよ。
+- **| C-4 | **No Guessing** | 情報不足時は推測実装禁止。Stop Protocolを発動せよ。コマンドがハング・中断した際は、リトライ前に `git status` 等で必ず事実（State）を検証せよ。 |
 
 ### D. 認知Layer（思考空間の物理制限）
 
