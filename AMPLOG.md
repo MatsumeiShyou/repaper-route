@@ -1,3 +1,6 @@
+| 2026-02-28 | K-6b 物理的強制機構の実装（Epistemic Gate） | `.agent/scripts/epistemic_gate.js`（新規）, `pre_flight.js`, `AGENTS.md` | 認識論的透明性（§K-6）を精神的ルールから物理的強制へ昇格。`[K-6]`フラグ付き高リスク分析時に3つのマーカー（層分離・自己批判・確信度開示）の存在を自動検証し、欠如時は EPISTEMIC LOCK で実装をブロックする仕組みを導入。 | 済 | 承認 (PW: ｙ) |
+| 2026-02-28 | 認識論的ガバナンスの統合（SDR+U、二段階批判、確信度開示） | `AGENTS.md` | §B-2をSDR→SDR+Uに拡張（Unknown層と確信度付記を追加）。§KにAI出力の認識論的透明性を構造的に強制する3つのプロトコル（層分離・二段階批判フェーズ・最低確信度自己開示）を追加。 | 済 | 承認 (PW: ｙ) |
+| 2026-02-28 | Fast-Path 強制統治プロトコルのGATE登録 | `.agent/scripts/pre_flight.js`, `docs/governance/FAST_PATH.md` | Pre-flight実行のたびにFast-Path適用可否の自問を物理的に強制するチェックをGateに注入。FAST_PATH.md §4を「推奨」から「義務」へ昇格。 | 済 | 承認 (PW: ｙ) |
 | 2026-02-23 | ローディング画面およびフッターステータスの日本語化 | BoardCanvas.tsx | ロード中のメッセージやフッターのステータス表示を日本語化し、日本人ユーザー向けに最適化を完了。 | 済 | 承認 (PW: ｙ) |
 | 2026-02-23 | サイドバーUIの日本語化と日本人向け最適化 | PendingJobSidebar.tsx | 下部の「ASSIGNMENT MODE」等の英語表記を日本語（「配車実行モード」等）に修正し、視認性を向上。 | 済 | 承認 (PW: ｙ) |
 | 2026-02-23 | 配車盤セルクリック時の未配車リスト表示不具合修正 | BoardCanvas.tsx, BoardCanvas.test.tsx | 読み取り専用モードや初期化時でもセルクリックで未配車リストが開くようガード条件を分離。テストコードのモックデータ不整合も修正。 | 済 | 承認 (PW: ｙ) |
@@ -541,3 +544,27 @@ STATUS: 承認済 (PW: ｙ)
   - Reason: 直感的なUI操作（DOM着陸地点への正確なフィードバック）を実現するため。
 
 STATUS: 承認済 (PW: ｙ)
+
+| 2026-02-28 | 実施 | 提案A: 緊急クリーンアップ | 全域 | プロジェクトルートの一時ファイル44件および _archived, temp_migration 等の物理削除を完遂。reflect.js のクリーンアップ検出ロジックを強化。 |
+
+**[Proposal A: Emergency Cleanup]**
+- 対象: プロジェクトルート, supabase/, .agent/scripts/reflect.js
+- SDR構造:
+  - State: プロジェクトルートに44件以上の一時資産が残存し、統治監視網が不十分であった。
+  - Decision: 一時資産を物理削除し、reflect.js の正規表現パターンを拡張して再発を防止した。さらに migrations/ 内の誤検知を解消。
+  - Reason: 認知的ノイズ（Sludge）を排除し、統治プロセスの実効性と信頼性を回復するため。
+
+STATUS: 承認済 (PW: ｙ)
+
+| 2026-02-28 | 実施 | 提案B: CI/CD 自動検証網の構築 | インフラ・QA | GitHub Actions (verify.yml) および Playwright スモークテストを導入。Windows環境のブラウザ制約を構造的に解消。 |
+
+**[Proposal B: CI/CD Automation]**
+- 対象: .github/workflows/verify.yml, tests/e2e/smoke.spec.ts, playwright.config.ts, package.json
+- SDR構造:
+  - State: Windows開発環境ではAgentによるブラウザ操作が不可であり、デプロイ検証が手動に依存していた。
+  - Decision: GitHub Actions (Linux) 上でビルド・型チェック・単体テスト、及びステージング環境への E2E スモークテストを自動実行する仕組みを構築した。
+  - Reason: 開発環境の物理的制約を構造的に迂回し、自動化された品質ゲートを実現するため。
+
+STATUS: 承認済 (PW: ｙ)
+| 2026-02-28 | Test Auto-Tick | Governance Test | Verified physical feedback loop | User (Approved) | 承認 (PW: ｙ) |
+| 2026-02-28 | Implementation of 100-point Governance Feedback Loops | check_seal.js, pre_flight.js, record_amp.js, governance_rules.json | Governance rules are now physically enforced as build-time errors | User (Approved) | 承認 (PW: ｙ) |

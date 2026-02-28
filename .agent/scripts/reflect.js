@@ -118,7 +118,29 @@ function checkCleanupViolations() {
                 if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
                     scan(fullPath);
                 } else if (entry.isFile()) {
-                    if (entry.name.endsWith('.bak') || entry.name.startsWith('debug_') || entry.name.startsWith('fix_')) {
+                    const relativePath = fullPath.replace(PROJECT_ROOT, '');
+                    const isTemp =
+                        entry.name.endsWith('.bak') ||
+                        entry.name.startsWith('debug_') ||
+                        entry.name.startsWith('fix_') ||
+                        entry.name.endsWith('.log') ||
+                        entry.name.match(/_error.*\.txt$/) ||
+                        entry.name.match(/_output.*\.txt$/) ||
+                        entry.name.match(/^test-output.*\.txt$/) ||
+                        entry.name.match(/^tsc_?errors\.txt$/) ||
+                        entry.name.startsWith('sada-log') ||
+                        entry.name.match(/^vitest_.*\.json$/) ||
+                        entry.name.match(/^test_results.*\.json$/) ||
+                        entry.name === 'help.txt' ||
+                        entry.name === 'current_schema_check.ts' ||
+                        entry.name === 'verify_sdr_compliant.js' ||
+                        entry.name === 'check_reasons.js' ||
+                        entry.name.match(/^failed_.*\.txt$/);
+
+                    const isTempExt = (entry.name.endsWith('.sql') && relativePath.includes('supabase') && entry.name.includes('seed') && !relativePath.includes('supabase' + path.sep + 'migrations')) ||
+                        (entry.name.endsWith('.sql') && !relativePath.includes('supabase' + path.sep + 'migrations'));
+
+                    if (isTemp || isTempExt) {
                         offenders.push(fullPath.replace(PROJECT_ROOT, '.'));
                     }
                 }

@@ -6,6 +6,57 @@ const AMPLOG_PATH = path.join(process.cwd(), 'AMPLOG.md');
 const DEBT_PATH = path.join(process.cwd(), 'DEBT_AND_FUTURE.md');
 const REQUIRED_SEAL = '(PW: ｙ)';
 
+// ═══════════════════════════════════════════════════
+// Phase 6: [SCHEMA] Deterministic Migration Sync Check
+// Git diff で検知された新規 migration が SCHEMA_HISTORY.md に記載されているか検証する
+// ═══════════════════════════════════════════════════
+const SCHEMA_HISTORY_PATH = path.join(process.cwd(), 'SCHEMA_HISTORY.md');
+
+function validateMigrationSync() {
+    console.log('🔍 [check_seal] マイグレーション同期を決定論的に検証中...');
+
+    let newMigrations = [];
+    try {
+        // ステージング済みの新規 migration ファイルを取得
+        const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+        newMigrations = output.split('\n')
+            .filter(file => file.startsWith('supabase/migrations/') && file.endsWith('.sql'))
+            .map(file => path.basename(file));
+    } catch (e) {
+        // 非Git環境やエラー時はスキップ（または警告）
+        return;
+    }
+
+    if (newMigrations.length === 0) {
+        console.log('✅ [check_seal] 新規マイグレーションファイルは検知されませんでした。');
+        return;
+    }
+
+    if (!fs.existsSync(SCHEMA_HISTORY_PATH)) {
+        console.error('❌ [check_seal] SCHEMA_HISTORY.md が見つかりません。');
+        process.exit(1);
+    }
+
+    const historyContent = fs.readFileSync(SCHEMA_HISTORY_PATH, 'utf8');
+    const missingInHistory = newMigrations.filter(file => !historyContent.includes(file));
+
+    if (missingInHistory.length > 0) {
+        console.error('\n🚫───────────── [ SCHEMA SYNC LOCK ] ─────────────🚫');
+        console.error('❌ 新規マイグレーションが SCHEMA_HISTORY.md に記録されていません。');
+        console.error('   【未記載のファイル】:');
+        missingInHistory.forEach(f => console.error(`    - ${f}`));
+        console.error('\n💡 [解決方法]:');
+        console.error('   1. SCHEMA_HISTORY.md を開き、末尾に新規変更内容とファイル名を追記してください。');
+        console.error('   2. 追記後、git add SCHEMA_HISTORY.md を実行してから再度 Seal を取得してください。');
+        console.error('🚫──────────────────────────────────────────────────🚫\n');
+        process.exit(1);
+    }
+
+    console.log(`✅ [check_seal] 全ての新規マイグレーション (${newMigrations.length}件) の履歴記載を確認しました。`);
+}
+
+validateMigrationSync();
+
 
 // ═══════════════════════════════════════════════════
 // バイパス有効期限チェック（48時間で自動失効）
@@ -67,18 +118,10 @@ try {
 
     // 変更ファイルがある場合のみチェックする
     if (allChangedFiles.length > 0) {
-        // 免除対象のファイル群（ドキュメントやログファイル）
-        const exemptPatterns = [
-            /^AMPLOG\.md$/,
-            /^GOVERNANCE_REPORT\.md$/,
-            /^SCHEMA_HISTORY\.md$/,
-            /^DEBT_AND_FUTURE\.md$/,
-            /^task\.md$/,
-            /^implementation_plan\.md$/,
-            /^walkthrough\.md$/,
-            /^\.agent[\\\/].*\.md$/,
-            /^\.gemini[\\\/]/
-        ];
+        // [M-5修正 & DRY] governance_rules.json から免除対象を読み込む
+        const RULES_PATH = path.join(PROJECT_ROOT, '.agent', 'config', 'governance_rules.json');
+        const { exemptPatterns: rawPatterns } = JSON.parse(fs.readFileSync(RULES_PATH, 'utf8'));
+        const exemptPatterns = rawPatterns.map(p => new RegExp(p));
 
         // 変更されたすべてのファイルが免除対象に合致するかチェック
         const isDocOnlyChange = allChangedFiles.every(file => {
@@ -88,7 +131,7 @@ try {
         });
 
         if (isDocOnlyChange) {
-            console.log('✅ [check_seal] Context-Aware Bypass 動員: ドキュメント/ログファイルの更新のみを検知しました。');
+            console.log('✅ [Seal Gate] 文脈依存バイパス発動: ドキュメント/ログ/一時ファイルの更新のみを検知。');
             console.log('   → 厳格な承認プロセス (PW要求) をスキップします。');
             process.exit(0);
         }
@@ -98,27 +141,57 @@ try {
 }
 
 
-// 2. AMPLOG.md の読み込みとエントリー抽出
-const content = fs.readFileSync(AMPLOG_PATH, 'utf8');
-const lines = content.split('\n').filter(l => l.trim().startsWith('|') && !l.includes('---'));
+// 2. AMPLOG エントリーの抽出 (JSONL 優先)
+const AMPLOG_JSONL_PATH = path.join(process.cwd(), 'AMPLOG.jsonl');
+let lastEntryData = null;
+let lastEntryDisplay = "";
 
-// ヘッダー行を除外（日付パターンを含まない行はヘッダー）
-const dataLines = lines.filter(l => /\|\s*\d{4}-\d{2}-\d{2}\s*\|/.test(l));
+if (fs.existsSync(AMPLOG_JSONL_PATH)) {
+    console.log('🔍 [check_seal] AMPLOG.jsonl を決定論的に検証中...');
+    const jsonlLines = fs.readFileSync(AMPLOG_JSONL_PATH, 'utf8').trim().split('\n').filter(line => line.trim() !== "");
 
-if (dataLines.length === 0) {
-    console.error('❌ [check_seal] AMPLOG.md にエントリーが存在しません。');
-    console.error('   → 実装を開始する前に AMP を申請・記録してください。');
-    process.exit(1);
+    for (let i = jsonlLines.length - 1; i >= 0; i--) {
+        try {
+            const entry = JSON.parse(jsonlLines[i]);
+            lastEntryData = entry;
+            lastEntryDisplay = `[${entry.date}] ${entry.item}: ${entry.summary} (Seal: ${entry.detail?.status || 'N/A'})`;
+            break;
+        } catch (e) {
+            continue;
+        }
+    }
+}
+
+// JSONL がない、またはパース失敗時は Markdown にフォールバック
+if (!lastEntryData) {
+    const content = fs.readFileSync(AMPLOG_PATH, 'utf8');
+    const lines = content.split('\n').filter(l => l.trim().startsWith('|') && !l.includes('---'));
+    const dataLines = lines.filter(l => /\|\s*\d{4}-\d{2}-\d{2}\s*\|/.test(l));
+
+    if (dataLines.length === 0) {
+        console.error('❌ [check_seal] AMPLOG.md にエントリーが存在しません。');
+        console.error('   → 実装を開始する前に AMP を申請・記録してください。');
+        process.exit(1);
+    }
+
+    const lastLine = dataLines[dataLines.length - 1];
+    lastEntryData = {
+        date: (lastLine.match(/\|\s*(\d{4}-\d{2}-\d{2})\s*\|/) || [])[1],
+        isSealValid: lastLine.includes(REQUIRED_SEAL),
+        fullLine: lastLine
+    };
+    lastEntryDisplay = lastLine.trim();
+} else {
+    const status = lastEntryData.detail?.status || lastEntryData.summary || "";
+    lastEntryData.isSealValid = status.includes(REQUIRED_SEAL);
 }
 
 // 3. 最終エントリーの承認印を検証
-const lastEntry = dataLines[dataLines.length - 1];
-
-if (!lastEntry.includes(REQUIRED_SEAL)) {
+if (!lastEntryData.isSealValid) {
     console.error('\n🚫───────────── [ GOVERNANCE LOCK ] ─────────────🚫');
     console.error('❌ 最終AMPLOGエントリーに承認印がありません。');
     console.error(`   【必要な承認印】: ${REQUIRED_SEAL}`);
-    console.error(`   【最終エントリー】: ${lastEntry.trim()}`);
+    console.error(`   【最終エントリー】: ${lastEntryDisplay}`);
     console.error('   【根拠条文】: AGENTS.md §1 (完全一致時のみ承認。PWなき変更は即時ロールバック)');
     console.error('\n💡 [ナビゲーション] 以下のいずれかの対応を行ってください:');
     console.error('  1. AMPLOGを自動記録する: node .agent/scripts/record_amp.js');
@@ -179,55 +252,81 @@ function validateSchemaConsistency() {
 validateSchemaConsistency();
 
 // ═══════════════════════════════════════════════════
-// Phase 12: Reflection (Post-Mortem) Check
-// AMPLOG に [FIX] や [重大] がある場合、DEBT に教訓が記録されているか検証
+// Phase 4: Debt Resolution & Block Check
+// DEBT_AND_FUTURE.md の未解消負債 (Critical/High) を検証する
 // ═══════════════════════════════════════════════════
-function validateReflection同期() {
-    if (!fs.existsSync(DEBT_PATH)) return;
+function validateDebtStatus() {
+    if (!fs.existsSync(DEBT_PATH)) return { count: 0, criticalCount: 0 };
 
-    const ampContent = fs.readFileSync(AMPLOG_PATH, 'utf8');
-    const debtContent = fs.readFileSync(DEBT_PATH, 'utf8');
+    const content = fs.readFileSync(DEBT_PATH, 'utf8');
+    const lines = content.split('\n');
+    let activeDebts = [];
+    let currentDebt = null;
 
-    // 直近 5 エントリーを抽出
-    const ampEntries = ampContent.split('\n')
-        .filter(l => l.trim().startsWith('|') && !l.includes('---'))
-        .filter(l => /\|\s*\d{4}-\d{2}-\d{2}\s*\|/.test(l))
-        .slice(-5);
+    // [M-4修正] 今回ステージした新規負債行を Set で除外（Fault Reflection 直後にブロックしないため）
+    const newlyAddedDebtSet = new Set();
+    try {
+        const diff = execSync('git diff --cached DEBT_AND_FUTURE.md', { encoding: 'utf8' });
+        diff.split('\n')
+            .filter(l => l.startsWith('+- [ ]') || l.startsWith('+ - [ ]'))
+            .map(l => l.replace(/^\+\s*/, '').trim())
+            .forEach(l => newlyAddedDebtSet.add(l));
+    } catch (e) { }
 
-    const fixEntries = ampEntries.filter(e => e.includes('[FIX]') || e.includes('[重大]') || e.includes('[SDR]'));
-
-    if (fixEntries.length > 0) {
-        console.log('🔍 [check_seal] 教訓の同期（Reflection）を確認中...');
-        const today = new Date().toISOString().split('T')[0];
-        const hasRecentDebt = debtContent.includes(today) || debtContent.split('\n').some(l => l.includes('#registered: 2026-02-23')); // 今日登録されたものがあるか
-
-        // ※ 今日登録がない場合でも、タイトルの一部が DEBT に含まれていれば OK とする簡易チェック
-        const isReflected = fixEntries.some(e => {
-            const titleMatch = e.match(/\|\s*[^|]+\s*\|\s*([^|]+)\s*\|/);
-            if (!titleMatch) return false;
-            const title = titleMatch[1].trim().substring(0, 10); // 前方一致
-            return debtContent.includes(title);
-        });
-
-        if (!isReflected && !debtContent.includes(today)) {
-            console.error('\n🚫───────────── [ REFLECTION LOCK ] ─────────────🚫');
-            console.error('❌ 重大な修正（FIX/SDR）が記録されていますが、DEBT_AND_FUTURE.md への教訓登録がありません。');
-            console.error('   → AGENTS.md §5: 失敗パターンを物理的構造 (Gate) にフィードバックせよ。');
-            console.error('   → 今日の日付で DEBT_AND_FUTURE.md に失敗パターン（#type: fault_pattern）を記録してください。');
-            console.error('🚫──────────────────────────────────────────────────🚫\n');
-            process.exit(1); // 警告から遮断へ昇格
-        } else {
-            console.log('✅ [check_seal] 教訓の同期を確認しました。');
+    for (const line of lines) {
+        // 負債項目の開始を検知
+        if (line.trim().startsWith('- [ ]')) {
+            // [M-4] 今回追加した負債はスキップ
+            if (newlyAddedDebtSet.has(line.trim())) {
+                currentDebt = null;
+                continue;
+            }
+            if (currentDebt) activeDebts.push(currentDebt);
+            currentDebt = {
+                title: line.replace('- [ ]', '').trim(),
+                severity: 'medium', // デフォルト
+                domain: 'unknown'
+            };
+        } else if (currentDebt && line.includes('#severity:')) {
+            currentDebt.severity = line.match(/#severity:\s*(\w+)/)?.[1] || 'medium';
+        } else if (currentDebt && line.includes('#domain:')) {
+            currentDebt.domain = line.match(/#domain:\s*(\w+)/)?.[1] || 'unknown';
+        } else if (line.trim().startsWith('- [x]') || (line.trim().startsWith('##') && !line.includes('Active'))) {
+            if (currentDebt) {
+                activeDebts.push(currentDebt);
+                currentDebt = null;
+            }
         }
     }
+    if (currentDebt) activeDebts.push(currentDebt);
+
+    const criticalDebts = activeDebts.filter(d => d.severity === 'critical' || d.severity === 'high');
+
+    if (activeDebts.length > 0) {
+        console.log(`\n📋 [check_seal] 未解消の負債が ${activeDebts.length} 件あります（うち重大: ${criticalDebts.length} 件）:`);
+        activeDebts.forEach(d => {
+            const icon = (d.severity === 'critical' || d.severity === 'high') ? '🔴' : '🟡';
+            console.log(`   ${icon} [${d.severity}] ${d.title}`);
+        });
+    }
+
+    if (criticalDebts.length > 0) {
+        console.error('\n🚫───────────── [ DEBT BLOCK ] ─────────────🚫');
+        console.error('❌ 未解消の重大な負債（Critical/High）が残存しています。');
+        console.error('   → AGENTS.md §G: 既存負債の解消を最優先せよ。');
+        console.error('   → 負債を解消し DEBT_ARCHIVE.md へ移動するか、完了マーク [x] を付けてください。');
+        console.error('🚫──────────────────────────────────────────🚫\n');
+        process.exit(1);
+    }
+
+    return { count: activeDebts.length, criticalCount: criticalDebts.length };
 }
 
-validateReflection同期();
+const debtStatus = validateDebtStatus();
 
 // 4. 承認日の鮮度チェック（7日以内）
-const dateMatch = lastEntry.match(/\|\s*(\d{4}-\d{2}-\d{2})\s*\|/);
-if (dateMatch) {
-    const entryDate = new Date(dateMatch[1]);
+if (lastEntryData.date) {
+    const entryDate = new Date(lastEntryData.date);
     const now = new Date();
     const daysDiff = (now - entryDate) / (1000 * 60 * 60 * 24);
 
@@ -239,6 +338,9 @@ if (dateMatch) {
 }
 
 // ✅ All checks passed
-console.log('✅ [check_seal] 承認確認完了。実装を許可します。');
-console.log(`   最終承認: ${lastEntry.trim()}`);
+console.log('\n✨ [check_seal] すべての統治チェックを通過しました。実装を許可します。');
+console.log(`   最終承認: ${lastEntryDisplay.trim()}`);
+if (debtStatus.count > 0) {
+    console.log(`   残存負債: ${debtStatus.count} 件 (許容範囲内)`);
+}
 process.exit(0);

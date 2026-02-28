@@ -34,6 +34,22 @@ function parseArgs(argv) {
     return args;
 }
 
+function updateTaskMd() {
+    const TASK_MD_PATH = path.join(process.cwd(), 'task.md');
+    if (!fs.existsSync(TASK_MD_PATH)) return;
+
+    try {
+        let content = fs.readFileSync(TASK_MD_PATH, 'utf8');
+        if (content.includes('[/]')) {
+            const newContent = content.replace(/\[\/\]/g, '[x]');
+            fs.writeFileSync(TASK_MD_PATH, newContent, 'utf8');
+            console.log('✅ task.md: 自動完了を適用しました ( [/] -> [x] )');
+        }
+    } catch (err) {
+        console.error('⚠️ task.md の更新に失敗しました:', err.message);
+    }
+}
+
 function recordEntry(title, scope, impact, approver, audit) {
     if (!fs.existsSync(AMPLOG_PATH)) {
         console.error(`❌ Error: AMPLOG.md not found at ${AMPLOG_PATH}`);
@@ -54,6 +70,10 @@ function recordEntry(title, scope, impact, approver, audit) {
 
         console.log('✅ Successfully recorded to AMPLOG.md');
         console.log(`📍 Entry: ${entry}`);
+
+        // [Phase 7.2] Auto-Tick task.md
+        updateTaskMd();
+
         return entry;
     } catch (err) {
         console.error('❌ Failed to write to AMPLOG.md:', err.message);
