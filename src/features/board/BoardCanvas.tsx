@@ -21,7 +21,6 @@ import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
 import { AlertTriangle } from 'lucide-react';
-import { useInteraction } from '../../contexts/InteractionContext';
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
@@ -79,8 +78,8 @@ export default function BoardCanvas() {
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
 
-    // 3.5. Interaction Context
-    const { activeMode } = useInteraction();
+    // 3.5. Board Context (Auth & Interaction logic)
+
 
     const selectedDriverForEdit = headerEditTargetId
         ? drivers.find(d => d.id === headerEditTargetId) || null
@@ -281,10 +280,8 @@ export default function BoardCanvas() {
                                 }
                             }}
                             onCellDoubleClick={(driverId: string, time: string) => {
-                                // PCネイティブのダブルクリックは、
-                                // onCellClick の 1回目(選択) と 2回目(モーダル) の連続実行として処理されるため、
-                                // ここでの重複した呼び出しは不要。選択状態の同期のみ行う。
-                                if (editMode && activeMode === 'pc') {
+                                // 2ステップ操作への統一により、ダブルクリックも単一セルの選択同期として扱う
+                                if (editMode) {
                                     setSelectedCell({ driverId, time });
                                 }
                             }}
