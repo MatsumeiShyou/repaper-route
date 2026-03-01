@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef } from 'react';
 
 import {
     Save, Clipboard, RefreshCcw, Database, Undo2, Redo2
@@ -7,7 +7,6 @@ import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
 import { useBoardValidation } from './hooks/useBoardValidation';
 import { useMasterData } from './hooks/useMasterData';
-import { LogicResult } from '../logic/types';
 import { TIME_SLOTS } from '../board/logic/constants';
 
 
@@ -23,7 +22,6 @@ import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
 import { AlertTriangle } from 'lucide-react';
-import { CellHUD } from './components/CellHUD';
 
 
 
@@ -82,34 +80,9 @@ export default function BoardCanvas() {
     const [isHeaderEditModalOpen, setIsHeaderEditModalOpen] = useState(false);
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
-    const [lastClickPos, setLastClickPos] = useState({ x: 0, y: 0 });
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
     // Phase 6: Predictive Validation (Hook must be before early return)
-    const selectionViolation = useMemo(() => {
-        if (!selectedCell) return null;
-
-        const driver = drivers.find(d => d.id === selectedCell.driverId);
-        if (!driver) return null;
-
-        const driverJobs = jobs.filter(j => j.driverId === selectedCell.driverId);
-
-        if (driverJobs.length >= 8) {
-            return {
-                isFeasible: false,
-                violations: [{
-                    type: '積載量超過' as const,
-                    message: '案件数が上限に達しています',
-                    currentValue: driverJobs.length,
-                    limitValue: 8
-                }],
-                score: 0,
-                reason: ['上限超過']
-            } as LogicResult;
-        }
-
-        return { isFeasible: true, violations: [], score: 100, reason: [] } as LogicResult;
-    }, [selectedCell, drivers, jobs]);
 
     const selectedDriverForEdit = headerEditTargetId
         ? drivers.find(d => d.id === headerEditTargetId) || null
@@ -297,19 +270,14 @@ export default function BoardCanvas() {
                             draggingSplitId={draggingSplitId}
                             onCellClick={(driverId: string, time: string, e: React.MouseEvent) => {
                                 if (editMode) {
-                                    const isSame = selectedCell?.driverId === driverId && selectedCell?.time === time;
                                     const dx = Math.abs(e.clientX - mousePos.x);
                                     const dy = Math.abs(e.clientY - mousePos.y);
 
                                     // Guard against drag mis-clicks (3px threshold)
                                     if (dx > 3 || dy > 3) return;
 
-                                    if (isSame) {
-                                        setIsAddJobModalOpen(true);
-                                    } else {
-                                        setSelectedCell({ driverId, time });
-                                        setLastClickPos({ x: e.clientX, y: e.clientY });
-                                    }
+                                    setSelectedCell({ driverId, time });
+                                    setIsAddJobModalOpen(true);
                                 }
                             }}
                             onCellDoubleClick={() => { }}
@@ -331,17 +299,6 @@ export default function BoardCanvas() {
                             selectedJobId={selectedJobId}
                             dropPreview={dropPreview}
                         />
-
-                        {/* Cell Selection HUD */}
-                        {selectedCell && editMode && (
-                            <CellHUD
-                                x={lastClickPos.x - (gridContainerRef.current?.getBoundingClientRect().left || 0)}
-                                y={lastClickPos.y - (gridContainerRef.current?.getBoundingClientRect().top || 0)}
-                                onAdd={() => setIsAddJobModalOpen(true)}
-                                onClose={() => setSelectedCell(null)}
-                                violation={selectionViolation}
-                            />
-                        )}
 
 
                     </div>
