@@ -9,10 +9,11 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
+    include: ['src/**/*.test.{ts,tsx}'],
     exclude: [
       'tests/vlm/**/*',
       'tests/e2e/**/*',
-      'node_modules/**/*',
+      '**/node_modules/**/*',
       'pg_fix/**/*'
     ],
     coverage: {

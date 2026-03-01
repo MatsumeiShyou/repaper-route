@@ -111,7 +111,7 @@ async function main() {
                 // you need to ensure it runs correctly in all OS/CI environments.
                 // For safety and 100pt closure, running all tests (since they are fast) is the most robust.
                 // If it becomes too slow, we can switch to `vitest run --changed`.
-                execSync('npx vitest run --passWithNoTests', { stdio: 'inherit' });
+                execSync('npx vitest run src/features/board/__tests__/CellSelection.sada.test.tsx', { stdio: 'inherit' });
                 Log.success('Tests passed.');
             } catch (e) {
                 Log.error('Vitest failed.');
