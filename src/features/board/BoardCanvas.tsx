@@ -21,7 +21,6 @@ import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
 import { AlertTriangle } from 'lucide-react';
-
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
 

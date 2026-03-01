@@ -107,7 +107,8 @@ governance
 └── lifecycle
     ├── DEBT_ARCHIVE
     ├── seal
-    └── AMP
+    ├── AMP
+    └── CAVR
 ```
 
 ---
@@ -185,3 +186,4 @@ const injected = deduplicate([...critical, ...relevant]);
 | 2026-02-23 | 追加 | permission | db/schema | DEBT#401 Whiteout で使用 |
 | 2026-02-25 | 追加 | migration, view, grant | db/schema, db/ops | VIEW再定義（42P16）およびGRANT引数不一致（42883）で使用 |
 | 2026-03-01 | 追加 | InteractionContext, DeviceMode, CellHUD | ui/interaction, ui/component | 操作系復旧タスク（DEBT_AND_FUTURE の新規エントリ）で使用 |
+| 2026-03-01 | 追加 | CAVR, Route-A, Route-B, Route-C | governance/protocol | Preview URL駆動パラダイムの導入で使用 |

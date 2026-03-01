@@ -56,12 +56,12 @@
 
   - **対策**: `CellHUD` の機能限定（ミニマリスト制約）と `InteractionContext` による自前ダブルタップ判定を導入済み。
 
-- [ ] **Legacy Test Failures (V9.4 Quarantine)**
+- [x] **Legacy Test Failures (V9.4 Quarantine)**
 #type: fault_pattern, #domain: qa, #severity: high
 #registered: 2026-03-01, #trigger: vitest, MasterDataLayout, BoardCanvas
   - **事象**: `MasterDataLayout`, `BoardCanvas`, `SmokeTest` 等、複数の既存テストが環境差異やモック不備により失敗し、物理ゲートを阻害。
   - **暫定処置**: 門番（closure_gate.js）の全量検証をパスさせるため、対象ファイルに `describe.skip()` を付与して隔離（Quarantine）。
-  - **恒久対策**: 各テストのモック・コンテキスト依存関係を修正し、スキップを解除せよ。
+  - **恒久対策**: 各テストのモック・コンテキスト依存関係を修正し、スキップを解除、すべて統合的に成功させました。
 
 ---
 
@@ -110,3 +110,10 @@
 - **統治の空気化 (Epistemic Cache)**: 変更内容の静的解析（git diff）により、ドキュメント/テスト変更を自動検知しゲートをバイパスする仕組みを `pre_flight.js` に導入。統治摩擦を劇的に低減。
 - **Atomic Testing**: `vitest.workspace.js` によるプロジェクト分離を実施。`environment: node` を用いたロジック専用高速テスト（3秒以内）を確立。
 - **正典 (SSOT) の一本化**: `AMPLOG.md` を廃止し `AMPLOG.jsonl` に統一。パースエラーと情報の不整合を物理的に排除。
+## 認識論的高速化と検証パラダイム (Lessons Learned)
+
+- **Preview URL駆動パラダイム (CAVR)**: #type: lesson
+  - 課題: すべてのUI修正に対して重厚なSADAテストを維持するのは保守コストが高い。
+  - 解決: 変更の性質に応じて **Route A (Preview必須) / B (ロジック) / C (高速パス)** をAI自身が判断し、`pre_flight.js` がその宣言を物理的に監視する「CAVR (Context-Aware Verification Routing)」を導入。
+  - 効果: 推測による検証漏れを防ぎつつ、ドキュメント修正等の軽量タスクにおいて 100pt Closure の高速化（Fast-Path）を実現。
+  - 適用: 2026-03-01 以降の全タスクに義務付け。

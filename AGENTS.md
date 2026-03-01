@@ -54,8 +54,11 @@
 
 - **DB同期**: コードとスキーマ（SQL）の変更は同一AMPで実施。手動変更厳禁。DB反映後は `npx supabase gen types` による物理同期確認が完了するまでActionへの移行を禁止する（詳細: `docs/governance/DB_SYNC_PROTOCOL.md`）。
 - **履歴管理**: `SCHEMA_HISTORY.md` に記録し `npx supabase db diff` を使用。
-- **SADA-First Rule**: DOM関連テストは **SADA** を第一選択とする。生HTML送信による検証は原則禁止（詳細: `docs/testing/SADA_TESTING.md`）。
-- **検証義務**: 修正後はユーザーに動作確認を依頼し、最終承認を得ること。
+- **CAVR Protocol (Hybrid Verification)**: DOM関連検証は以下の **Route A/B/C** から変更の性質に応じて臨機応変に選択し、その判断を構造的に宣言せよ（詳細は `docs/testing/SADA_TESTING.md` / `implementation_plan.md`）。
+  - **Route A [Preview-Driven]**: UI/UX/スタイル変更。SADA検証後、必ずPushして **Preview URL** での実機確認を必須とする。
+  - **Route B [Local-Logic]**: ロジック/DB/内部処理。`vitest` / `tsc` のエラー0をもって品質証明とし、UI確認は任意。
+  - **Route C [Fast-Path]**: ドキュメント/設定のみ。自動テスト・Previewともにスキップ（Epistemic Cache）。
+- **検証義務**: 選択した Route に基づき、ユーザーに動作確認を依頼し、最終承認を得ること。
 
 ### G. Stop & Debt Protocol
 
@@ -104,16 +107,18 @@
 3. AGENTS.md の制約を回避していないか
 4. 推測・当てずっぽうのリトライではないか
 5. 20ファイル以上のスキャン・URLアクセス前には見積（token数と時間）を提示し承認を得たか
-6. **K-6 認識論的透明性（高リスク分析時に必須）**: 出力を `[確認済み事実]` / `[合理的推論]` / `[仮説・推測]` / `[不明点]` で層分離し、末尾に `[最低確信度項目]` を1つ以上開示すること。`[K-6]` フラグ付与時は `epistemic_gate.js` が物理検証する（マーカー欠如時は `EPISTEMIC LOCK` を発行）。
+6. **K-6 認識論的透明性**: 出力を層分離し確信度を開示せよ（高リスク分析時に `epistemic_gate.js` が物理検証）。
+7. **K-7 CAVR 宣言**: タスク開始・完了時に **Route A/B/C** のいずれを採用し、なぜその判断を下したかの理由を明示せよ（`pre_flight.js` が物理監視）。
 
 ### L. 完遂プロトコル（100pt Closure）
 
 実装完了後、タスクをクローズする前に以下のフローを厳格に執行する。
 
-1. **Verification (自動検査)**: `tsc` および `SADA/Vitest` による物理的な品質証明（エラー0）を提示せよ。
+1. **Verification (自動検査)**: `tsc` および `vitest` / `SADA` による物理的な品質証明（エラー0）を提示せよ。Route A の場合はこの時点で「Preview URLによる目視確認の準備完了」を宣言せよ。
 2. **Atomic Push (同期)**: 検証済みコードを直ちにリモート環境へ反映（Push）せよ。
 3. **User Confirmation (人間による最終確認)**: 
-   - リモート環境での動作確認、および関連する新たな周辺問題の有無の確認を依頼せよ。
+   - **Route A**: リモートの **Preview URL** リンクを提示し、実機での動作確認を依頼せよ。
+   - **Route B**: 自動テスト結果を提示し、論理的妥当性の確認を依頼せよ。
    - ユーザーから承認（`ｙ`）を得た場合のみ次へ進む。
    - **重要**: もし「1か所のみの微細な修正（色変更等）」であっても、修正を行った場合は直ちに **手順1（自動検査）へ戻り**、フローを再スタートさせよ。
 4. **Cleanup (物理掃除)**: 最終承認後、`*.bak`, `debug_*`, `temp_*` 等の一時ファイルを全て削除せよ。

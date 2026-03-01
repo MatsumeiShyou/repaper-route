@@ -13,8 +13,8 @@ import { getSession } from './session_manager.js';
 
 // Force UTF-8 for Windows Console
 if (process.platform === 'win32') {
-    process.stdout.setEncoding('utf8');
-    process.stderr.setEncoding('utf8');
+    if (process.stdout.isTTY) process.stdout.setEncoding('utf8');
+    if (process.stderr.isTTY) process.stderr.setEncoding('utf8');
 }
 
 // --- Path Constants ---
@@ -244,6 +244,7 @@ function validateGovernanceCompliance(changedFiles) {
             const regex = new RegExp(rule.pattern, 'g');
             const match = content.match(regex);
             if (match) {
+                console.log(`DEBUG: Violation found in ${file} for rule ${rule.id} (${rule.name})`);
                 violations.push({
                     file,
                     ruleId: rule.id,
@@ -278,6 +279,92 @@ function validateGovernanceCompliance(changedFiles) {
     console.log('✅ [GovLint] 憲法不適合は見つかりませんでした。');
 }
 
+/**
+ * [Phase 5/6] Context-Aware Verification Routing (CAVR) Enforcement
+ * 実装の性質（Route A/B/C）がタスク境界または task.md で宣言されているか検証する。
+ */
+function validateCAVR(changedFiles) {
+    console.log('\n🛤️  [CAVR Gate] 検証ルート（Route A/B/C）の宣言を確認中...');
+
+    const session = getSession();
+    const isRepairLane = session?.active_task?.is_repair_lane || false;
+    if (isRepairLane) {
+        console.log('🚀 [CAVR Gate] Repair Lane を検知。ルートチェックをバイパスします。');
+        return;
+    }
+
+    // ドキュメントのみの変更は自動的に Route C とみなす
+    if (isDocOnlyValidation(changedFiles)) {
+        console.log('✅ [CAVR Gate] Route C [Fast-Path] を自動適用（ドキュメント更新のみ）。');
+        return;
+    }
+
+    const routePatterns = [
+        { id: 'Route A', regex: /Route\s*A|Preview-Driven/i, desc: 'UI/UX (Preview URL 必須)' },
+        { id: 'Route B', regex: /Route\s*B|Local-Logic/i, desc: 'ロジック (自動テスト重視)' },
+        { id: 'Route C', regex: /Route\s*C|Fast-Path/i, desc: 'ドキュメント/設定 (検証スキップ)' }
+    ];
+
+    let declaredRoute = null;
+
+    // 1. セッション情報の Intent/Summary から検索
+    if (session?.active_task) {
+        const textToScan = `${session.active_task.name} ${session.active_task.summary}`;
+        for (const route of routePatterns) {
+            if (route.regex.test(textToScan)) {
+                declaredRoute = route;
+                break;
+            }
+        }
+    }
+
+    // 2. Fallback: task.md の進行中項目 [/] から検索
+    if (!declaredRoute && fs.existsSync(TASK_MD_PATH)) {
+        const content = fs.readFileSync(TASK_MD_PATH, 'utf8');
+        const lines = content.split('\n');
+        const inProgressLine = lines.find(l => l.includes('[/]'));
+        if (inProgressLine) {
+            for (const route of routePatterns) {
+                if (route.regex.test(inProgressLine)) {
+                    declaredRoute = route;
+                    break;
+                }
+            }
+        }
+    }
+
+    // 3. Final Fallback: AMPLOG.jsonl の最新エントリから検索 (物理証跡)
+    const AMPLOG_PATH = path.join(PROJECT_ROOT, 'AMPLOG.jsonl');
+    if (!declaredRoute && fs.existsSync(AMPLOG_PATH)) {
+        const content = fs.readFileSync(AMPLOG_PATH, 'utf8');
+        const lines = content.trim().split('\n');
+        const lastLines = lines.slice(-5).reverse(); // 直近5件を逆順にチェック
+        for (const line of lastLines) {
+            for (const route of routePatterns) {
+                if (route.regex.test(line)) {
+                    declaredRoute = route;
+                    break;
+                }
+            }
+            if (declaredRoute) break;
+        }
+    }
+
+    if (declaredRoute) {
+        console.log(`✅ [CAVR Gate] 宣言されたルートを確認: ${declaredRoute.id} (${declaredRoute.desc})`);
+        return;
+    }
+
+    console.error('\n🚫───────────── [ VERIFICATION ROUTE LOCK ] ─────────────🚫');
+    console.error('❌ 検証ルート（Route A/B/C）が宣言されていません。');
+    console.error('   → AGENTS.md §F: 変更の性質に応じた検証経路を明示せよ。');
+    console.error('   → [解決案]: task_boundary ツールの summary 等に "Route A" (UI修正) ');
+    console.error('     または "Route B" (ロジック修正) を追記してください。');
+    console.error('   → 理由: 臨機応変な対応を「構造的に強制」するため、AIの意思表示が必要です。');
+    console.error('🚫─────────────────────────────────────────────────────🚫\n');
+    process.exit(1);
+}
+
 async function main() {
     console.log('🛡️  Antigravity Dynamic Governance: Pre-flight Check');
     console.log('==================================================');
@@ -310,6 +397,7 @@ async function main() {
 
     validateCognitiveCheckpoint(allChangedFiles);
     validateSmartDbSync(allChangedFiles);
+    validateCAVR(allChangedFiles);
     validateGovernanceCompliance(allChangedFiles);
     validateAntiSpiral();
 
