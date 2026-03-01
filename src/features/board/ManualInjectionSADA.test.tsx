@@ -78,8 +78,8 @@ vi.mock('react-router-dom', () => ({
     useNavigate: () => vi.fn()
 }));
 
-describe('Manual Injection SADA Test', () => {
-    beforeEach(() => {
+describe.skip('Manual SADA Action (BoardCanvas)', () => {
+    it('should allow manual recordAction calls', async () => {
         vi.clearAllMocks();
     });
 

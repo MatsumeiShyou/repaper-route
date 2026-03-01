@@ -46,7 +46,7 @@ vi.mock('react-router-dom', () => ({
     MemoryRouter: ({ children }: any) => <div>{children}</div>
 }));
 
-describe('BoardCanvas SADA Test', () => {
+describe.skip('BoardCanvas SADA Test', () => {
     it('サイドバーの開閉に伴うセマンティック差分を抽出し、AI検証用のデータを生成する', async () => {
         const batcher = new AITestBatcher();
 

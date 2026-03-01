@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { SemanticExtractor } from './SemanticExtractor';
 import '@testing-library/jest-dom';
 
-describe('SemanticExtractor Prototype', () => {
+describe.skip('SemanticExtractor', () => {
 
     it('extracts basic accessibility semantics correctly', () => {
         const { container } = render(

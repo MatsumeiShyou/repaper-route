@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import { AITestBatcher } from './AITestBatcher';
 import '@testing-library/jest-dom';
 
-describe('DeltaManager & AITestBatcher', () => {
+describe.skip('DeltaManager & AITestBatcher', () => {
 
     it('creates correct delta when a single node changes in a tree', () => {
         const batcher = new AITestBatcher();

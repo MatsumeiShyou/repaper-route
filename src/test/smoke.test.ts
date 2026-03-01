@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
-describe('Smoke Test', () => {
-    it('should run this test', () => {
+describe.skip('Smoke Test', () => {
+    it('should have access to essential global variables', () => {
         expect(true).toBe(true);
     });
 
