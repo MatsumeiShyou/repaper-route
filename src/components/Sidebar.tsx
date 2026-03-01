@@ -44,14 +44,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
         <aside className="w-[260px] flex flex-col h-full bg-slate-900 text-slate-300 border-r border-slate-800 z-50">
             {/* Logo Area */}
             <div
-                className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950/50 cursor-pointer hover:bg-slate-900 transition-colors"
+                className="h-20 flex items-center px-6 border-b border-slate-800 bg-slate-950/50 cursor-pointer hover:bg-slate-900 transition-colors"
                 onClick={() => onViewChange('menu')}
             >
                 <div className="mr-3">
                     <img
                         src="/logo.png"
                         alt="Logo"
-                        className="h-8 w-auto invert opacity-80"
+                        className="h-12 w-auto invert opacity-80"
                         onError={(e) => {
                             // Fallback if logo not found
                             (e.target as HTMLImageElement).style.display = 'none';
@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
                     />
                 </div>
                 <div>
-                    <h1 className="text-base font-black tracking-tighter text-white leading-none">
+                    <h1 className="text-2xl font-black tracking-tighter text-white leading-none">
                         <span className="text-emerald-600">R</span>epaper <span className="text-emerald-600">R</span>oute
                     </h1>
                 </div>
