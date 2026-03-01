@@ -51,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
                     <img
                         src="/logo.png"
                         alt="Logo"
-                        className="h-12 w-auto invert opacity-80"
+                        className="h-8 w-auto invert opacity-80"
                         onError={(e) => {
                             // Fallback if logo not found
                             (e.target as HTMLImageElement).style.display = 'none';
