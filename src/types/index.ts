@@ -51,6 +51,7 @@ export interface BoardJob {
     location_id?: string; // Traceability: Reference to master_collection_points
     address?: string;     // Traceability: Static snapshot of address at time of creation
     creation_reason?: string; // Double Loop: Reason for manual injection
+    version?: number; // Optimistic Lock (jobs_v4.version)
 }
 
 export interface BoardDriver {

@@ -17,6 +17,7 @@ import { PendingJobSidebar } from './components/PendingJobSidebar';
 import { useAuth } from '../../contexts/AuthProvider';
 import { BoardJob, BoardDriver } from '../../types';
 
+import { AuditTrailPanel } from './components/AuditTrailPanel';
 import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
@@ -76,6 +77,7 @@ export default function BoardCanvas() {
     const [isHeaderEditModalOpen, setIsHeaderEditModalOpen] = useState(false);
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
+    const [auditJobId, setAuditJobId] = useState<string | null>(null);
 
     // 3.5. Board Context (Auth & Interaction logic)
 
@@ -299,6 +301,7 @@ export default function BoardCanvas() {
                             onSplitMouseDown={handleSplitMouseDown}
                             onResizeStart={handleResizeStart}
                             onJobClick={(id) => setSelectedJobId(id)}
+                            onAuditClick={(id: string) => setAuditJobId(id)}
                             selectedJobId={selectedJobId}
                             dropPreview={dropPreview}
                         />
@@ -357,7 +360,7 @@ export default function BoardCanvas() {
             <SaveReasonModal
                 isOpen={isSaveModalOpen}
                 onClose={() => setIsSaveModalOpen(false)}
-                onCommit={(reasonCode, reasonText) => {
+                onCommit={(reasonCode: string, reasonText: string) => {
                     handleSave(JSON.stringify({ code: reasonCode, text: reasonText }));
                     setIsSaveModalOpen(false);
                 }}
@@ -371,6 +374,22 @@ export default function BoardCanvas() {
                 masterPoints={masterPoints}
                 onAdd={handleAddManualJob}
             />
+
+            {auditJobId && (
+                <AuditTrailPanel
+                    job={jobs.find(j => j.id === auditJobId) || pendingJobs.find(j => j.id === auditJobId)!}
+                    onClose={() => setAuditJobId(null)}
+                    history={[
+                        {
+                            version: 1,
+                            decision: '初期配車確定',
+                            reason: 'ルート最適化に基づく自動割り当て',
+                            userName: 'System Analyzer',
+                            updatedAt: '2026-03-01 10:00'
+                        }
+                    ]}
+                />
+            )}
         </div>
     );
 }

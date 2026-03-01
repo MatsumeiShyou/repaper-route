@@ -154,13 +154,15 @@ export const useBoardDragDrop = (
         });
     };
 
+    const lastThrottleRef = useRef<number>(0);
+    const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
     const handleWindowMouseMove = useCallback((e: MouseEvent) => {
         let relativeY = e.clientY;
         if (gridContainerRef.current) {
             const containerRect = gridContainerRef.current.getBoundingClientRect();
             relativeY = e.clientY - containerRect.top;
         }
-
 
         if (resizingState) {
             const deltaY = relativeY - resizingState.startY;
@@ -193,11 +195,32 @@ export const useBoardDragDrop = (
         }
 
         if (draggingJobId) {
+            const now = Date.now();
+            const elapsed = now - lastThrottleRef.current;
+
+            if (elapsed < 150) {
+                if (!throttleTimerRef.current) {
+                    // Pending 状態を即座に反映
+                    setDropPreview((prev: any) => prev ? { ...prev, isPending: true } : null);
+
+                    throttleTimerRef.current = setTimeout(() => {
+                        const currentY = relativeY - dragOffset.y;
+                        const preview = calculateDropTargetRef(e.clientX, currentY, draggingJobId);
+                        setDropPreview(preview); // isPending は preview 内に含まれないため解除される
+                        dropPreviewRef.current = preview;
+                        lastThrottleRef.current = Date.now();
+                        throttleTimerRef.current = null;
+                    }, 150 - elapsed);
+                }
+                return;
+            }
+
             try {
                 const currentY = relativeY - dragOffset.y;
                 const preview = calculateDropTargetRef(e.clientX, currentY, draggingJobId);
                 setDropPreview(preview);
                 dropPreviewRef.current = preview;
+                lastThrottleRef.current = now;
             } catch (err) {
                 console.error("[DragDrop] Error calculating drop preview:", err);
             }
@@ -216,6 +239,13 @@ export const useBoardDragDrop = (
                 if (preview && !preview.isOverlapError) {
                     const target = jobs.find(j => j.id === draggingJobId);
                     if (target) {
+                        // [GUARDRAIL] Optimistic Lock - version check
+                        const currentJob = jobs.find(j => j.id === draggingJobId);
+                        if (currentJob && target.version !== currentJob.version) {
+                            alert("他のユーザーがこの案件を更新しました。画面をリロードしてください。");
+                            return;
+                        }
+
                         const proposedState = {
                             ...target,
                             timeConstraint: preview.startTime,
@@ -238,6 +268,10 @@ export const useBoardDragDrop = (
                 setDraggingJobId(null);
                 setDropPreview(null);
                 dropPreviewRef.current = null;
+                if (throttleTimerRef.current) {
+                    clearTimeout(throttleTimerRef.current);
+                    throttleTimerRef.current = null;
+                }
             }
         }
     }, [draggingJobId, resizingState, dragOffset, jobs, recordHistory, createProposal]);

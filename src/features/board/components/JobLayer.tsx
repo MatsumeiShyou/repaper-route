@@ -21,6 +21,7 @@ interface JobLayerProps {
     onSplitMouseDown: (e: React.MouseEvent, split: BoardSplit) => void;
     onResizeStart: (e: React.MouseEvent, job: BoardJob, direction: 'top' | 'bottom') => void;
     onJobClick: (id: string, e: React.MouseEvent) => void;
+    onAuditClick: (id: string) => void;
 }
 
 export const JobLayer: React.FC<JobLayerProps> = ({
@@ -31,7 +32,8 @@ export const JobLayer: React.FC<JobLayerProps> = ({
     dropPreview,
     onJobMouseDown,
     onResizeStart,
-    onJobClick
+    onJobClick,
+    onAuditClick
 }) => {
     const jobColorMap = useMemo(() => {
         const driverOrder = drivers.map(d => d.id);
@@ -69,8 +71,9 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                         {/* 100 Point Spec: Drop Target Shadow (Destination VIS) */}
                         {dropPreview && dropPreview.driverId === driver.id && (
                             <div
-                                className={`absolute w-[94%] left-[3%] rounded-md border-2 border-dashed pointer-events-none z-10 transition-all duration-75
-                                    ${dropPreview.isOverlapError ? 'bg-red-500/10 border-red-400' : 'bg-blue-500/10 border-blue-400'}
+                                className={`absolute w-[94%] left-[3%] rounded-md border-2 border-dashed pointer-events-none z-10 transition-all duration-150
+                                    ${dropPreview.isPending ? 'opacity-30 bg-gray-400 border-gray-400' :
+                                        dropPreview.isOverlapError ? 'bg-red-500/10 border-red-400' : 'bg-emerald-500/10 border-emerald-400'}
                                 `}
                                 style={{
                                     top: `${((timeToMinutes(dropPreview.startTime) - 360) / 15) * SLOT_HEIGHT_PX}px`,
@@ -78,9 +81,10 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                 }}
                             >
                                 <div className={`text-[10px] font-black px-1.5 py-0.5 rounded-sm m-1 inline-block
-                                    ${dropPreview.isOverlapError ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}
+                                    ${dropPreview.isPending ? 'bg-gray-200 text-gray-500' :
+                                        dropPreview.isOverlapError ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}
                                 `}>
-                                    {dropPreview.startTime} ➡
+                                    {dropPreview.startTime} {dropPreview.isPending ? '...' : '➡'}
                                 </div>
                             </div>
                         )}
@@ -128,6 +132,11 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                         if (isLocked) { e.stopPropagation(); return; }
                                         onJobClick(job.id, e);
                                     }}
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        onAuditClick(job.id);
+                                    }}
+                                    onDoubleClick={(e) => e.preventDefault()}
                                 >
                                     {/* 内部白線 */}
                                     {renderHourLines(job.duration)}

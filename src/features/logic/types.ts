@@ -1,3 +1,5 @@
+export type ConstraintTier = 'L1' | 'L2' | 'L3';
+
 export interface LogicConstraint {
     maxWeight: number; // 最大積載量 (kg)
     maxWorkTimeMinutes: number; // 最大稼働時間 (分)
@@ -7,10 +9,12 @@ export interface LogicConstraint {
 export interface LogicJob {
     id: string;
     weight: number; // kg
-    timeConstraint?: string; // HH:mm
+    preferredStartTime?: string; // HH:mm (顧客希望)
+    actualStartTime?: string;    // HH:mm (計画・実績)
     durationMinutes: number; // 作業時間
     location: { lat: number; lng: number }; // 簡易座標
-    pointId?: string; // 回収先マスタの地点ID (入場制限チェック用)
+    pointId?: string; // 回収先マスタの地点ID
+    targetDate: string; // YYYY-MM-DD (五十日・週末チェック用)
 }
 
 export interface LogicVehicle {
@@ -18,10 +22,12 @@ export interface LogicVehicle {
     name: string;
     capacityWeight: number; // kg
     startLocation: { lat: number; lng: number }; // 出発地
+    inspectionExpiry?: string; // 車検満了日 (YYYY-MM-DD)
 }
 
 export interface ConstraintViolation {
-    type: '積載量超過' | '稼働時間超過' | '免許不足' | '入場制限違反';
+    tier: ConstraintTier;
+    type: string;
     message: string;
     currentValue: number | string;
     limitValue: number | string;
@@ -38,8 +44,12 @@ export interface PointAccessPermission {
 }
 
 export interface LogicResult {
-    isFeasible: boolean; // 実行可能か
-    violations: ConstraintViolation[]; // 制約違反の内訳
-    score: number; // 決定論的スコア
-    reason: string[]; // 論理的根拠（人間が追跡可能な形式で日本語記述）
+    isFeasible: boolean; // L1をすべて通過しているか
+    violations: ConstraintViolation[]; // 制約違反の内訳 (L1, L2, L3)
+    score: number; // 決定論的スコア (0-100)
+    reason: string[]; // 論理的根拠（日本語）
+    propagation?: {
+        delayMinutes: number;
+        affectedJobIds: string[];
+    };
 }
