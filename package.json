@@ -16,6 +16,7 @@
         "governance:check": "powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run.ps1 .agent/scripts/check_seal.js",
         "governance:audit": "powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run.ps1 .agent/scripts/reflect.js",
         "governance:preflight": "powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run.ps1 .agent/scripts/pre_flight.js",
+        "governance:closure": "node .agent/scripts/closure_gate.js",
         "prepare": "husky install",
         "storybook": "storybook dev -p 6006",
         "build-storybook": "storybook build",
