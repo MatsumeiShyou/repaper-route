@@ -2,6 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 
+// Force UTF-8 for Windows Console
+if (process.platform === 'win32') {
+    process.stdout.setEncoding('utf8');
+    process.stderr.setEncoding('utf8');
+}
+
 const AMPLOG_PATH = path.join(process.cwd(), 'AMPLOG.jsonl');
 const DEBT_PATH = path.join(process.cwd(), 'DEBT_AND_FUTURE.md');
 const REQUIRED_SEAL = '(PW: ｙ)';
@@ -56,6 +62,20 @@ function validateMigrationSync() {
 }
 
 validateMigrationSync();
+
+
+// ═══════════════════════════════════════════════════
+// Phase 6-2: DB View GRANT Validation
+// ═══════════════════════════════════════════════════
+const VALIDATE_GRANTS_PATH = path.join(process.cwd(), '.agent/scripts/validate_grants.js');
+if (fs.existsSync(VALIDATE_GRANTS_PATH)) {
+    try {
+        console.log('🔍 [check_seal] DB VIEW 権限整合性を検証中...');
+        execSync(`node "${VALIDATE_GRANTS_PATH}"`, { stdio: 'inherit' });
+    } catch (e) {
+        process.exit(1);
+    }
+}
 
 
 // ═══════════════════════════════════════════════════

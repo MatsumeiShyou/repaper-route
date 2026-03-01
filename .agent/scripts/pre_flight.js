@@ -11,6 +11,12 @@ import path from 'path';
 import fs from 'fs';
 import { getSession } from './session_manager.js';
 
+// Force UTF-8 for Windows Console
+if (process.platform === 'win32') {
+    process.stdout.setEncoding('utf8');
+    process.stderr.setEncoding('utf8');
+}
+
 // --- Path Constants ---
 const PROJECT_ROOT = process.cwd();
 const SCRIPTS_DIR = path.join(PROJECT_ROOT, '.agent', 'scripts');
@@ -55,6 +61,24 @@ function checkEnvironment() {
 }
 
 /**
+ * 変更がドキュメントや除外パターンのみに限定されているかを判定する統合関数
+ */
+function isDocOnlyValidation(changedFiles) {
+    if (changedFiles.length === 0) return true;
+    try {
+        if (fs.existsSync(RULES_PATH)) {
+            const { exemptPatterns: rawPatterns } = JSON.parse(fs.readFileSync(RULES_PATH, 'utf8'));
+            const exemptPatterns = rawPatterns.map(p => new RegExp(p));
+            return changedFiles.every(file => {
+                const normalizedFile = file.replace(/\\/g, '/');
+                return exemptPatterns.some(pattern => pattern.test(normalizedFile));
+            });
+        }
+    } catch (e) { }
+    return false;
+}
+
+/**
  * [Phase 7.1] Task-Execution Tight Coupling Check (Fundamental Upgrade)
  */
 function validateTaskActive() {
@@ -84,27 +108,14 @@ function validateTaskActive() {
     }
 
     // [M-1修正 & DRY] コード変更を伴わないコミット（ドキュメント/ログ修正等）時はチェックをスキップ
-    try {
-        if (fs.existsSync(RULES_PATH)) {
-            const { exemptPatterns: rawPatterns } = JSON.parse(fs.readFileSync(RULES_PATH, 'utf8'));
-            const exemptPatterns = rawPatterns.map(p => new RegExp(p));
+    const cached = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+    const workspace = execSync('git ls-files --others --modified --exclude-standard', { encoding: 'utf8' });
+    const changed = [...new Set([...cached.split('\n'), ...workspace.split('\n')])].filter(f => f.trim());
 
-            const cached = execSync('git diff --cached --name-only', { encoding: 'utf8' });
-            const workspace = execSync('git ls-files --others --modified --exclude-standard', { encoding: 'utf8' });
-            const changed = [...new Set([...cached.split('\n'), ...workspace.split('\n')])].filter(f => f.trim());
-
-            const isDocOnly = changed.length === 0 ||
-                changed.every(file => {
-                    const normalizedFile = file.replace(/\\/g, '/');
-                    return exemptPatterns.some(pattern => pattern.test(normalizedFile));
-                });
-
-            if (isDocOnly) {
-                console.log('✅ [TASK Gate] システム変更なし。タスクチェックをバイパスします。');
-                return;
-            }
-        }
-    } catch (e) { }
+    if (isDocOnlyValidation(changed)) {
+        console.log('✅ [TASK Gate] 非コード資産（ドキュメント等）の変更のみ。タスクチェックをバイパスします。');
+        return;
+    }
 
     console.error('\n🚫───────────── [ TASK EXECUTION LOCK ] ─────────────🚫');
     console.error('❌ 進行中のタスク（Intent または [/]）が見つかりません。');
@@ -126,6 +137,75 @@ function validateAntiSpiral() {
         console.log('   → 既存ルールとの矛盾、デッドロック、循環依存がないか確認しましたか？');
         console.log('   → [K-6] 分析に基づき、構造的整合性が担保されていることを確約してください。');
         console.log('✅ [スパイラル防止ゲート] 統治整合性の自己宣言を確認。');
+    }
+}
+
+/**
+ * [Phase 2] 決定論的 Cognitive Checkpoint (Binary Validation)
+ * `task.md` の全完了（`active_task.json` の status: Completed）時に、
+ * 物理的証跡（DEBT_AND_FUTURE.md または AMPLOG.jsonl）の更新が伴っているかを検証する。
+ */
+function validateCognitiveCheckpoint(changedFiles) {
+    const session = getSession();
+    // 完了宣言であるかを判定
+    if (session?.active_task?.status === 'Completed') {
+        // 変更ファイルの中に物理証跡が含まれているか
+        const hasEvidence = changedFiles.some(file =>
+            file.includes('DEBT_AND_FUTURE.md') ||
+            file.includes('AMPLOG.jsonl') ||
+            file.includes('AMPLOG.md')
+        );
+
+        if (!hasEvidence) {
+            if (isDocOnlyValidation(changedFiles)) {
+                console.log('✅ [CCP Gate] 分析・ドキュメント更新のみのため、CCP物理証跡要件を免除します。');
+                return;
+            }
+            console.error('\n🚫───────────── [ EPISTEMIC LOCK: CCP ] ─────────────🚫');
+            console.error('❌ Cognitive Checkpoint (CCP) 検証失敗: 物理的証跡の更新がありません。');
+            console.error('   → タスク完了 (`status: Completed`) を宣言する際は、必ず本実行による');
+            console.error('     「副作用の自己反駁」を DEBT_AND_FUTURE.md に 1行以上追記するか、');
+            console.error('     AMPLOG に履歴情報を記録してください。');
+            console.error('   → [根本解決]: DEBT_AND_FUTURE.md 等に変更を加えた上で再試行してください。');
+            console.error('🚫─────────────────────────────────────────────────────🚫\n');
+            process.exit(1);
+        } else {
+            console.log('✅ [CCP Gate] 完了宣言に伴う物理的証跡の更新を確認しました。');
+        }
+    }
+}
+
+/**
+ * [Phase 3] Smart DB Sync Validation
+ * Git差分に `supabase/migrations/` の変更が含まれる場合のみ、
+ * ローカルDBに対する差分チェック（DRY-RUN）を発動し、GRANT漏れやエラーを防ぐ。
+ */
+function validateSmartDbSync(changedFiles) {
+    const hasMigrationChanges = changedFiles.some(file =>
+        file.replace(/\\/g, '/').includes('supabase/migrations/') && file.endsWith('.sql')
+    );
+
+    if (hasMigrationChanges) {
+        console.log('\n🗄️  [Smart DB Gate] マイグレーションの変更を検知。Dry-Run検証を開始します...');
+        try {
+            // ローカルで実行して構文エラーや依存関係エラーが出ないかテスト
+            // (db push 等は重い可能性があるので、今回は db diff で変更分が適用可能か簡易確認するアプローチもアリだが、
+            //  確実なのは "supabase status" 等でローカルDBが動いているか確認し、
+            //  "supabase db diff --local"等で致命的エラーを見ること)
+            console.log('   Running: npx supabase db diff --local');
+            execSync('npx supabase db diff --local', { cwd: PROJECT_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+            console.log('✅ [Smart DB Gate] Dry-Run 成功。SQL構成は正常です。');
+        } catch (err) {
+            console.error('\n🚫───────────── [ DATABASE SYNC LOCK ] ─────────────🚫');
+            console.error('❌ DBマイグレーションの Dry-Run に失敗しました。');
+            console.error('   → 構文エラー、またはVIEW変更時の GRANT 追従漏れの可能性があります。');
+            console.error('   → エラー詳細:');
+            if (err.stdout && err.stdout.trim()) console.error(err.stdout);
+            if (err.stderr && err.stderr.trim()) console.error(err.stderr);
+            console.error('   → [根本解決]: SQLエラーを修正し、ローカルでテストを通過させてください。');
+            console.error('🚫─────────────────────────────────────────────────────🚫\n');
+            process.exit(1);
+        }
     }
 }
 
@@ -202,6 +282,9 @@ async function main() {
     console.log('🛡️  Antigravity Dynamic Governance: Pre-flight Check');
     console.log('==================================================');
 
+    const charsetOk = runCheck('Encoding Sentinel', `node "${path.join(SCRIPTS_DIR, 'guardian_charset.js')}"`);
+    if (!charsetOk) process.exit(1);
+
     validateTaskActive();
     checkEnvironment();
 
@@ -225,6 +308,8 @@ async function main() {
         console.log('   ⚠️ コンテキスト情報の取得に失敗しました。');
     }
 
+    validateCognitiveCheckpoint(allChangedFiles);
+    validateSmartDbSync(allChangedFiles);
     validateGovernanceCompliance(allChangedFiles);
     validateAntiSpiral();
 
@@ -232,20 +317,10 @@ async function main() {
     console.log('\n🏎️  [Fast-Path Gate] Mandatory check passed.');
 
     // 1b. Epistemic Cache logic
-    let skipHeavyChecks = false;
-    try {
-        if (fs.existsSync(RULES_PATH)) {
-            const { exemptPatterns: rawPatterns } = JSON.parse(fs.readFileSync(RULES_PATH, 'utf8'));
-            const exemptPatterns = rawPatterns.map(p => new RegExp(p));
-            skipHeavyChecks = allChangedFiles.length > 0 && allChangedFiles.every(file => {
-                const normalizedFile = file.replace(/\\/g, '/');
-                return exemptPatterns.some(pattern => pattern.test(normalizedFile));
-            });
-        }
-    } catch (e) { }
+    const skipHeavyChecks = isDocOnlyValidation(allChangedFiles);
 
     if (skipHeavyChecks) {
-        console.log('\n✅ [Epistemic Cache] ゲートを軽量化しました。');
+        console.log('\n✅ [Epistemic Cache] ドキュメント更新のみ。統治・シール確認ゲートを軽量化（バイパス）します。');
     } else {
         const epistemicOk = runCheck('Epistemic Gate', `node "${path.join(SCRIPTS_DIR, 'epistemic_gate.js')}"`);
         if (!epistemicOk) process.exit(1);

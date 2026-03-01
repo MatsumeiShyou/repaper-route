@@ -59,8 +59,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
                     />
                 </div>
                 <div>
-                    <h1 className="text-sm font-black tracking-tighter text-white leading-none">SANCTUARY</h1>
-                    <span className="text-[8px] font-mono tracking-[0.3em] text-slate-500 uppercase">Route Command</span>
+                    <h1 className="text-base font-black tracking-tighter text-white leading-none">
+                        <span className="text-emerald-600">R</span>epaper <span className="text-emerald-600">R</span>oute
+                    </h1>
                 </div>
             </div>
 

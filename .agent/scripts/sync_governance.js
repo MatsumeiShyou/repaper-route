@@ -2,6 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { getSession } from './session_manager.js';
 
+// Force UTF-8 for Windows Console
+if (process.platform === 'win32') {
+    process.stdout.setEncoding('utf8');
+    process.stderr.setEncoding('utf8');
+}
+
 const PROJECT_ROOT = process.cwd();
 const SESSION_PATH = path.join(PROJECT_ROOT, '.agent', 'session', 'active_task.json');
 const TASK_MD_PATH = path.join(PROJECT_ROOT, 'task.md');

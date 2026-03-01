@@ -23,6 +23,17 @@ export default defineConfig(({ mode }) => {
             environment: 'jsdom',
             setupFiles: './src/test/setup.ts',
         },
+        server: {
+            host: true, // Listen on all IP addresses (0.0.0.0)
+            port: 5173,
+            strictPort: true,
+            watch: {
+                usePolling: true, // Critical for Windows/WSL2 Docker Volumes
+            },
+            hmr: {
+                clientPort: 5173,
+            }
+        },
     }
 })
 // restart server

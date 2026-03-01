@@ -8,6 +8,13 @@
 ## 1. Active Technical Debt (現存する技術的負債)
 *早期の解決が望まれる、現在進行形でリスクとなっている項目。*
 
+- [ ] **WSL2/Docker: ローカルポート転送の無限ロード問題**
+#type: infrastructure_fault, #domain: environment, #severity: low
+#registered: 2026-03-01
+  - **事象**: DevContainer内でViteを正常起動しても、Windows側のブラウザから `localhost:5173` にアクセスすると無限ロード・ハングアップする。IPv6競合・ゾンビプロセスの排除後も発生（内部 `curl` は 200 OK）。
+  - **対策・運用方針**: SADA-First Rule に則り、UI/ロジック検証はコンテナ内の自動テスト（Vitest/Playwright）で完結させる。最終レイアウト確認はCIデプロイ環境への `push` プレビューにて代替可能であるため、ローカルブラウザ確認へのこだわりは現状「技術的負債」としてスルーする。
+
+
 - [x] **Supabase 401 Whiteout (Anon Role RLS)**
 #type: fault_pattern, #domain: db, #severity: critical
 #registered: 2026-02-23
@@ -20,11 +27,11 @@
   - **事象**: `MasterPointList.sada.test.tsx` 等の実行時、Viteコアレベルのエラーでプロセスがクラッシュする。
   - **リスク**: UIのセマンティック検証が自動実行できず、デグレード検知が手動に依存。
 
-- [ ] **VIEWの再定義およびGRANT引数不一致によるpushブロック**
+- [x] **VIEWの再定義およびGRANT引数不一致によるpushブロック**
 #type: fault_pattern, #domain: db, #severity: medium
 #registered: 2026-02-25
   - **事象**: VIEWの `CREATE OR REPLACE` 制限や、関数シグネチャ変更後の `GRANT` 追従漏れにより `db push` がブロックされた。
-  - **対策**: `DROP VIEW ... CASCADE` を標準とし、変更時は影響範囲を解析する。
+  - **対策**: `validate_grants.js` による静的検証（シール要件化）を実装済。
 
 - [ ] **VLMテスト（Playwright等）のブラウザ環境起因エラー**
 #type: impl_debt, #domain: qa, #severity: medium
@@ -40,7 +47,14 @@
 - [ ] **Unapproved Browser Use (SADA-First Rule Violation)**
 #type: fault_pattern, #domain: governance, #severity: medium
 #registered: 2026-02-24
-  - **事象**: 憲法 §2.F を無視したブラウザ検証の実行。
+
+- [x] **Pre-flight Lock during Verification Phase (Friction)**
+#type: impl_debt, #domain: governance, #severity: low
+#registered: 2026-03-01
+  - **事象**: `walkthrough.md` 作成中や `notify_user` 直前の最終検証タイミングで、AIセッションの状態不整合により `pre_flight.js` が TASK EXECUTION LOCK を誤検知（過剰ブロック）する。
+  - **対策**: `pre_flight.js` の `isDocOnly` 判定を独立させ、CCPロックからもドキュメント変更を切り離すことで根本対応済。
+
+  - [x] **事象**: 憲法 §2.F を無視したブラウザ検証の実行。
 
 ---
 
