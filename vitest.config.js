@@ -11,10 +11,13 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.test.{ts,tsx}'],
     exclude: [
-      'tests/vlm/**/*',
-      'tests/e2e/**/*',
-      '**/node_modules/**/*',
-      'pg_fix/**/*'
+      '**/node_modules/**',
+      'dist/**',
+      '.git/**',
+      '.agent/**',
+      'pg_fix/**',
+      'tests/vlm/**',
+      'tests/e2e/**'
     ],
     coverage: {
       provider: 'v8',
