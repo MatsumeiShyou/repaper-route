@@ -15,14 +15,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
 
     const menuGroups = [
         {
-            title: "OPERATIONS",
+            title: "業務メニュー",
             items: [
                 { id: 'dashboard', label: 'ダッシュボード', icon: LayoutDashboard },
                 { id: 'board', label: '配車盤', icon: Truck, highlight: true },
             ]
         },
         {
-            title: "MASTERS",
+            title: "マスタ管理",
             items: [
                 { id: 'master_drivers', label: 'ドライバー', icon: Users },
                 { id: 'master_vehicles', label: '車両', icon: Truck },
@@ -31,7 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
             ]
         },
         {
-            title: "SYSTEM",
+            title: "システム設定",
             items: [
                 { id: 'sdr', label: 'SDR監査ログ', icon: Activity },
                 { id: 'users', label: 'ユーザー管理', icon: Shield },
@@ -108,15 +108,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
                 ))}
             </nav>
 
-            {/* User Profile Mini */}
+            {/* ユーザープロフィール（簡易表示） */}
             <div className="p-4 border-t border-slate-800 bg-slate-950/20">
                 <div className="flex items-center gap-3 px-2">
                     <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-blue-400 shadow-inner">
                         {currentUser?.name?.substring(0, 1) || 'U'}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black truncate text-slate-200 uppercase tracking-tight">{currentUser?.name || 'Unknown'}</p>
-                        <p className="text-[8px] text-slate-500 uppercase tracking-widest font-mono font-bold leading-none mt-0.5">{currentUser?.role || 'GUEST'}</p>
+                        <p className="text-[10px] font-black truncate text-slate-200 uppercase tracking-tight">{currentUser?.name || '不明'}</p>
+                        <p className="text-[8px] text-slate-500 uppercase tracking-widest font-mono font-bold leading-none mt-0.5">{currentUser?.role || 'ゲスト'}</p>
                     </div>
                     <button
                         onClick={() => logout()}

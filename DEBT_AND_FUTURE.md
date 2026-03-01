@@ -54,7 +54,11 @@
   - **事象**: `walkthrough.md` 作成中や `notify_user` 直前の最終検証タイミングで、AIセッションの状態不整合により `pre_flight.js` が TASK EXECUTION LOCK を誤検知（過剰ブロック）する。
   - **対策**: `pre_flight.js` の `isDocOnly` 判定を独立させ、CCPロックからもドキュメント変更を切り離すことで根本対応済。
 
-  - [x] **事象**: 憲法 §2.F を無視したブラウザ検証の実行。
+- [ ] **操作・表示ガードの不整合（CellHUD 以前の状態）**
+#type: fault_pattern, #domain: board, #severity: medium
+#registered: 2026-03-01, #trigger: interaction, CellHUD, InteractionContext, DeviceMode
+  - **事象**: 操作パネルが肥大化し、意図しないダブルクリックズーム等で操作不能になる。
+  - **対策**: `CellHUD` の機能限定（ミニマリスト制約）と `InteractionContext` による自前ダブルタップ判定を導入済み。
 
 ---
 
@@ -69,6 +73,12 @@
 
 - [ ] **Strict Master-First: 簡易マスタ登録UI**
   - **概要**: 案件生成と同時に簡易的にマスタ登録を行うUIモジュール。
+
+- [ ] **デバイス設定のクラウド同期（Supabase）**
+  - **概要**: 現状 LocalStorage のみに保存されている `DeviceMode` を、ユーザープロファイルに保存し、複数端末で同期する。
+
+- [ ] **実機（物理）によるタッチ操作感の最終調整**
+  - **概要**: 開発環境のシミュレーターではなく、実際のタブレット・スマホ端末での「1タップ・2タップ」の反応速度・感度を現地調整する。
 
 ---
 

@@ -1,0 +1,52 @@
+{
+    "name": "RePaper Route (100-pt Eco-Architecture)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "workspaceMount": "source=repaper-route-workspace,target=/workspace,type=volume",
+    "workspaceFolder": "/workspace",
+    "runArgs": [
+        "--memory=4g",
+        "--cpus=2"
+    ],
+    "shutdownAction": "stopContainer",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "editor.formatOnSave": true
+            },
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "bradlc.vscode-tailwindcss",
+                "saoudrizwan.claude-dev"
+            ]
+        }
+    },
+    "forwardPorts": [
+        5173,
+        54321,
+        54322
+    ],
+    "portsAttributes": {
+        "5173": {
+            "label": "Vite Application",
+            "hostIP": "127.0.0.1"
+        },
+        "54321": {
+            "label": "Supabase API",
+            "hostIP": "127.0.0.1"
+        },
+        "54322": {
+            "label": "Supabase DB",
+            "hostIP": "127.0.0.1"
+        }
+    },
+    "mounts": [
+        "source=${localEnv:USERPROFILE}\\.ssh,target=/home/node/.ssh,type=bind,consistency=cached,readonly",
+        "source=${localEnv:USERPROFILE}\\.supabase,target=/home/node/.supabase,type=bind,consistency=cached"
+    ],
+    "postCreateCommand": "sudo chown -R node:node /workspace && git config --global core.autocrlf false"
+}

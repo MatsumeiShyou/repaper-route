@@ -1,6 +1,7 @@
 import React from 'react'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider, useAuth } from './contexts/AuthProvider'
+import { InteractionProvider } from './contexts/InteractionContext'
 import { ProfilePortal } from './components/ProfilePortal'
 import { RefreshCcw, Database } from 'lucide-react'
 import { AdminLayout } from './components/AdminLayout'
@@ -9,6 +10,7 @@ import MasterDriverList from './features/admin/MasterDriverList.tsx'
 import MasterVehicleList from './features/admin/MasterVehicleList.tsx'
 import MasterPointList from './features/admin/MasterPointList.tsx'
 import MasterItemList from './features/admin/MasterItemList.tsx'
+import { DeviceSettings } from './features/settings/DeviceSettings'
 
 function AppContent() {
     const { currentUser, logout, isLoading: isAuthLoading } = useAuth()
@@ -39,7 +41,7 @@ function AppContent() {
         }
     }, [activeView]);
 
-    console.log("[App] Rendering. User:", currentUser?.name || 'Guest', "AuthLoading:", isAuthLoading);
+    console.log("[App] レンダリング中. ユーザー:", currentUser?.name || 'ゲスト', "認証待ち:", isAuthLoading);
 
     if (isAuthLoading) {
         return (
@@ -57,11 +59,11 @@ function AppContent() {
         return <ProfilePortal />
     }
 
-    // Role Guard for Sanctuary Mode
+    // 管理者権限チェック（サンクチュアリ・モード）
     if (currentUser.role !== 'admin') {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-6 text-center">
-                <h1 className="text-2xl font-black text-white mb-2">Access Denied</h1>
+                <h1 className="text-2xl font-black text-white mb-2">アクセス拒否</h1>
                 <p className="text-slate-400 text-sm mb-8">管理者専用ポータルです。</p>
                 <button onClick={logout} className="bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold">ログアウト</button>
             </div>
@@ -80,12 +82,14 @@ function AppContent() {
                 return <MasterPointList />;
             case 'master_items':
                 return <MasterItemList />;
+            case 'settings':
+                return <DeviceSettings />;
             default:
                 return (
                     <div className="h-full flex flex-col items-center justify-center bg-slate-50 text-slate-400">
                         <Database size={48} className="mb-4 opacity-20" />
-                        <h2 className="text-sm font-black uppercase tracking-widest italic opacity-50">View under construction: {activeView}</h2>
-                        <p className="text-[10px] mt-2 font-mono">Sanctuary Phase 3 Module Integration Required</p>
+                        <h2 className="text-sm font-black uppercase tracking-widest italic opacity-50">準備中: {activeView}</h2>
+                        <p className="text-[10px] mt-2 font-mono">モジュールの統合が必要です</p>
                     </div>
                 );
         }
@@ -103,11 +107,13 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 export default function App() {
     return (
         <ErrorBoundary name="GlobalApp">
-            <AuthProvider>
-                <NotificationProvider>
-                    <AppContent />
-                </NotificationProvider>
-            </AuthProvider>
+            <InteractionProvider>
+                <AuthProvider>
+                    <NotificationProvider>
+                        <AppContent />
+                    </NotificationProvider>
+                </AuthProvider>
+            </InteractionProvider>
         </ErrorBoundary>
     )
 }
