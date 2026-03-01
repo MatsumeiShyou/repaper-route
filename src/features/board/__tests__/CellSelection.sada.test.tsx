@@ -93,8 +93,8 @@ describe('Cell Selection SADA Test', () => {
             expect(cell).toHaveAttribute('data-sada-selected', 'true');
         });
 
-        // 2nd Action (PC mode): Native Double Click
-        fireEvent.doubleClick(cell, { clientX: 100, clientY: 100 });
+        // 2nd Action: Unified 2nd Click (Abolished native double click trigger)
+        fireEvent.click(cell, { clientX: 100, clientY: 100 });
 
         // Modal should be visible
         await vi.waitFor(() => {

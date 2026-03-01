@@ -46,6 +46,7 @@
 4. **Action** — `AMPLOG.md` に記録し実装開始
 5. **Reflection** — 完了後、教訓・失敗パターンを `DEBT_AND_FUTURE.md` に追記せよ（§G Fault Reflection と同一義務）
 6. **Cleanup** — `debug_*` / `*.bak` 等の一時ファイルを即時削除
+7. **Push (Auto-Sync)** — 実装・修正完了に対するユーザー承認（`ｙ`）が得られた場合、それはデプロイへの同意を内包する。事後承認を待たず、直ちに最優先で `@[/push]` ワークフローを実行し、リモート環境へ反映せよ。
 
 > ドキュメント・ログ・テスト・設定ファイルのみの変更（§G 免除対象）は、**Epistemic Cache** により物理ゲート（Seal/Epistemic）を透過的にパスする。
 

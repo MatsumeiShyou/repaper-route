@@ -271,11 +271,9 @@ export default function BoardCanvas() {
                                     const isSame = selectedCell?.driverId === driverId && selectedCell?.time === time;
 
                                     if (isSame) {
-                                        // E6.3: シンプルな2ステップタップ
-                                        // すでに選択されているセルをもう一度タップした場合はモーダルを開く
-                                        if (activeMode !== 'pc') {
-                                            setIsAddJobModalOpen(true);
-                                        }
+                                        // E6.3: シンプルな2ステップタップ (全デバイス統一)
+                                        // すでに選択されているセルをもう一度クリックした場合はモーダルを開く
+                                        setIsAddJobModalOpen(true);
                                     } else {
                                         // 選択されていないセルをタップした場合は選択する
                                         setSelectedCell({ driverId, time });
@@ -283,10 +281,11 @@ export default function BoardCanvas() {
                                 }
                             }}
                             onCellDoubleClick={(driverId: string, time: string) => {
-                                // E3.4: PC ネイティブのダブルクリック
+                                // PCネイティブのダブルクリックは、
+                                // onCellClick の 1回目(選択) と 2回目(モーダル) の連続実行として処理されるため、
+                                // ここでの重複した呼び出しは不要。選択状態の同期のみ行う。
                                 if (editMode && activeMode === 'pc') {
                                     setSelectedCell({ driverId, time });
-                                    setIsAddJobModalOpen(true);
                                 }
                             }}
                             driverColRefs={driverColRefs}
