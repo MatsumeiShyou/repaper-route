@@ -7,7 +7,6 @@ interface InteractionContextType {
     deviceMode: DeviceMode;
     activeMode: ActiveDeviceMode;
     setDeviceMode: (mode: DeviceMode) => void;
-    isValidDoubleTap: (prevTime: number, currentTime: number, prevPos: { x: number, y: number }, currentPos: { x: number, y: number }) => boolean;
 }
 
 const InteractionContext = createContext<InteractionContextType | undefined>(undefined);
@@ -23,9 +22,6 @@ export const useInteraction = () => {
 interface InteractionProviderProps {
     children: ReactNode;
 }
-
-const DOUBLE_TAP_TIMEOUT_MS = 300;
-const DOUBLE_TAP_MOVE_TOLERANCE_PX = 10;
 
 export const InteractionProvider: React.FC<InteractionProviderProps> = ({ children }) => {
     // フェーズ 1.1: 初期化と LocalStorage 読み込み
@@ -77,27 +73,8 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({ childr
         setDeviceModeState(mode);
     }, []);
 
-    // フェーズ 1.4: 安全なイベントパイプライン（ダブルタップ判定）
-    const isValidDoubleTap = useCallback((
-        prevTime: number,
-        currentTime: number,
-        prevPos: { x: number, y: number },
-        currentPos: { x: number, y: number }
-    ) => {
-        const timeDiff = currentTime - prevTime;
-        if (timeDiff <= 0 || timeDiff > DOUBLE_TAP_TIMEOUT_MS) return false;
-
-        const dx = Math.abs(currentPos.x - prevPos.x);
-        const dy = Math.abs(currentPos.y - prevPos.y);
-
-        // タッチデバイスではタップ時に僅かなブレが発生する可能性があるため許容誤差を設定
-        if (dx > DOUBLE_TAP_MOVE_TOLERANCE_PX || dy > DOUBLE_TAP_MOVE_TOLERANCE_PX) return false;
-
-        return true;
-    }, []);
-
     return (
-        <InteractionContext.Provider value={{ deviceMode, activeMode, setDeviceMode, isValidDoubleTap }}>
+        <InteractionContext.Provider value={{ deviceMode, activeMode, setDeviceMode }}>
             {children}
         </InteractionContext.Provider>
     );

@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
-import { render, fireEvent, screen } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 
 import BoardCanvas from '../BoardCanvas';
 import { AuthProvider } from '../../../contexts/AuthProvider';
@@ -67,12 +67,52 @@ describe('Cell Selection SADA Test', () => {
         expect(TIME_SLOTS).toContain('08:00');
     });
 
-    it('should select a cell on first click and open modal on second click', async () => {
-        // Mock Date.now to control double tap timing
-        const dateNowSpy = vi.spyOn(Date, 'now');
+    it('should select a cell on first click and open modal on second click (PC mode uses double click)', async () => {
+        // PC mode default mock setup
+        render(
+            <InteractionProvider>
+                <AuthProvider>
+                    <NotificationProvider>
+                        <BoardCanvas />
+                    </NotificationProvider>
+                </AuthProvider>
+            </InteractionProvider>
+        );
 
-        // 1. First tap at T=1000
-        dateNowSpy.mockReturnValue(1000);
+        const cell = await vi.waitFor(() => {
+            const el = document.body.querySelector('[data-sada-id="cell-driver-1-08:00"]');
+            if (!el) throw new Error('Cell not found');
+            return el;
+        });
+
+        // 1st Click: Selection
+        fireEvent.click(cell, { clientX: 100, clientY: 100 });
+
+        // Check if cell is selected
+        await vi.waitFor(() => {
+            expect(cell).toHaveAttribute('data-sada-selected', 'true');
+        });
+
+        // 2nd Action (PC mode): Native Double Click
+        fireEvent.doubleClick(cell, { clientX: 100, clientY: 100 });
+
+        // Modal should be visible
+        await vi.waitFor(() => {
+            const modal = document.body.querySelector('[data-sada-id="manual-injection-modal"]');
+            expect(modal).toBeInTheDocument();
+        });
+    });
+
+    it('should select on first click and open on second tap (Mobile mode)', async () => {
+        // Change mock matchMedia for Mobile Mode
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            value: vi.fn().mockImplementation(query => ({
+                matches: true, // isTouch = true
+                media: query
+            })),
+        });
+        Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 500 });
 
         render(
             <InteractionProvider>
@@ -84,38 +124,29 @@ describe('Cell Selection SADA Test', () => {
             </InteractionProvider>
         );
 
-        screen.debug();
-
-        // Find a cell via SADA ID using direct querySelector for attribute
         const cell = await vi.waitFor(() => {
             const el = document.body.querySelector('[data-sada-id="cell-driver-1-08:00"]');
             if (!el) throw new Error('Cell not found');
             return el;
         });
 
-        // 1st Click: Selection
-        fireEvent.click(cell, { clientX: 100, clientY: 100 });
+        // 1st Tap: Selection
+        fireEvent.click(cell);
 
-        // Check if cell is selected
-        expect(cell).toHaveAttribute('data-sada-selected', 'true');
+        await vi.waitFor(() => {
+            expect(cell).toHaveAttribute('data-sada-selected', 'true');
+        });
 
-        // 2nd Click: Modal Trigger
-        dateNowSpy.mockReturnValue(1150);
-        // PC mode defaults to native double click in Canvas
-        fireEvent.doubleClick(cell, { clientX: 100, clientY: 100 });
+        // 2nd Tap (Same cell): trigger modal logic inside `onCellClick`
+        fireEvent.click(cell);
 
-        // Modal should be visible
         await vi.waitFor(() => {
             const modal = document.body.querySelector('[data-sada-id="manual-injection-modal"]');
             expect(modal).toBeInTheDocument();
         });
-
-        dateNowSpy.mockRestore();
     });
 
     it('should deselect cell when clicking background', async () => {
-        const dateNowSpy = vi.spyOn(Date, 'now');
-        dateNowSpy.mockReturnValue(1000);
 
         render(
             <InteractionProvider>
@@ -141,8 +172,6 @@ describe('Cell Selection SADA Test', () => {
         if (background) fireEvent.click(background);
 
         expect(cell).toHaveAttribute('data-sada-selected', 'false');
-
-        dateNowSpy.mockRestore();
     });
 
     it('should navigate via arrow keys', async () => {

@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef } from 'react';
 
 import {
     Save, Clipboard, RefreshCcw, Database, Undo2, Redo2
@@ -7,9 +7,7 @@ import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
 import { useBoardValidation } from './hooks/useBoardValidation';
 import { useMasterData } from './hooks/useMasterData';
-import { LogicResult } from '../logic/types';
 import { TIME_SLOTS } from '../board/logic/constants';
-
 
 import { DriverHeader } from './components/DriverHeader';
 
@@ -23,7 +21,6 @@ import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
 import { AlertTriangle } from 'lucide-react';
-import { CellHUD } from './components/CellHUD';
 import { useInteraction } from '../../contexts/InteractionContext';
 
 export default function BoardCanvas() {
@@ -81,37 +78,9 @@ export default function BoardCanvas() {
     const [isHeaderEditModalOpen, setIsHeaderEditModalOpen] = useState(false);
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
-    const [lastClickPos, setLastClickPos] = useState({ x: 0, y: 0 });
-    const [lastClickTimestamp, setLastClickTimestamp] = useState<number>(0);
 
     // 3.5. Interaction Context
-    const { activeMode, isValidDoubleTap } = useInteraction();
-
-    // Phase 6: Predictive Validation (Hook must be before early return)
-    const selectionViolation = useMemo(() => {
-        if (!selectedCell) return null;
-
-        const driver = drivers.find(d => d.id === selectedCell.driverId);
-        if (!driver) return null;
-
-        const driverJobs = jobs.filter(j => j.driverId === selectedCell.driverId);
-
-        if (driverJobs.length >= 8) {
-            return {
-                isFeasible: false,
-                violations: [{
-                    type: '積載量超過' as const,
-                    message: '案件数が上限に達しています',
-                    currentValue: driverJobs.length,
-                    limitValue: 8
-                }],
-                score: 0,
-                reason: ['上限超過']
-            } as LogicResult;
-        }
-
-        return { isFeasible: true, violations: [], score: 100, reason: [] } as LogicResult;
-    }, [selectedCell, drivers, jobs]);
+    const { activeMode } = useInteraction();
 
     const selectedDriverForEdit = headerEditTargetId
         ? drivers.find(d => d.id === headerEditTargetId) || null
@@ -297,28 +266,19 @@ export default function BoardCanvas() {
                             dropPreview={dropPreview}
                             draggingJobId={draggingJobId}
                             draggingSplitId={draggingSplitId}
-                            onCellClick={(driverId: string, time: string, e: React.MouseEvent) => {
+                            onCellClick={(driverId: string, time: string) => {
                                 if (editMode) {
                                     const isSame = selectedCell?.driverId === driverId && selectedCell?.time === time;
-                                    const now = Date.now();
-                                    const currentPos = { x: e.clientX, y: e.clientY };
 
                                     if (isSame) {
-                                        // E3.3: 安全なダブルタップ・パイプライン
-                                        // PCの場合はネイティブの dblclick に任せ、タッチの場合は安全なタップ判定を使用
+                                        // E6.3: シンプルな2ステップタップ
+                                        // すでに選択されているセルをもう一度タップした場合はモーダルを開く
                                         if (activeMode !== 'pc') {
-                                            if (isValidDoubleTap(lastClickTimestamp, now, lastClickPos, currentPos)) {
-                                                setIsAddJobModalOpen(true);
-                                            } else {
-                                                // 判定が無効（間隔が長すぎる場合など）は選択をリセット
-                                                setSelectedCell(null);
-                                            }
+                                            setIsAddJobModalOpen(true);
                                         }
                                     } else {
-                                        // E3.2: 初回タップのセットアップ
+                                        // 選択されていないセルをタップした場合は選択する
                                         setSelectedCell({ driverId, time });
-                                        setLastClickPos(currentPos);
-                                        setLastClickTimestamp(now);
                                     }
                                 }
                             }}
@@ -347,25 +307,6 @@ export default function BoardCanvas() {
                             selectedJobId={selectedJobId}
                             dropPreview={dropPreview}
                         />
-
-                        {/* セル選択 HUD */}
-                        {selectedCell && editMode && (
-                            <div
-                                className="absolute z-50 transform -translate-x-1/2 -translate-y-1/2"
-                                style={{
-                                    left: lastClickPos.x - (gridContainerRef.current?.getBoundingClientRect().left || 0),
-                                    top: lastClickPos.y - (gridContainerRef.current?.getBoundingClientRect().top || 0)
-                                }}
-                            >
-                                <CellHUD
-                                    onAdd={() => setIsAddJobModalOpen(true)}
-                                    onClose={() => setSelectedCell(null)}
-                                    violation={selectionViolation}
-                                />
-                            </div>
-                        )}
-
-
                     </div>
                 </div>
 
