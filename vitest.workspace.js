@@ -6,6 +6,7 @@ export default defineWorkspace([
         test: {
             environment: 'node',
             include: ['src/features/logic/**/*.test.ts'],
+            exclude: ['tests/vlm/**/*'],
             alias: {
                 '@': './src'
             }
@@ -17,7 +18,7 @@ export default defineWorkspace([
             environment: 'jsdom',
             setupFiles: './src/test/setup.ts',
             include: ['src/**/*.test.{ts,tsx}'],
-            exclude: ['src/features/logic/**/*.test.ts'],
+            exclude: ['src/features/logic/**/*.test.ts', 'tests/vlm/**/*'],
             alias: {
                 '@': './src'
             }

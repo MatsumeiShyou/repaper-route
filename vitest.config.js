@@ -9,6 +9,12 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
+    exclude: [
+      'tests/vlm/**/*',
+      'tests/e2e/**/*',
+      'node_modules/**/*',
+      'pg_fix/**/*'
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
