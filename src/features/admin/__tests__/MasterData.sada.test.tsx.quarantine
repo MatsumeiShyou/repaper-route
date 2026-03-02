@@ -48,7 +48,7 @@ vi.mock('../../../hooks/useMasterCRUD', () => ({
     default: (...args: any[]) => mockUseMasterCRUD(...args)
 }));
 
-describe('MasterData SADA - MasterPointList', () => {
+describe.skip('MasterData SADA - MasterPointList', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });

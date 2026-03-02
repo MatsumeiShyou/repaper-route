@@ -10,6 +10,8 @@ export interface BoardValidationResult {
     isValid: boolean;
     /** 時間重複の違反リスト */
     overlapViolations: OverlapViolation[];
+    /** 確定済み案件の変更が検出されたか */
+    hasConfirmedChanges: boolean;
     /** 制約違反のサマリー */
     summary: string;
 }
@@ -79,12 +81,17 @@ export const useBoardValidation = (
             }
         }
 
+        const hasConfirmedChanges = jobs.some(j => j.status === 'confirmed');
+        // 実際には「初期確定状態(originalStatus)」と比較すべきだが、
+        // 現フェーズでは「confirmed 案件が含まれる保存」を「上書き」と定義。
+        // ※ 本来は DB の最新値と比較する logic が望ましい
+
         const isValid = overlapViolations.length === 0;
         const summary = isValid
             ? `全${jobs.length}件の案件が正常です`
             : `${overlapViolations.length}件の時間重複を検出しました`;
 
-        return { isValid, overlapViolations, summary };
+        return { isValid, overlapViolations, summary, hasConfirmedChanges };
     }, [jobs, drivers]);
 
     return result;

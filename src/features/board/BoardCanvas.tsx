@@ -1,8 +1,12 @@
 import { useState, useRef } from 'react';
+import { supabase } from '../../lib/supabase/client';
+import { TemplateManager } from '../logic/core/TemplateManager';
 
 import {
-    Save, Clipboard, RefreshCcw, Database, Undo2, Redo2
+    Save, Clipboard, RefreshCcw, Database, Undo2, Redo2, Layers, Loader2,
+    CheckCircle, AlertTriangle
 } from 'lucide-react';
+import { TemplateExpander } from '../logic/core/TemplateExpander';
 import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
 import { useBoardValidation } from './hooks/useBoardValidation';
@@ -21,7 +25,8 @@ import { AuditTrailPanel } from './components/AuditTrailPanel';
 import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
-import { AlertTriangle } from 'lucide-react';
+import { SaveTemplateModal } from './components/SaveTemplateModal';
+
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
 
@@ -44,8 +49,8 @@ export default function BoardCanvas() {
         splits, setSplits,
         isDataLoaded, isSyncing,
         editMode, canEditBoard,
-        handleSave, recordHistory, undo, redo,
-        addColumn
+        handleSave, handleConfirmAll, handleRegisterTemplate, recordHistory, undo, redo,
+        addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey);
 
     // 2. Drag & Drop Hook
@@ -74,10 +79,12 @@ export default function BoardCanvas() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [pendingFilter, setPendingFilter] = useState('全て');
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+    const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
     const [isHeaderEditModalOpen, setIsHeaderEditModalOpen] = useState(false);
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
     const [auditJobId, setAuditJobId] = useState<string | null>(null);
+    const [isExpanding, setIsExpanding] = useState(false);
 
     // 3.5. Board Context (Auth & Interaction logic)
 
@@ -125,6 +132,67 @@ export default function BoardCanvas() {
         setPendingJobs(prev => prev.filter(j => j.id !== job.id));
         recordHistory();
         setSelectedCell(null);
+    };
+
+    const handleApplyTemplate = async () => {
+        if (!editMode || isExpanding) return;
+
+        const confirmMsg = "当日の周期（第N曜日）に合わせたテンプレートを展開しますか？現日のリソース状況（出勤・車両）に合わせて自動配置および不整合案件の排避を行います。";
+        if (!window.confirm(confirmMsg)) return;
+
+        setIsExpanding(true);
+        try {
+            // 1. 全ての有効なテンプレートを取得
+            const { data: templates, error: fetchError } = await (supabase
+                .from('board_templates')
+                .select('*')
+                .eq('is_active', true) as any);
+
+            if (fetchError) throw fetchError;
+
+            // 2. 最適なテンプレートを選択 (nth_week 優先、なければ毎週)
+            const template = TemplateManager.findBestMatchingTemplate(templates || [], today);
+
+            if (!template) {
+                alert("該当するテンプレートが見つかりませんでした。");
+                return;
+            }
+
+            console.log(`[Template] Applying template: ${template.name}`);
+
+            // 3. スナップショットから Job[] 等を抽出
+            const templateJobs = (template.jobs_json || []) as any[];
+
+            // 4. Expander 実行
+            const result = TemplateExpander.expand(templateJobs as any, drivers as any, masterVehicles as any);
+
+            // 5. 結果の反映 (盤面の状態をテンプレート+リソース照合結果で上書き)
+            setJobs(result.assigned.map(j => ({
+                ...j,
+                status: 'planned' as const
+            })) as unknown as BoardJob[]);
+
+            if (result.unassigned.length > 0) {
+                setPendingJobs(prev => {
+                    const assignedIds = new Set(result.assigned.map(j => j.id));
+                    const stillPending = prev.filter(j => !assignedIds.has(j.id));
+                    return [...stillPending, ...result.unassigned] as BoardJob[];
+                });
+                showNotification(`${result.unassigned.length} 件の案件がリソース制約により未配車リストへ退避されました。`, "info");
+            }
+
+            // 運転手と中抜きの状態もテンプレートから復元（必要に応じて）
+            if (template.drivers_json) setDrivers(template.drivers_json as unknown as BoardDriver[]);
+            if (template.splits_json) setSplits(template.splits_json as any[]);
+
+            recordHistory();
+            showNotification(`テンプレート「${template.name}」を適用しました`, "success");
+        } catch (err) {
+            console.error("[Template] Expansion failed:", err);
+            showNotification("テンプレートの展開に失敗しました。", "error");
+        } finally {
+            setIsExpanding(false);
+        }
     };
 
     const openHeaderEdit = (driverId: string) => {
@@ -207,6 +275,45 @@ export default function BoardCanvas() {
 
                     {editMode && (
                         <button
+                            onClick={() => handleConfirmAll()}
+                            disabled={isSyncing}
+                            className={`px - 3 h - 9 rounded - lg flex items - center gap - 2 text - sm font - bold transition - all mr - 2
+                                ${isSyncing ? 'bg-slate-100 text-slate-400' : 'bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-sm'}
+`}
+                            title="全ての計画案件を確定済みにします"
+                        >
+                            <CheckCircle size={16} />
+                            一括確定
+                        </button>
+                    )}
+
+                    {editMode && (
+                        <button
+                            onClick={() => setIsSaveTemplateModalOpen(true)}
+                            className="px-3 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 shadow-sm"
+                            title="現在の状態をテンプレートとして登録"
+                        >
+                            <Save size={16} />
+                            テンプレート登録
+                        </button>
+                    )}
+
+                    {editMode && (
+                        <button
+                            onClick={handleApplyTemplate}
+                            disabled={isExpanding}
+                            className={`px - 3 h - 9 rounded - lg flex items - center gap - 2 text - sm font - bold transition - all mr - 2
+                                ${isExpanding ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 shadow-sm'}
+`}
+                            title="テンプレートを展開"
+                        >
+                            {isExpanding ? <Loader2 size={16} className="animate-spin" /> : <Layers size={16} />}
+                            {isExpanding ? '展開中...' : 'テンプレート適用'}
+                        </button>
+                    )}
+
+                    {editMode && (
+                        <button
                             onClick={() => {
                                 if (!validation.isValid) {
                                     const proceed = window.confirm(
@@ -214,12 +321,20 @@ export default function BoardCanvas() {
                                     );
                                     if (!proceed) return;
                                 }
+
+                                if (validation.hasConfirmedChanges) {
+                                    const proceed = window.confirm(
+                                        "⚠️ 確定済みの案件が含まれています。変更理由の入力が必要です。\n続行しますか？"
+                                    );
+                                    if (!proceed) return;
+                                }
+
                                 setIsSaveModalOpen(true);
                             }}
                             disabled={isSyncing}
-                            className={`px-4 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
+                            className={`px - 4 h - 9 rounded - lg flex items - center gap - 2 text - sm font - bold transition - all
                                 ${isSyncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
-                            `}
+`}
                         >
                             <Save size={16} />
                             {isSyncing ? '保存中...' : '保存'}
@@ -231,17 +346,18 @@ export default function BoardCanvas() {
 
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className={`relative w-9 h-9 rounded-lg transition-all flex items-center justify-center
+                        className={`relative w - 9 h - 9 rounded - lg transition - all flex items - center justify - center
                             ${isSidebarOpen ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}
-                        `}
+`}
                         title={isSidebarOpen ? 'リストを閉じる' : '未配車リスト'}
                     >
                         <Clipboard size={18} />
-                        <span className={`absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white shadow-md transition-all duration-300
+                        <span className={`absolute - top - 1.5 - right - 1.5 min - w - [1.25rem] h - 5 text - white text - [10px] font - black flex items - center justify - center rounded - full ring - 2 ring - white shadow - md transition - all duration - 300
                             ${pendingJobs.length > 0
                                 ? 'bg-gradient-to-br from-rose-500 to-pink-600'
-                                : 'bg-slate-300'}
-                        `}>
+                                : 'bg-slate-300'
+                            }
+`}>
                             {pendingJobs.length}
                         </span>
                     </button>
@@ -271,17 +387,13 @@ export default function BoardCanvas() {
                                     const isSame = selectedCell?.driverId === driverId && selectedCell?.time === time;
 
                                     if (isSame) {
-                                        // E6.3: シンプルな2ステップタップ (全デバイス統一)
-                                        // すでに選択されているセルをもう一度クリックした場合はモーダルを開く
                                         setIsAddJobModalOpen(true);
                                     } else {
-                                        // 選択されていないセルをタップした場合は選択する
                                         setSelectedCell({ driverId, time });
                                     }
                                 }
                             }}
                             onCellDoubleClick={(driverId: string, time: string) => {
-                                // 2ステップ操作への統一により、ダブルクリックも単一セルの選択同期として扱う
                                 if (editMode) {
                                     setSelectedCell({ driverId, time });
                                 }
@@ -310,9 +422,9 @@ export default function BoardCanvas() {
 
                 <div
                     className={`
-                        absolute top-0 right-0 h-full w-80 bg-white shadow-2xl z-40 transform transition-transform duration-300 ease-in-out border-l border-gray-200
+                        absolute top - 0 right - 0 h - full w - 80 bg - white shadow - 2xl z - 40 transform transition - transform duration - 300 ease -in -out border - l border - gray - 200
                         ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
-                    `}
+`}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <PendingJobSidebar
@@ -330,7 +442,7 @@ export default function BoardCanvas() {
             {/* フッター */}
             <div className="h-8 px-4 bg-slate-900 border-t border-white/5 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-6 text-slate-500">
                 <span className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${editMode ? 'bg-emerald-500' : 'bg-slate-700'}`} />
+                    <div className={`w - 1.5 h - 1.5 rounded - full ${editMode ? 'bg-emerald-500' : 'bg-slate-700'} `} />
                     {editMode ? '編集モード（同期中）' : '閲覧モード（読み取り専用）'}
                 </span>
                 <span>Sanctuary Engine v3.0.0-ts</span>
@@ -390,6 +502,13 @@ export default function BoardCanvas() {
                     ]}
                 />
             )}
+
+            <SaveTemplateModal
+                isOpen={isSaveTemplateModalOpen}
+                onClose={() => setIsSaveTemplateModalOpen(false)}
+                onSave={handleRegisterTemplate}
+                currentDate={today}
+            />
         </div>
     );
 }

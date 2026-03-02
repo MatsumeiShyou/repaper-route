@@ -79,7 +79,8 @@ export const calculateCollision = ({
             weight: 500,
             durationMinutes: j.duration,
             location: { lat: 35.44, lng: 139.36 },
-            pointId: (j as any).pointId
+            pointId: (j as any).pointId,
+            targetDate: '2024-01-01'
         }));
 
         const checkRes = checkConstraints(logicVehicle, logicJobs, driver.id, pointPermissions);

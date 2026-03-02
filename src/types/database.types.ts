@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      board_templates: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          drivers_json: Json | null
+          id: string
+          is_active: boolean
+          jobs_json: Json | null
+          name: string
+          nth_week: number | null
+          splits_json: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          drivers_json?: Json | null
+          id?: string
+          is_active?: boolean
+          jobs_json?: Json | null
+          name: string
+          nth_week?: number | null
+          splits_json?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          drivers_json?: Json | null
+          id?: string
+          is_active?: boolean
+          jobs_json?: Json | null
+          name?: string
+          nth_week?: number | null
+          splits_json?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customer_item_defaults: {
         Row: {
           created_at: string

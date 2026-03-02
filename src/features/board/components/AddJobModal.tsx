@@ -88,7 +88,8 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                 location_id: point.id,
                 address: point.address,
                 item_category: point.target_item_category?.[0] || '一般廃棄物',
-                isSpot: true
+                isSpot: true,
+                status: 'planned'
             };
 
             // 先に案件追加（親への通知）を実行

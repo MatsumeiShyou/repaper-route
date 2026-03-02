@@ -4,6 +4,7 @@ export type JobTarget = Database['public']['Tables']['jobs']['Row'];
 export type DriverTarget = Database['public']['Tables']['drivers']['Row'];
 export type PointTarget = Database['public']['Tables']['master_collection_points']['Row'];
 export type VehicleTarget = Database['public']['Tables']['master_vehicles']['Row'];
+export type TemplateTarget = Database['public']['Tables']['board_templates']['Row'];
 
 /**
  * データベーススキーマ（v4.0正典）に完全に準拠したモックデータを生成するファクトリ。
@@ -93,7 +94,7 @@ export const MockFactory = {
         required_vehicle: null,
         special_notes: null,
         start_time: '10:00',
-        status: 'pending',
+        status: 'planned',
         task_details: null,
         task_type: 'collection',
         time_constraint: null,
@@ -101,6 +102,20 @@ export const MockFactory = {
         vehicle_name: null,
         weight_kg: null,
         work_type: null,
+        ...overrides,
+    }),
+
+    createTemplate: (overrides?: Partial<TemplateTarget>): TemplateTarget => ({
+        id: `template_${Date.now()}_${Math.random()}`,
+        name: 'Test Template',
+        day_of_week: 1,
+        nth_week: null,
+        jobs_json: [],
+        drivers_json: [],
+        splits_json: [],
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         ...overrides,
     })
 };

@@ -19,7 +19,7 @@ SELECT
     p.furigana, -- 追加
     p.address,
     p.note,
-    p.internal_note,
+    p.note as internal_note,
     p.is_active,
     p.contractor_id,
     c.name as contractor_name,

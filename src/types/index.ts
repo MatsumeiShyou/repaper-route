@@ -52,6 +52,9 @@ export interface BoardJob {
     address?: string;     // Traceability: Static snapshot of address at time of creation
     creation_reason?: string; // Double Loop: Reason for manual injection
     version?: number; // Optimistic Lock (jobs_v4.version)
+    status: 'planned' | 'confirmed';
+    is_admin_forced?: boolean;
+    is_skipped?: boolean;
 }
 
 export interface BoardDriver {

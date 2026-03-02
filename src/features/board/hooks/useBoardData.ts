@@ -41,6 +41,8 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         }));
     }, [jobs, pendingJobs, splits, drivers]);
 
+
+
     // ----------------------------------------
     // 2. Data Mapping (Adapters)
     // ----------------------------------------
@@ -54,7 +56,10 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         note: j.special_notes || j.note || undefined,
         isSpot: j.bucket_type === 'スポット',
         timeConstraint: j.start_time || undefined,
-        taskType: j.bucket_type === '特殊' ? 'special' : 'collection'
+        taskType: j.bucket_type === '特殊' ? 'special' : 'collection',
+        status: (j.status as 'planned' | 'confirmed') || 'planned',
+        is_admin_forced: j.is_admin_forced || false,
+        is_skipped: j.is_skipped || false
     }), []);
 
     const getDefaultDrivers = useCallback(() => ['A', 'B', 'C', 'D', 'E'].map(courseName => ({
@@ -344,6 +349,53 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         }
     };
 
+    // Phase 5: Confirm All Jobs (Planned -> Confirmed)
+    const handleConfirmAll = async (reason = 'Bulk Confirmation') => {
+        if (!editMode) return;
+
+        const plannedJobs = jobs.filter(j => j.status === 'planned');
+        if (plannedJobs.length === 0) {
+            showNotification("確定待ちの案件はありません", "info");
+            return;
+        }
+
+        if (!window.confirm(`${plannedJobs.length}件の案件を確定しますか？確定後は通常の編集が制限されます。`)) return;
+
+        setIsSyncing(true);
+        try {
+            const confirmedJobs = jobs.map(j => ({
+                ...j,
+                status: 'confirmed' as const
+            }));
+
+            // Execute SDR RPC for bulk confirmation
+            const { error } = await supabase.rpc('rpc_execute_board_update', {
+                p_date: currentDateKey,
+                p_new_state: {
+                    jobs: confirmedJobs,
+                    drivers,
+                    splits,
+                    pending: pendingJobs,
+                    edit_locked_by: currentUserId,
+                    edit_locked_at: new Date().toISOString()
+                },
+                p_decision_type: 'BULK_CONFIRM',
+                p_reason: reason
+            } as any);
+
+            if (error) throw error;
+
+            setJobs(confirmedJobs);
+            showNotification(`${plannedJobs.length}件を確定しました`, "success");
+            recordHistory();
+        } catch (e) {
+            console.error("Confirm all error:", e);
+            showNotification("一括確定に失敗しました", "error");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     // Real-time Subscription
     useEffect(() => {
         const channel = supabase.channel('board_changes')
@@ -434,6 +486,31 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         recordHistory();
     }, [editMode, jobs, recordHistory, showNotification]);
 
+    // Phase 6.2: Register current state as a template
+    const handleRegisterTemplate = async (name: string, dayOfWeek: number, nthWeek: number | null) => {
+        setIsSyncing(true);
+        try {
+            const { error } = await supabase.from('board_templates').insert({
+                name,
+                day_of_week: dayOfWeek,
+                nth_week: nthWeek,
+                jobs_json: jobs as any,
+                drivers_json: drivers as any,
+                splits_json: splits as any,
+                is_active: true
+            });
+
+            if (error) throw error;
+            showNotification(`テンプレート「${name}」を登録しました`, "success");
+        } catch (e) {
+            console.error("Template registration error:", e);
+            showNotification("テンプレートの登録に失敗しました", "error");
+            throw e;
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     return {
         masterDrivers,
         drivers, setDrivers,
@@ -443,7 +520,8 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         isDataLoaded, isOffline, isSyncing,
         editMode, lockedBy, canEditBoard,
         showNotification,
-        requestEditLock, releaseEditLock, handleSave,
+        requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
+        handleRegisterTemplate,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn
     };
