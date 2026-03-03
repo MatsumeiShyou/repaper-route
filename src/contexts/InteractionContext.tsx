@@ -11,6 +11,7 @@ interface InteractionContextType {
 
 const InteractionContext = createContext<InteractionContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useInteraction = () => {
     const context = useContext(InteractionContext);
     if (!context) {
@@ -38,7 +39,9 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({ childr
         localStorage.setItem('sanctuary_device_mode', deviceMode);
 
         if (deviceMode === 'auto') {
-            const isTouch = window.matchMedia('(pointer: coarse)').matches;
+            const isTouch = window.matchMedia
+                ? window.matchMedia('(pointer: coarse)').matches
+                : false;
             const width = window.innerWidth;
 
             if (isTouch) {
@@ -56,7 +59,9 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({ childr
         if (deviceMode !== 'auto') return;
 
         const handleResize = () => {
-            const isTouch = window.matchMedia('(pointer: coarse)').matches;
+            const isTouch = window.matchMedia
+                ? window.matchMedia('(pointer: coarse)').matches
+                : false;
             const width = window.innerWidth;
             if (isTouch) {
                 setActiveMode(width >= 768 ? 'tablet' : 'mobile');

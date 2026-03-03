@@ -417,7 +417,7 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
                 {extraDays.map(d => {
                     const isActive = regularDays.includes(d);
                     if (!isActive) return null; // 祝・他は設定されている時のみ表示する
-                    let activeColor = d === 'Hol' ? 'bg-rose-600 text-white' : 'bg-purple-600 text-white';
+                    const activeColor = d === 'Hol' ? 'bg-rose-600 text-white' : 'bg-purple-600 text-white';
 
                     return (
                         <div

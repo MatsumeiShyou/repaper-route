@@ -20,7 +20,7 @@ export default defineWorkspace([
         name: 'ui',
         test: {
             environment: 'jsdom',
-            setupFiles: './src/test/setup.ts',
+            setupFiles: ['./src/test/setup.ts'],
             include: ['src/**/*.test.{ts,tsx}'],
             exclude: [
                 'src/features/logic/**/*.test.ts',

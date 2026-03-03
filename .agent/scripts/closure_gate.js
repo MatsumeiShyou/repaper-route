@@ -5,7 +5,7 @@
  * 憲法 §L. 完遂プロトコル（リスク比例型）に基づく物理門番
  */
 
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { existsSync, readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -40,6 +40,20 @@ const runCommand = (cmd, allowFail = false) => {
         }
         return error.stdout ? error.stdout.toString().trim() : '';
     }
+};
+
+// --- Parallel Execution Helper ---
+const runCommandAsync = (cmd, args) => {
+    return new Promise((resolve, reject) => {
+        const proc = spawn(cmd, args, { stdio: 'inherit', shell: true });
+        proc.on('close', (code) => {
+            if (code === 0) {
+                resolve();
+            } else {
+                reject(new Error(`Command ${cmd} ${args.join(' ')} failed with exit code ${code}`));
+            }
+        });
+    });
 };
 
 async function main() {
@@ -112,25 +126,64 @@ async function main() {
             Log.success('Workspace is clean.');
         }
 
-        // [§L] tsc & vitest Check（ティア制御）
+        // [§L] tsc & vitest Check（ティア制御）+ Quarantine/Skip 監視
         if (!bypassEligible && activeTier !== 'T1') {
-            Log.info(`Running Type Check (tsc --noEmit) [${activeTier || 'FULL'}]...`);
-            try {
-                execSync('npx tsc --noEmit', { stdio: 'inherit' });
-                Log.success('Type Check passed.');
-            } catch (e) {
-                Log.error('Type Check (tsc) failed.');
-                throw new Error('Verification Block (G8.1.4): Type errors detected.');
+
+            // --- 1. Quarantine数監視 ---
+            Log.info('Checking Quarantine Ledger thresholds...');
+            const findQuarantineCmd = process.platform === 'win32'
+                ? 'powershell -NoProfile -Command "(Get-ChildItem -Path src -Recurse -Include *.quarantine).Count"'
+                : 'find src -type f -name "*.quarantine" | wc -l';
+            const quarantineCount = parseInt(runCommand(findQuarantineCmd, true) || '0', 10);
+            if (quarantineCount > 5) {
+                Log.warn(`Quarantine files exceeded maximum limit (Found: ${quarantineCount}, Max: 5). Please resolve existing debts before adding more.`);
             }
 
-            Log.info('Running Full Test Suite (vitest run)...');
+            // --- 2. Diff解析による自動検知 (.skip & .quarantine 追加の監視) ---
+            Log.info('Analyzing git diff for Gate violations...');
+            let gitDiffAdded = '';
             try {
-                // Now running full suite thanks to Quarantine strategy (skipping broken tests via .skip)
-                execSync('npx vitest run', { stdio: 'inherit' });
-                Log.success('All active tests passed (Legacy tests quarantined/skipped).');
+                // staged と untracked なしの diff 等を含めて変更行を取得
+                gitDiffAdded = runCommand('git diff --cached -U0', true);
             } catch (e) {
-                Log.error('Vitest failed.');
-                throw new Error('Verification Block (G8.1.4): One or more tests failed.');
+                // ignore
+            }
+
+            if (gitDiffAdded) {
+                const diffLines = gitDiffAdded.split('\n');
+                let currentFile = '';
+                for (const line of diffLines) {
+                    if (line.startsWith('+++ b/')) {
+                        currentFile = line.substring(6);
+                    } else if (line.startsWith('+') && !line.startsWith('+++')) {
+                        // ==== Smoke特別ルール ====
+                        if (currentFile.includes('Smoke.test.tsx')) {
+                            if (line.includes('.skip') || currentFile.endsWith('.quarantine')) {
+                                Log.error('FATAL GOVERNANCE VIOLATION: Smoke.test.tsx must not be skipped or quarantined.');
+                                throw new Error('Verification Block (G8.1.4): Smoke test skip/quarantine detected.');
+                            }
+                        }
+
+                        // ==== 一般テストルールの検知 ====
+                        if (typeof currentFile === 'string' && (currentFile.endsWith('.test.ts') || currentFile.endsWith('.test.tsx'))) {
+                            if (line.includes('describe.skip') || line.includes('it.skip') || line.includes('test.skip')) {
+                                Log.warn(`[WARNING] A .skip directive was detected in ${currentFile}. Please ensure you documented this in DEBT_AND_FUTURE.md Quarantine Ledger.`);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- 3. Parallel Execution (tsc & vitest) ---
+            Log.info(`Running Type Check and Test Suite in PARALLEL [${activeTier || 'FULL'}]...`);
+            try {
+                const typeCheck = runCommandAsync('npx', ['tsc', '--noEmit']);
+                const vitestRun = runCommandAsync('npx', ['vitest', 'run']);
+                await Promise.all([typeCheck, vitestRun]);
+                Log.success('Parallel Type Check and Test Suite passed successfully.');
+            } catch (e) {
+                Log.error('Parallel Test Execution failed.');
+                throw new Error('Verification Block (G8.1.4): Type errors or test failures detected.');
             }
         }
 

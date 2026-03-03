@@ -1,0 +1,68 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { vi } from 'vitest';
+
+// Supabase Mock
+vi.mock('@/lib/supabase/client', () => ({
+    supabase: {
+        from: () => {
+            const chainable = {
+                select: () => chainable,
+                eq: () => ({
+                    single: () => Promise.resolve({ data: null, error: null }),
+                    maybeSingle: () => Promise.resolve({ data: null, error: null })
+                }),
+                is: () => chainable,
+                in: () => chainable,
+                order: () => chainable,
+                then: (resolve: any) => resolve({ data: [], error: null })
+            };
+            return {
+                ...chainable,
+                upsert: () => Promise.resolve({ error: null }),
+                update: () => ({ eq: () => ({ eq: () => Promise.resolve({ error: null }) }) })
+            };
+        },
+        channel: () => ({
+            on: () => ({ subscribe: () => ({}) }),
+            unsubscribe: () => { }
+        }),
+        removeChannel: () => { }
+    }
+}));
+
+// DOM Mocks (Conditional)
+if (typeof window !== 'undefined') {
+    Element.prototype.scrollIntoView = vi.fn();
+    HTMLCanvasElement.prototype.getContext = vi.fn();
+    Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: vi.fn().mockImplementation(query => ({
+            matches: false,
+            media: query,
+            onchange: null,
+            addListener: vi.fn(), // Deprecated
+            removeListener: vi.fn(), // Deprecated
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+        })),
+    });
+    (window as any).PointerEvent = class PointerEvent extends Event { } as any;
+}
+
+if (typeof global !== 'undefined' && (global as any).ResizeObserver === undefined) {
+    (global as any).ResizeObserver = class ResizeObserver {
+        observe() { }
+        unobserve() { }
+        disconnect() { }
+    };
+}
+
+if (typeof global !== 'undefined' && (global as any).IntersectionObserver === undefined) {
+    (global as any).IntersectionObserver = class IntersectionObserver {
+        observe() { }
+        unobserve() { }
+        disconnect() { }
+    };
+}
+

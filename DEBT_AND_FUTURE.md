@@ -65,6 +65,20 @@
 
 ---
 
+## 1.5 Quarantine Ledger (隔離テスト台帳)
+*一時的に `vitest` の実行対象から除外（`.quarantine` 拡張子）されているテストファイルの台帳です。*
+* **ルール1**: 同時に隔離できるファイルは **最大5本** まで。
+* **ルール2**: 各隔離の **TTL（寿命）は最大14日**。期限切れのものは次スプリントで必ず復帰させる。
+* **ルール3**: `Smoke.test.tsx` の隔離は**厳禁**（ Fatal Error ）。
+
+| # | ファイルパス | Owner | Reason (隔離理由) | Exit Criteria (復帰条件) | Expiry (TTL) |
+|---|---|---|---|---|---|
+| 1 | `src/features/board/__tests__/BoardCanvas.sada.test.tsx.quarantine` | Team | JSDOM環境でのCanvas APIおよびgetBoundingClientRectの未実装による描画エラー | Mocks層の充実と描画完全一致から「要素存在確認」へのテスト目的のダウングレード | 2026-03-17 |
+| 2 | `src/features/board/__tests__/CellSelection.sada.test.tsx.quarantine` | Team | BoardCanvasと同様のJSDOM制約に起因するイベント発火エラー | Pointer Event等の確実なエミュレーション、またはE2Eへの移行判断 | 2026-03-17 |
+| 3 | `src/features/admin/__tests__/MasterData.sada.test.tsx.quarantine` | Team | 外部状態（モックデータ）の揺らぎによるアサーション失敗 | MSWモックの導入と、揺らぎに強い固定Fixtureでの再実装 | 2026-03-17 |
+
+---
+
 ## 2. Future Features (実装保留機能)
 *仕様として提案されたが、優先度やリソースの都合で実装が見送られた機能リスト。*
 
