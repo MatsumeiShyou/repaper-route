@@ -92,6 +92,7 @@
   - **Route A [Preview-Driven]**: UI/UX/スタイル変更。SADA検証後、必ずPushして **Preview URL** での実機確認を必須とする。
   - **Route B [Local-Logic]**: ロジック/DB/内部処理。`vitest` / `tsc` のエラー0をもって品質証明とし、UI確認は任意。
   - **Route C [Fast-Path]**: ドキュメント/設定のみ。自動テスト・Previewともにスキップ。
+  - **Route D [Disposable-Test]**: SADAテストの代替パス。複雑なUI/UX変更において、定型テストを追加せず、検証用の一時スクリプト（e.g., `temp_verify.js`）等を作成・実行し、その結果をエビデンスとしてタスク完了時に破棄する。
 
 ### G. 段階的 Stop Protocol
 
@@ -161,4 +162,5 @@
 5. **Walkthrough (証跡記録)**:
    - T1/T2: コミットログで代替（walkthrough.md 不要）
    - T3: `walkthrough.md` に最終結果とテスト合格証を記録。
+   - **Route D の場合**: 用いた一時的検証スクリプトの実行結果（標準出力など）を必ず一過性証跡として `walkthrough.md` に添付・記録すること。
 6. **Seal (封印)**: `[TASK_CLOSED]` を宣言し、タスクを正式に閉鎖。

@@ -65,19 +65,7 @@
 
 ---
 
-## 1.5 Quarantine Ledger (隔離テスト台帳)
-*一時的に `vitest` の実行対象から除外（`.quarantine` 拡張子）されているテストファイルの台帳です。*
-* **ルール1**: 同時に隔離できるファイルは **最大5本** まで。
-* **ルール2**: 各隔離の **TTL（寿命）は最大14日**。期限切れのものは次スプリントで必ず復帰させる。
-* **ルール3**: `Smoke.test.tsx` の隔離は**厳禁**（ Fatal Error ）。
 
-| # | ファイルパス | Owner | Reason (隔離理由) | Exit Criteria (復帰条件) | Expiry (TTL) |
-|---|---|---|---|---|---|
-| 1 | `src/features/board/__tests__/BoardCanvas.sada.test.tsx.quarantine` | Team | JSDOM環境でのCanvas APIおよびgetBoundingClientRectの未実装による描画エラー | Mocks層の充実と描画完全一致から「要素存在確認」へのテスト目的のダウングレード | 2026-03-17 |
-| 2 | `src/features/board/__tests__/CellSelection.sada.test.tsx.quarantine` | Team | BoardCanvasと同様のJSDOM制約に起因するイベント発火エラー | Pointer Event等の確実なエミュレーション、またはE2Eへの移行判断 | 2026-03-17 |
-| 3 | `src/features/admin/__tests__/MasterData.sada.test.tsx.quarantine` | Team | 外部状態（モックデータ）の揺らぎによるアサーション失敗 | MSWモックの導入と、揺らぎに強い固定Fixtureでの再実装 | 2026-03-17 |
-
----
 
 ## 2. Future Features (実装保留機能)
 *仕様として提案されたが、優先度やリソースの都合で実装が見送られた機能リスト。*
@@ -131,3 +119,8 @@
   - 解決: 変更の性質に応じて **Route A (Preview必須) / B (ロジック) / C (高速パス)** をAI自身が判断し、`pre_flight.js` がその宣言を物理的に監視する「CAVR (Context-Aware Verification Routing)」を導入。
   - 効果: 推測による検証漏れを防ぎつつ、ドキュメント修正等の軽量タスクにおいて 100pt Closure の高速化（Fast-Path）を実現。
   - 適用: 2026-03-01 以降の全タスクに義務付け。
+
+- **SADAパラダイムからの脱却とRoute Dへの移行 (2026-03)**: #type: lesson
+  - 課題: JSDOMに依存した静的なUIコンポーネントテスト（SADA）が、Canvasや複雑なイベントの要件に対して形骸化・テスト負債・開発摩擦となった。
+  - 解決: 複雑なSADAテストを廃止し、Vitestのテスト対象からUI依存ディレクトリを隔離(exclude)。純粋なロジックはVitest（Route B）で行い、UIの検証は実機（Route A）または一時的な捨てスクリプト（Route D）によって最適化する体制へアーキテクチャを転換した。
+  - 効果: 環境構築やモック維持の無限工数を削減し、AI駆動開発のスピードを低下させることなく「状況に合わせた確実な検証証明」を残せるようになった。

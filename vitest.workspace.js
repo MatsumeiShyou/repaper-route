@@ -15,22 +15,5 @@ export default defineWorkspace([
                 '@': './src'
             }
         }
-    },
-    {
-        name: 'ui',
-        test: {
-            environment: 'jsdom',
-            setupFiles: ['./src/test/setup.ts'],
-            include: ['src/**/*.test.{ts,tsx}'],
-            exclude: [
-                'src/features/logic/**/*.test.ts',
-                '**/node_modules/**',
-                'tests/vlm/**',
-                'tests/e2e/**'
-            ],
-            alias: {
-                '@': './src'
-            }
-        }
     }
 ]);

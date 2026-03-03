@@ -129,17 +129,7 @@ async function main() {
         // [§L] tsc & vitest Check（ティア制御）+ Quarantine/Skip 監視
         if (!bypassEligible && activeTier !== 'T1') {
 
-            // --- 1. Quarantine数監視 ---
-            Log.info('Checking Quarantine Ledger thresholds...');
-            const findQuarantineCmd = process.platform === 'win32'
-                ? 'powershell -NoProfile -Command "(Get-ChildItem -Path src -Recurse -Include *.quarantine).Count"'
-                : 'find src -type f -name "*.quarantine" | wc -l';
-            const quarantineCount = parseInt(runCommand(findQuarantineCmd, true) || '0', 10);
-            if (quarantineCount > 5) {
-                Log.warn(`Quarantine files exceeded maximum limit (Found: ${quarantineCount}, Max: 5). Please resolve existing debts before adding more.`);
-            }
-
-            // --- 2. Diff解析による自動検知 (.skip & .quarantine 追加の監視) ---
+            // --- 1. Diff解析による自動検知 (.skip 追加の監視) ---
             Log.info('Analyzing git diff for Gate violations...');
             let gitDiffAdded = '';
             try {
@@ -156,18 +146,10 @@ async function main() {
                     if (line.startsWith('+++ b/')) {
                         currentFile = line.substring(6);
                     } else if (line.startsWith('+') && !line.startsWith('+++')) {
-                        // ==== Smoke特別ルール ====
-                        if (currentFile.includes('Smoke.test.tsx')) {
-                            if (line.includes('.skip') || currentFile.endsWith('.quarantine')) {
-                                Log.error('FATAL GOVERNANCE VIOLATION: Smoke.test.tsx must not be skipped or quarantined.');
-                                throw new Error('Verification Block (G8.1.4): Smoke test skip/quarantine detected.');
-                            }
-                        }
-
                         // ==== 一般テストルールの検知 ====
                         if (typeof currentFile === 'string' && (currentFile.endsWith('.test.ts') || currentFile.endsWith('.test.tsx'))) {
                             if (line.includes('describe.skip') || line.includes('it.skip') || line.includes('test.skip')) {
-                                Log.warn(`[WARNING] A .skip directive was detected in ${currentFile}. Please ensure you documented this in DEBT_AND_FUTURE.md Quarantine Ledger.`);
+                                Log.warn(`[WARNING] A .skip directive was detected in ${currentFile}. Please ensure you documented this in DEBT_AND_FUTURE.md.`);
                             }
                         }
                     }

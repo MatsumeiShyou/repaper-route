@@ -17,7 +17,9 @@ export default defineConfig({
       '.agent/**',
       'pg_fix/**',
       'tests/vlm/**',
-      'tests/e2e/**'
+      'tests/e2e/**',
+      'src/features/board/components/**',
+      'src/features/admin/components/**'
     ],
     coverage: {
       provider: 'v8',

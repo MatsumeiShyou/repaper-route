@@ -396,7 +396,8 @@ function validateCAVR(changedFiles, effectiveTier) {
     const routePatterns = [
         { id: 'Route A', regex: /Route\s*A|Preview-Driven/i, desc: 'UI/UX (Preview URL 必須)' },
         { id: 'Route B', regex: /Route\s*B|Local-Logic/i, desc: 'ロジック (自動テスト重視)' },
-        { id: 'Route C', regex: /Route\s*C|Fast-Path/i, desc: 'ドキュメント/設定 (検証スキップ)' }
+        { id: 'Route C', regex: /Route\s*C|Fast-Path/i, desc: 'ドキュメント/設定 (検証スキップ)' },
+        { id: 'Route D', regex: /Route\s*D|Disposable-Test/i, desc: '使い捨てテスト (SADA代替)' }
     ];
 
     let declaredRoute = null;
