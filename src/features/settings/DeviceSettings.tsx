@@ -47,7 +47,6 @@ export const DeviceSettings: React.FC = () => {
                                     : 'border-slate-100 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                                 }
                             `}
-                            data-sada-id={`device-setting-${opt.id}`}
                         >
                             <div className={`p-2 rounded-lg 
                                 ${deviceMode === opt.id ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-400'}

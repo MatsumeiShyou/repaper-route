@@ -120,7 +120,7 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="案件の手動追加">
-            <div className="space-y-4 p-4 max-w-md" data-sada-id="manual-injection-modal">
+            <div className="space-y-4 p-4 max-w-md">
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-3">
                     <AlertTriangle className="text-amber-600 shrink-0" size={20} />
                     <div className="text-xs text-amber-800 leading-relaxed">
@@ -152,7 +152,6 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                                         ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
                                         : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-blue-50'}
                                 `}
-                                data-sada-id={`kana-btn-${group}`}
                             >
                                 {group}
                             </button>
@@ -168,7 +167,6 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                             className={`w-full text-left p-3 text-sm transition-colors flex items-center gap-3
                                 ${selectedPointId === p.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'hover:bg-white'}
                             `}
-                            data-sada-id={`point-item-${p.id}`}
                         >
                             <MapPin size={14} className={selectedPointId === p.id ? 'text-blue-500' : 'text-slate-300'} />
                             <div>
@@ -189,13 +187,12 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                     <button
                         onClick={() => setIsNewPointMode(true)}
                         className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-all"
-                        data-sada-id="open-quick-register"
                     >
                         <Plus size={14} />
                         一覧にない場合→新規登録して追加
                     </button>
                 ) : (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2" data-sada-id="quick-register-form">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
                         <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">簡易マスタ登録</p>
                         <div className="grid grid-cols-2 gap-2">
                             <input
@@ -204,7 +201,6 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                                 onChange={(e) => setNewPointName(e.target.value)}
                                 placeholder="名称（必須）"
                                 className="border rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                data-sada-id="quick-register-name"
                             />
                             <input
                                 type="text"
@@ -212,7 +208,6 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                                 onChange={(e) => setNewPointFurigana(e.target.value)}
                                 placeholder="フリガナ"
                                 className="border rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                data-sada-id="quick-register-furigana"
                             />
                         </div>
                         {registerError && (
@@ -264,7 +259,6 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                                 className={`flex-1 px-3 py-1.5 text-xs font-bold text-white rounded transition-all
                                     ${isRegistering || !newPointName.trim() ? 'bg-slate-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
                                 `}
-                                data-sada-id="quick-register-submit"
                             >
                                 {isRegistering ? '登録中...' : '登録して選択'}
                             </button>
@@ -301,7 +295,6 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white h-11"
-                            data-sada-id="injection-reason-select"
                         >
                             <option value="">--- 理由を選択してください ---</option>
                             {savedReasons.map((r, i) => (
@@ -315,7 +308,6 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                             placeholder={reasonMode === 'save' ? "この理由をリストに保存して追加します" : "今回の追加理由を入力してください"}
                             className="w-full border rounded-lg p-3 text-sm h-24 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                             required
-                            data-sada-id="injection-reason-input"
                         />
                     )}
                     {reasonMode === 'save' && (
@@ -340,7 +332,6 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                         className={`px-6 py-2 text-sm font-bold text-white rounded-md transition-all
                             ${!selectedPointId || !reason || isSubmitting ? 'bg-slate-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200'}
                         `}
-                        data-sada-id="add-job-button"
                     >
                         {isSubmitting ? '処理中...' : '案件を追加'}
                     </button>

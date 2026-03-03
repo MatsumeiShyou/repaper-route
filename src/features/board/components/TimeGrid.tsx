@@ -75,8 +75,6 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                                     cursor: 'pointer',
                                     transition: 'all 0.1s ease-out'
                                 }}
-                                data-sada-id={`cell-${driver.id}-${time}`}
-                                data-sada-selected={isSelected ? "true" : "false"}
                                 className={isSelected ? 'ring-2 ring-blue-500 ring-inset z-10' : ''}
                             />
                         );

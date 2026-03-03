@@ -245,7 +245,6 @@ export default function BoardCanvas() {
         <div
             className="h-full flex flex-col bg-slate-50 relative overflow-hidden select-none outline-none"
             tabIndex={0}
-            data-sada-id="board-canvas-root"
             onKeyDown={handleKeyDown}
             onMouseDown={handleMouseDown}
             onMouseMove={(e) => handleBackgroundMouseMove(e.nativeEvent)}
