@@ -1,4 +1,49 @@
 {
+    "version": "5.0",
+    "tierDefinition": {
+        "T1": {
+            "label": "低リスク（即実行・事後報告）",
+            "filePatterns": [
+                "*.md",
+                "*.json",
+                "*.css",
+                "*.log",
+                "*.txt",
+                "docs/**",
+                ".vscode/**",
+                ".agent/config/**",
+                ".agent/workflows/**"
+            ],
+            "requiresApproval": false,
+            "requiresAmplog": false,
+            "requiresDebt": false
+        },
+        "T2": {
+            "label": "中リスク（自動検証による自律反復）",
+            "filePatterns": [
+                "src/**/*.ts",
+                "src/**/*.tsx",
+                "*.js",
+                "tests/**"
+            ],
+            "requiresApproval": false,
+            "requiresAmplog": false,
+            "requiresDebt": "conditional",
+            "maxRetries": 3
+        },
+        "T3": {
+            "label": "高リスク（フルガバナンス・人間承認必須）",
+            "filePatterns": [
+                "supabase/migrations/**",
+                "AGENTS.md",
+                ".agent/scripts/**",
+                ".agent/gate/**"
+            ],
+            "requiresApproval": true,
+            "requiresAmplog": true,
+            "requiresDebt": true
+        }
+    },
     "rules": [
         {
             "id": "H-1",

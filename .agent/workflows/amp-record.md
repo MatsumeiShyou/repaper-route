@@ -1,6 +1,10 @@
 ---
-description: AMP (資産変更申請) の承認記録を AMPLOG.md に自動追加する
+description: AMP (資産変更申請) の承認記録を AMPLOG.jsonl に自動追加する（T3 変更時のみ）
 ---
+
+> [!IMPORTANT]
+> 本ワークフローは **T3（高リスク）変更時のみ使用** する。
+> T1/T2 ではコミットメッセージ規約（`[T1]`/`[T2]` プレフィックス）で代替する。
 
 // turbo-all
 

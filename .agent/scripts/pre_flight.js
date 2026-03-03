@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Antigravity Pre-flight Gateway (v4.0)
+ * Antigravity Pre-flight Gateway (v5.0)
  * 
- * Consolidates all governance checks into a single command.
- * Execution of this script is required by AGENTS.md §1.
+ * リスク比例型ガバナンス (Risk-Proportional Governance) 対応。
+ * ティア別の検証分岐を実施する。
+ * Execution of this script is required by AGENTS.md §E.
  */
 
 import { execSync } from 'child_process';
@@ -22,6 +23,7 @@ const PROJECT_ROOT = process.cwd();
 const SCRIPTS_DIR = path.join(PROJECT_ROOT, '.agent', 'scripts');
 const TASK_MD_PATH = path.join(PROJECT_ROOT, 'task.md');
 const RULES_PATH = path.join(PROJECT_ROOT, '.agent', 'config', 'governance_rules.json');
+const SESSION_PATH = path.join(PROJECT_ROOT, '.agent', 'session', 'active_task.json');
 
 // --- Utilities ---
 function runCheck(name, command) {
@@ -39,7 +41,7 @@ function runCheck(name, command) {
 }
 
 /**
- * [AGENTS.md §9] Shell Environment Integrity Check
+ * [AGENTS.md §H] Shell Environment Integrity Check
  */
 function checkEnvironment() {
     console.log('\n🔍 [Environment] Shell Compatibility Check...');
@@ -78,10 +80,108 @@ function isDocOnlyValidation(changedFiles) {
     return false;
 }
 
+// ═══════════════════════════════════════════════════
+// ティア判定（Risk-Proportional Governance）
+// ═══════════════════════════════════════════════════
+
 /**
- * [Phase 7.1] Task-Execution Tight Coupling Check (Fundamental Upgrade)
+ * [AGENTS.md §E] セッションからティア情報を取得する。
+ * active_task.json の `tier` フィールドを正典として使用。
+ * 未設定の場合はレガシー互換で null を返す。
  */
-function validateTaskActive() {
+function getActiveTier() {
+    const session = getSession();
+    return session?.active_task?.tier || null;
+}
+
+/**
+ * [AGENTS.md §E / 代替案Ω] git diff 静的解析によるティア自動検出
+ * 自己申告ティアとの乖離を検出し警告を出す。
+ */
+function detectTierFromDiff(changedFiles) {
+    if (changedFiles.length === 0) return 'T1';
+
+    const normalized = changedFiles.map(f => f.replace(/\\/g, '/'));
+
+    // T3 シグナル: DB構造変更、セキュリティ関連、統治構造変更
+    const t3Signals = normalized.some(f =>
+        f.includes('supabase/migrations/') ||
+        f.includes('auth') ||
+        f.includes('security') ||
+        f === 'AGENTS.md' ||
+        f.includes('.agent/scripts/') ||
+        f.includes('.agent/gate/')
+    );
+    if (t3Signals) return 'T3';
+
+    // T1 シグナル: ドキュメント、設定、CSS、コメントのみ
+    const isT1 = normalized.every(f =>
+        f.endsWith('.md') ||
+        f.endsWith('.json') ||
+        f.endsWith('.css') ||
+        f.endsWith('.log') ||
+        f.endsWith('.txt') ||
+        f.startsWith('.vscode') ||
+        f.startsWith('.agent/config/') ||
+        f.startsWith('.agent/workflows/') ||
+        f.startsWith('docs/')
+    );
+    if (isT1) return 'T1';
+
+    // それ以外は T2
+    return 'T2';
+}
+
+/**
+ * ティア自動検出と自己申告の整合性を検証し、警告を出す
+ */
+function validateTierConsistency(declaredTier, changedFiles) {
+    const detectedTier = detectTierFromDiff(changedFiles);
+    const tierLevel = { 'T1': 1, 'T2': 2, 'T3': 3 };
+
+    if (declaredTier && tierLevel[detectedTier] > tierLevel[declaredTier]) {
+        console.warn(`\n⚠️  [ティア検証] 自己申告: ${declaredTier} ↔ 自動検出: ${detectedTier}`);
+        console.warn(`   → 変更内容が申告ティアより高リスクの可能性があります。`);
+        console.warn(`   → 安全側に倒して ${detectedTier} で進行することを推奨します。`);
+        console.warn(`   → (現在は警告のみ。将来的にブロック化を検討)`);
+    } else if (declaredTier) {
+        console.log(`✅ [ティア検証] 自己申告: ${declaredTier} / 自動検出: ${detectedTier} — 整合性OK`);
+    }
+
+    return declaredTier || detectedTier;
+}
+
+/**
+ * [AGENTS.md §E T2] T2 自律修正ループのリトライカウンター検証
+ * 3回を超えた場合は T3 エスカレーションを要求
+ */
+function validateT2RetryCount() {
+    const session = getSession();
+    const retryCount = session?.active_task?.t2_retry_count || 0;
+    const tier = session?.active_task?.tier;
+
+    if (tier === 'T2' && retryCount > 3) {
+        console.error('\n🚫───────────── [ T2 ESCALATION REQUIRED ] ─────────────🚫');
+        console.error(`❌ T2 自律修正ループが ${retryCount} 回に到達しました（上限: 3回）。`);
+        console.error('   → AGENTS.md §E T2: 3回で収束しない場合は T3 にエスカレーションせよ。');
+        console.error('   → [解決]: ティアを T3 に昇格し、人間に【停止報告】を提出してください。');
+        console.error('🚫─────────────────────────────────────────────────────🚫\n');
+        process.exit(1);
+    }
+
+    if (tier === 'T2' && retryCount > 0) {
+        console.log(`   🔄 [T2 修正ループ] 現在のリトライ回数: ${retryCount}/3`);
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// 既存の検証関数群（ティア対応版）
+// ═══════════════════════════════════════════════════
+
+/**
+ * [AGENTS.md §I] Task-Execution Tight Coupling Check
+ */
+function validateTaskActive(effectiveTier) {
     console.log('\n📅 [TASK Gate] タスク着手状況を確認中...');
 
     const session = getSession();
@@ -98,7 +198,7 @@ function validateTaskActive() {
         return;
     }
 
-    // Fallback: task.md における手動管理のチェック (互換性維持)
+    // Fallback: task.md
     if (fs.existsSync(TASK_MD_PATH)) {
         const content = fs.readFileSync(TASK_MD_PATH, 'utf8');
         if (content.includes('[/]')) {
@@ -107,13 +207,18 @@ function validateTaskActive() {
         }
     }
 
-    // [M-1修正 & DRY] コード変更を伴わないコミット（ドキュメント/ログ修正等）時はチェックをスキップ
     const cached = execSync('git diff --cached --name-only', { encoding: 'utf8' });
     const workspace = execSync('git ls-files --others --modified --exclude-standard', { encoding: 'utf8' });
     const changed = [...new Set([...cached.split('\n'), ...workspace.split('\n')])].filter(f => f.trim());
 
     if (isDocOnlyValidation(changed)) {
         console.log('✅ [TASK Gate] 非コード資産（ドキュメント等）の変更のみ。タスクチェックをバイパスします。');
+        return;
+    }
+
+    // T1 は警告のみ（ブロックしない）
+    if (effectiveTier === 'T1') {
+        console.warn('⚠️  [TASK Gate] T1: タスク宣言がありませんが、低リスクのため警告のみで続行します。');
         return;
     }
 
@@ -126,14 +231,16 @@ function validateTaskActive() {
 }
 
 /**
- * [Anti-Spiral Gate] 統治ロジック変更時の矛盾チェックを強制
+ * [Anti-Spiral Gate] 統治ロジック変更時の矛盾チェック（T3 のみ）
  */
-function validateAntiSpiral() {
+function validateAntiSpiral(effectiveTier) {
+    if (effectiveTier !== 'T3') return; // T1/T2 はスキップ
+
     const cached = execSync('git diff --cached --name-only', { encoding: 'utf8' });
     const isGovChange = cached.includes('AGENTS.md') || cached.includes('.agent/scripts/');
 
     if (isGovChange) {
-        console.log('\n🌀 [スパイラル防止ゲート] 統治ロジックの変更を検知。矛盾スパイラル検証が必要です。');
+        console.log('\n🌀 [スパイラル防止ゲート] 統治ロジックの変更を検知（T3）。矛盾スパイラル検証が必要です。');
         console.log('   → 既存ルールとの矛盾、デッドロック、循環依存がないか確認しましたか？');
         console.log('   → [K-6] 分析に基づき、構造的整合性が担保されていることを確約してください。');
         console.log('✅ [スパイラル防止ゲート] 統治整合性の自己宣言を確認。');
@@ -141,15 +248,13 @@ function validateAntiSpiral() {
 }
 
 /**
- * [Phase 2] 決定論的 Cognitive Checkpoint (Binary Validation)
- * `task.md` の全完了（`active_task.json` の status: Completed）時に、
- * 物理的証跡（DEBT_AND_FUTURE.md または AMPLOG.jsonl）の更新が伴っているかを検証する。
+ * [AGENTS.md §G] Cognitive Checkpoint（T3 のみ）
  */
-function validateCognitiveCheckpoint(changedFiles) {
+function validateCognitiveCheckpoint(changedFiles, effectiveTier) {
+    if (effectiveTier !== 'T3') return; // T1/T2 はスキップ
+
     const session = getSession();
-    // 完了宣言であるかを判定
     if (session?.active_task?.status === 'Completed') {
-        // 変更ファイルの中に物理証跡が含まれているか
         const hasEvidence = changedFiles.some(file =>
             file.includes('DEBT_AND_FUTURE.md') ||
             file.includes('AMPLOG.jsonl') ||
@@ -163,10 +268,7 @@ function validateCognitiveCheckpoint(changedFiles) {
             }
             console.error('\n🚫───────────── [ EPISTEMIC LOCK: CCP ] ─────────────🚫');
             console.error('❌ Cognitive Checkpoint (CCP) 検証失敗: 物理的証跡の更新がありません。');
-            console.error('   → タスク完了 (`status: Completed`) を宣言する際は、必ず本実行による');
-            console.error('     「副作用の自己反駁」を DEBT_AND_FUTURE.md に 1行以上追記するか、');
-            console.error('     AMPLOG に履歴情報を記録してください。');
-            console.error('   → [根本解決]: DEBT_AND_FUTURE.md 等に変更を加えた上で再試行してください。');
+            console.error('   → T3 タスク完了時は DEBT_AND_FUTURE.md または AMPLOG.jsonl の更新が必須。');
             console.error('🚫─────────────────────────────────────────────────────🚫\n');
             process.exit(1);
         } else {
@@ -176,11 +278,11 @@ function validateCognitiveCheckpoint(changedFiles) {
 }
 
 /**
- * [Phase 3] Smart DB Sync Validation
- * Git差分に `supabase/migrations/` の変更が含まれる場合のみ、
- * ローカルDBに対する差分チェック（DRY-RUN）を発動し、GRANT漏れやエラーを防ぐ。
+ * [AGENTS.md §F] Smart DB Sync Validation
  */
-function validateSmartDbSync(changedFiles) {
+function validateSmartDbSync(changedFiles, effectiveTier) {
+    if (effectiveTier === 'T1') return; // T1 はスキップ
+
     const hasMigrationChanges = changedFiles.some(file =>
         file.replace(/\\/g, '/').includes('supabase/migrations/') && file.endsWith('.sql')
     );
@@ -188,21 +290,14 @@ function validateSmartDbSync(changedFiles) {
     if (hasMigrationChanges) {
         console.log('\n🗄️  [Smart DB Gate] マイグレーションの変更を検知。Dry-Run検証を開始します...');
         try {
-            // ローカルで実行して構文エラーや依存関係エラーが出ないかテスト
-            // (db push 等は重い可能性があるので、今回は db diff で変更分が適用可能か簡易確認するアプローチもアリだが、
-            //  確実なのは "supabase status" 等でローカルDBが動いているか確認し、
-            //  "supabase db diff --local"等で致命的エラーを見ること)
             console.log('   Running: npx supabase db diff --local');
             execSync('npx supabase db diff --local', { cwd: PROJECT_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
             console.log('✅ [Smart DB Gate] Dry-Run 成功。SQL構成は正常です。');
         } catch (err) {
             console.error('\n🚫───────────── [ DATABASE SYNC LOCK ] ─────────────🚫');
             console.error('❌ DBマイグレーションの Dry-Run に失敗しました。');
-            console.error('   → 構文エラー、またはVIEW変更時の GRANT 追従漏れの可能性があります。');
-            console.error('   → エラー詳細:');
             if (err.stdout && err.stdout.trim()) console.error(err.stdout);
             if (err.stderr && err.stderr.trim()) console.error(err.stderr);
-            console.error('   → [根本解決]: SQLエラーを修正し、ローカルでテストを通過させてください。');
             console.error('🚫─────────────────────────────────────────────────────🚫\n');
             process.exit(1);
         }
@@ -210,9 +305,10 @@ function validateSmartDbSync(changedFiles) {
 }
 
 /**
- * [Phase 8.2] Governance Linter (GovLint)
+ * [AGENTS.md §E] Governance Linter (GovLint)
  */
-function validateGovernanceCompliance(changedFiles) {
+function validateGovernanceCompliance(changedFiles, effectiveTier) {
+    if (effectiveTier === 'T1') return; // T1 はスキップ
     if (!fs.existsSync(RULES_PATH)) return;
 
     console.log('\n⚖️  [GovLint] 憲法遵守状況を自動監査中...');
@@ -228,7 +324,6 @@ function validateGovernanceCompliance(changedFiles) {
         const content = fs.readFileSync(file, 'utf8');
 
         for (const rule of rules) {
-            // Include パターンに合致するかチェック
             const isTarget = rule.include.some(pattern => {
                 const glob = pattern
                     .replace(/\./g, '\\.')
@@ -244,7 +339,6 @@ function validateGovernanceCompliance(changedFiles) {
             const regex = new RegExp(rule.pattern, 'g');
             const match = content.match(regex);
             if (match) {
-                console.log(`DEBUG: Violation found in ${file} for rule ${rule.id} (${rule.name})`);
                 violations.push({
                     file,
                     ruleId: rule.id,
@@ -280,10 +374,11 @@ function validateGovernanceCompliance(changedFiles) {
 }
 
 /**
- * [Phase 5/6] Context-Aware Verification Routing (CAVR) Enforcement
- * 実装の性質（Route A/B/C）がタスク境界または task.md で宣言されているか検証する。
+ * [AGENTS.md §F] CAVR Enforcement
  */
-function validateCAVR(changedFiles) {
+function validateCAVR(changedFiles, effectiveTier) {
+    if (effectiveTier === 'T1') return; // T1 はスキップ
+
     console.log('\n🛤️  [CAVR Gate] 検証ルート（Route A/B/C）の宣言を確認中...');
 
     const session = getSession();
@@ -293,7 +388,6 @@ function validateCAVR(changedFiles) {
         return;
     }
 
-    // ドキュメントのみの変更は自動的に Route C とみなす
     if (isDocOnlyValidation(changedFiles)) {
         console.log('✅ [CAVR Gate] Route C [Fast-Path] を自動適用（ドキュメント更新のみ）。');
         return;
@@ -307,7 +401,7 @@ function validateCAVR(changedFiles) {
 
     let declaredRoute = null;
 
-    // 1. セッション情報の Intent/Summary から検索
+    // 1. セッション情報
     if (session?.active_task) {
         const textToScan = `${session.active_task.name} ${session.active_task.summary}`;
         for (const route of routePatterns) {
@@ -318,7 +412,7 @@ function validateCAVR(changedFiles) {
         }
     }
 
-    // 2. Fallback: task.md の進行中項目 [/] から検索
+    // 2. task.md
     if (!declaredRoute && fs.existsSync(TASK_MD_PATH)) {
         const content = fs.readFileSync(TASK_MD_PATH, 'utf8');
         const lines = content.split('\n');
@@ -333,12 +427,12 @@ function validateCAVR(changedFiles) {
         }
     }
 
-    // 3. Final Fallback: AMPLOG.jsonl の最新エントリから検索 (物理証跡)
+    // 3. AMPLOG.jsonl
     const AMPLOG_PATH = path.join(PROJECT_ROOT, 'AMPLOG.jsonl');
     if (!declaredRoute && fs.existsSync(AMPLOG_PATH)) {
         const content = fs.readFileSync(AMPLOG_PATH, 'utf8');
         const lines = content.trim().split('\n');
-        const lastLines = lines.slice(-5).reverse(); // 直近5件を逆順にチェック
+        const lastLines = lines.slice(-5).reverse();
         for (const line of lastLines) {
             for (const route of routePatterns) {
                 if (route.regex.test(line)) {
@@ -360,22 +454,24 @@ function validateCAVR(changedFiles) {
     console.error('   → AGENTS.md §F: 変更の性質に応じた検証経路を明示せよ。');
     console.error('   → [解決案]: task_boundary ツールの summary 等に "Route A" (UI修正) ');
     console.error('     または "Route B" (ロジック修正) を追記してください。');
-    console.error('   → 理由: 臨機応変な対応を「構造的に強制」するため、AIの意思表示が必要です。');
     console.error('🚫─────────────────────────────────────────────────────🚫\n');
     process.exit(1);
 }
 
+// ═══════════════════════════════════════════════════
+// メイン実行
+// ═══════════════════════════════════════════════════
+
 async function main() {
-    console.log('🛡️  Antigravity Dynamic Governance: Pre-flight Check');
-    console.log('==================================================');
+    console.log('🛡️  Antigravity Dynamic Governance: Pre-flight Check (v5.0)');
+    console.log('============================================================');
 
     const charsetOk = runCheck('Encoding Sentinel', `node "${path.join(SCRIPTS_DIR, 'guardian_charset.js')}"`);
     if (!charsetOk) process.exit(1);
 
-    validateTaskActive();
     checkEnvironment();
 
-    // 0. Context Visualization
+    // 0. 変更コンテキスト解析
     console.log('\n📊 [Context] 現在の変更コンテキストを解析中...');
     let allChangedFiles = [];
     try {
@@ -395,32 +491,45 @@ async function main() {
         console.log('   ⚠️ コンテキスト情報の取得に失敗しました。');
     }
 
-    validateCognitiveCheckpoint(allChangedFiles);
-    validateSmartDbSync(allChangedFiles);
-    validateCAVR(allChangedFiles);
-    validateGovernanceCompliance(allChangedFiles);
-    validateAntiSpiral();
+    // 1. ティア判定
+    const declaredTier = getActiveTier();
+    const effectiveTier = validateTierConsistency(declaredTier, allChangedFiles);
+    console.log(`\n🎯 [ティア] 適用ティア: ${effectiveTier}`);
 
-    // 1a. Fast-Path Block
-    console.log('\n🏎️  [Fast-Path Gate] Mandatory check passed.');
+    // 2. T2 リトライカウンター検証
+    validateT2RetryCount();
 
-    // 1b. Epistemic Cache logic
-    const skipHeavyChecks = isDocOnlyValidation(allChangedFiles);
+    // 3. ティア別ゲート検証
+    validateTaskActive(effectiveTier);
+    validateCognitiveCheckpoint(allChangedFiles, effectiveTier);
+    validateSmartDbSync(allChangedFiles, effectiveTier);
+    validateCAVR(allChangedFiles, effectiveTier);
+    validateGovernanceCompliance(allChangedFiles, effectiveTier);
+    validateAntiSpiral(effectiveTier);
+
+    // 4. Epistemic Cache（ティア統合版）
+    const skipHeavyChecks = effectiveTier === 'T1' || isDocOnlyValidation(allChangedFiles);
 
     if (skipHeavyChecks) {
-        console.log('\n✅ [Epistemic Cache] ドキュメント更新のみ。統治・シール確認ゲートを軽量化（バイパス）します。');
+        console.log('\n✅ [Epistemic Cache] T1 またはドキュメント更新のみ。重量ゲートをバイパスします。');
     } else {
         const epistemicOk = runCheck('Epistemic Gate', `node "${path.join(SCRIPTS_DIR, 'epistemic_gate.js')}"`);
         if (!epistemicOk) process.exit(1);
 
-        const sealOk = runCheck('Seal Check', `node "${path.join(SCRIPTS_DIR, 'check_seal.js')}"`);
-        if (!sealOk) process.exit(1);
+        // T2: check_seal はバイパス（テスト通過が承認代替）
+        // T3: check_seal を実行（承認印検証必須）
+        if (effectiveTier === 'T3') {
+            const sealOk = runCheck('Seal Check (T3)', `node "${path.join(SCRIPTS_DIR, 'check_seal.js')}"`);
+            if (!sealOk) process.exit(1);
+        } else {
+            console.log('\n✅ [Seal Gate] T2: テスト通過が承認代替のため、AMPLOG承認印チェックをバイパス。');
+        }
     }
 
     const reflectOk = runCheck('Compliance Audit', `node "${path.join(SCRIPTS_DIR, 'reflect.js')}"`);
     if (!reflectOk) process.exit(1);
 
-    console.log('\n✨ [Pre-flight] ALL SYSTEMS NOMINAL. Implementation authorized.');
+    console.log(`\n✨ [Pre-flight] ALL SYSTEMS NOMINAL (${effectiveTier}). Implementation authorized.`);
     process.exit(0);
 }
 

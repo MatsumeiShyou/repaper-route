@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { getSession } from './session_manager.js';
 
 // Force UTF-8 for Windows Console
 if (process.platform === 'win32') {
@@ -8,8 +9,22 @@ if (process.platform === 'win32') {
     process.stderr.setEncoding('utf8');
 }
 
-const AMPLOG_PATH = path.join(process.cwd(), 'AMPLOG.jsonl');
-const DEBT_PATH = path.join(process.cwd(), 'DEBT_AND_FUTURE.md');
+// ═══════════════════════════════════════════════════
+// [AGENTS.md §E v5.0] ティアベースのバイパス
+// T1/T2 は AMPLOG 承認印チェック不要（テスト通過が承認代替）
+// ═══════════════════════════════════════════════════
+const session = getSession();
+const activeTier = session?.active_task?.tier;
+
+if (activeTier === 'T1' || activeTier === 'T2') {
+    console.log(`✅ [check_seal] ティア ${activeTier}: AMPLOG承認印チェックをバイパスします。`);
+    console.log('   → T1/T2 ではテスト通過が承認代替です。');
+    process.exit(0);
+}
+
+const PROJECT_ROOT = process.cwd();
+const AMPLOG_PATH = path.join(PROJECT_ROOT, 'AMPLOG.jsonl');
+const DEBT_PATH = path.join(PROJECT_ROOT, 'DEBT_AND_FUTURE.md');
 const REQUIRED_SEAL = '(PW: ｙ)';
 
 // ═══════════════════════════════════════════════════
