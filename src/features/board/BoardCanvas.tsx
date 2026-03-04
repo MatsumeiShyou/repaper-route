@@ -276,7 +276,7 @@ export default function BoardCanvas() {
                         <button
                             onClick={() => handleConfirmAll()}
                             disabled={isSyncing}
-                            className={`px - 3 h - 9 rounded - lg flex items - center gap - 2 text - sm font - bold transition - all mr - 2
+                            className={`px-3 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
                                 ${isSyncing ? 'bg-slate-100 text-slate-400' : 'bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-sm'}
 `}
                             title="全ての計画案件を確定済みにします"
@@ -301,7 +301,7 @@ export default function BoardCanvas() {
                         <button
                             onClick={handleApplyTemplate}
                             disabled={isExpanding}
-                            className={`px - 3 h - 9 rounded - lg flex items - center gap - 2 text - sm font - bold transition - all mr - 2
+                            className={`px-3 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
                                 ${isExpanding ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 shadow-sm'}
 `}
                             title="テンプレートを展開"
@@ -331,7 +331,7 @@ export default function BoardCanvas() {
                                 setIsSaveModalOpen(true);
                             }}
                             disabled={isSyncing}
-                            className={`px - 4 h - 9 rounded - lg flex items - center gap - 2 text - sm font - bold transition - all
+                            className={`px-4 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
                                 ${isSyncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
 `}
                         >
@@ -345,13 +345,13 @@ export default function BoardCanvas() {
 
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className={`relative w - 9 h - 9 rounded - lg transition - all flex items - center justify - center
+                        className={`relative w-9 h-9 rounded-lg transition-all flex items-center justify-center
                             ${isSidebarOpen ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}
 `}
                         title={isSidebarOpen ? 'リストを閉じる' : '未配車リスト'}
                     >
                         <Clipboard size={18} />
-                        <span className={`absolute - top - 1.5 - right - 1.5 min - w - [1.25rem] h - 5 text - white text - [10px] font - black flex items - center justify - center rounded - full ring - 2 ring - white shadow - md transition - all duration - 300
+                        <span className={`absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white shadow-md transition-all duration-300
                             ${pendingJobs.length > 0
                                 ? 'bg-gradient-to-br from-rose-500 to-pink-600'
                                 : 'bg-slate-300'
@@ -421,7 +421,7 @@ export default function BoardCanvas() {
 
                 <div
                     className={`
-                        absolute top - 0 right - 0 h - full w - 80 bg - white shadow - 2xl z - 40 transform transition - transform duration - 300 ease -in -out border - l border - gray - 200
+                        absolute top-0 right-0 h-full w-80 bg-white shadow-2xl z-40 transform transition-transform duration-300 ease-in-out border-l border-gray-200
                         ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
 `}
                     onClick={(e) => e.stopPropagation()}
@@ -441,7 +441,7 @@ export default function BoardCanvas() {
             {/* フッター */}
             <div className="h-8 px-4 bg-slate-900 border-t border-white/5 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-6 text-slate-500">
                 <span className="flex items-center gap-2">
-                    <div className={`w - 1.5 h - 1.5 rounded - full ${editMode ? 'bg-emerald-500' : 'bg-slate-700'} `} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${editMode ? 'bg-emerald-500' : 'bg-slate-700'} `} />
                     {editMode ? '編集モード（同期中）' : '閲覧モード（読み取り専用）'}
                 </span>
                 <span>Sanctuary Engine v3.0.0-ts</span>
