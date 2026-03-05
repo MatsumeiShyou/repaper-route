@@ -107,13 +107,13 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 export default function App() {
     return (
         <ErrorBoundary name="GlobalApp">
-            <InteractionProvider>
-                <AuthProvider>
+            <AuthProvider>
+                <InteractionProvider>
                     <NotificationProvider>
                         <AppContent />
                     </NotificationProvider>
-                </AuthProvider>
-            </InteractionProvider>
+                </InteractionProvider>
+            </AuthProvider>
         </ErrorBoundary>
     )
 }
