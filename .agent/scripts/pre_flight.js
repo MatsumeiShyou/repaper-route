@@ -294,12 +294,21 @@ function validateSmartDbSync(changedFiles, effectiveTier) {
             execSync('npx supabase db diff --local', { cwd: PROJECT_ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
             console.log('✅ [Smart DB Gate] Dry-Run 成功。SQL構成は正常です。');
         } catch (err) {
-            console.error('\n🚫───────────── [ DATABASE SYNC LOCK ] ─────────────🚫');
-            console.error('❌ DBマイグレーションの Dry-Run に失敗しました。');
-            if (err.stdout && err.stdout.trim()) console.error(err.stdout);
-            if (err.stderr && err.stderr.trim()) console.error(err.stderr);
-            console.error('🚫─────────────────────────────────────────────────────🚫\n');
-            process.exit(1);
+            const errOutput = `${err.stdout || ''} ${err.stderr || ''}`;
+            const isDockerUnavailable = /docker|daemon|container/i.test(errOutput);
+
+            if (isDockerUnavailable) {
+                // Docker未起動の場合は警告のみで続行（リモートDBへの適用済みを前提）
+                console.warn('\n⚠️  [Smart DB Gate] ローカルDocker環境が利用できないため、Dry-Run検証をスキップします。');
+                console.warn('   → リモートDBへのマイグレーション適用が完了していることを確認してください。');
+            } else {
+                console.error('\n🚫───────────── [ DATABASE SYNC LOCK ] ─────────────🚫');
+                console.error('❌ DBマイグレーションの Dry-Run に失敗しました。');
+                if (err.stdout && err.stdout.trim()) console.error(err.stdout);
+                if (err.stderr && err.stderr.trim()) console.error(err.stderr);
+                console.error('🚫─────────────────────────────────────────────────────🚫\n');
+                process.exit(1);
+            }
         }
     }
 }
