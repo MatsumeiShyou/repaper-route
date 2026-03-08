@@ -75,6 +75,36 @@ function cleanZombieProcesses() {
     }
 }
 
+const DENYLIST_PATH = join(process.cwd(), 'governance', 'preventions', 'denylist.json');
+const SHADOW_REGISTRY_PATH = join(process.cwd(), 'governance', 'preventions', 'shadow_registry.json');
+
+// --- [GaC v6.1] Shadow Registry Logic ---
+function updateShadowRegistry() {
+    if (!existsSync(SHADOW_REGISTRY_PATH)) return;
+
+    Log.info('  -> Updating Shadow Registry (Task Count-down)...');
+    try {
+        const shadowData = JSON.parse(readFileSync(SHADOW_REGISTRY_PATH, 'utf8'));
+        const newRegistry = [];
+
+        for (const entry of shadowData.registry) {
+            const remaining = entry.tasksRemaining - 1;
+            if (remaining > 0) {
+                Log.info(`     - Rule [${entry.ruleId}]: ${remaining} tasks remaining.`);
+                newRegistry.push({ ...entry, tasksRemaining: remaining });
+            } else {
+                Log.success(`     - Rule [${entry.ruleId}]: Shadow period EXPIRED. Promoted to HARD BLOCK.`);
+            }
+        }
+
+        shadowData.registry = newRegistry;
+        const fs = require('fs'); // fallback for internal script consistency
+        fs.writeFileSync(SHADOW_REGISTRY_PATH, JSON.stringify(shadowData, null, 4));
+    } catch (e) {
+        Log.warn(`Failed to update shadow registry: ${e.message}`);
+    }
+}
+
 // --- [Adjustment 1] Reflection Chain ---
 function executeReflection(tier) {
     Log.info('Starting Atomic Reflection Chain (Pull -> Commit -> Push)...');
@@ -113,6 +143,9 @@ function executeReflection(tier) {
         // 6. Final Push
         Log.info('  -> Pushing to origin...');
         runCommand(`git push origin ${BRANCH}`);
+
+        // 7. Update Shadow Registry (New in v6.1)
+        updateShadowRegistry();
 
         Log.success('Reflection Chain SEALED.');
     } catch (error) {
