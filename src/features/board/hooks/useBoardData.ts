@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase/client';
 import { useMasterData } from './useMasterData';
 import { useNotification } from '../../../contexts/NotificationContext';
+import { isPastDayJST } from '../utils/dateUtils';
 import {
-    BoardJob, BoardDriver, BoardSplit, BoardHistory, AppUser
+    BoardJob, BoardDriver, BoardSplit, BoardHistory, AppUser, ExceptionReasonMaster
 } from '../../../types';
 
 export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
@@ -24,9 +25,31 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     const [isSyncing, setIsSyncing] = useState(false);
 
     // Lock & Permission State
-    const [editMode, setEditMode] = useState(false);
-    const [lockedBy, setLockedBy] = useState<string | null>(null);
+    const [lockState, setLockState] = useState<{ userId: string | null, dateKey: string | null }>({ userId: null, dateKey: null });
     const [canEditBoard, setCanEditBoard] = useState(false);
+
+    // Exception Model State (Phase 12)
+    const [exceptionReasons, setExceptionReasons] = useState<ExceptionReasonMaster[]>([]);
+    const [confirmedSnapshot, setConfirmedSnapshot] = useState<any>(null);
+    const isPastDate = useMemo(() => isPastDayJST(new Date(currentDateKey)), [currentDateKey]);
+
+    const isTargetDateLockedByMe = useMemo(() => {
+        return lockState.userId === currentUserId && lockState.dateKey === currentDateKey;
+    }, [lockState, currentUserId, currentDateKey]);
+
+    const editMode = useMemo(() => {
+        return isTargetDateLockedByMe && !isPastDate && canEditBoard;
+    }, [isTargetDateLockedByMe, isPastDate, canEditBoard]);
+
+    const boardMode = useMemo(() => {
+        if (isPastDate) return 'VIEW_PAST' as const;
+        if (jobs.some(j => j.status === 'confirmed')) return 'CONFIRM' as const;
+        if (!editMode) return 'VIEW_LOCKED' as const;
+        return 'EDIT' as const;
+    }, [isPastDate, jobs, editMode]);
+
+    const lockedBy = lockState.userId;
+
 
     // History State
     const [history, setHistory] = useState<BoardHistory>({ past: [], future: [] });
@@ -98,7 +121,12 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                 setPendingJobs([]);
                 setDrivers(getDefaultDrivers());
                 setSplits([]);
+
+                // 【重要】日付変更時は一旦 Loaded を false にし、useEffect による
+                // 古い isPastDate での requestEditLock 暴走を防ぐ
+                setIsDataLoaded(false);
             }
+
             setIsOffline(false);
             try {
                 // 1. Fetch Board Data & Permissions in Parallel
@@ -119,20 +147,29 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                     .eq('id', currentUserId)
                     .maybeSingle() : Promise.resolve({ data: null, error: null });
 
-                const [routeRes, jobsRes, profileRes] = await Promise.all([
+                const fetchExceptionReasonsPromise = supabase
+                    .from('exception_reason_masters')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: true });
+
+                const [routeRes, jobsRes, profileRes, exceptionReasonsRes] = await Promise.all([
                     fetchRoutePromise,
                     fetchUnassignedJobsPromise,
-                    fetchProfilePromise
-                ]) as [any, any, any];
+                    fetchProfilePromise,
+                    fetchExceptionReasonsPromise
+                ]) as [any, any, any, any];
 
                 if (ignore) return;
 
-                if (routeRes.error || jobsRes.error || profileRes.error) {
-                    const err = routeRes.error || jobsRes.error || profileRes.error;
+                if (routeRes.error || jobsRes.error || profileRes.error || exceptionReasonsRes.error) {
+                    const err = routeRes.error || jobsRes.error || profileRes.error || exceptionReasonsRes.error;
                     console.error('[Board] Initialization fetch failed:', err);
                     // Throw to be caught by ErrorBoundary instead of silent whiteout
                     throw new Error(`Data fetch failed: ${err.message || 'Unknown error'}`);
                 }
+
+                if (exceptionReasonsRes.data) setExceptionReasons(exceptionReasonsRes.data);
 
                 const data = routeRes.data;
                 const unassignedJobs = jobsRes.data;
@@ -151,6 +188,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                         setDrivers(getDefaultDrivers());
                     }
                     setSplits((data.splits || []) as BoardSplit[]);
+                    setConfirmedSnapshot(data.confirmed_snapshot); // Load snapshot
 
                     // 【再発防止 / Single Source of Truth】
                     // routes.pending のスナップショットと、最新のマスター jobs テーブルをマージ
@@ -206,8 +244,9 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     // 3. Lock Management
     // ----------------------------------------
     const requestEditLock = useCallback(async () => {
-        if (!canEditBoard) {
-            showNotification("編集権限がありません（閲覧専用）", "error");
+        if (!canEditBoard || isPastDate) {
+            const reason = isPastDate ? "過去の配車は「閲覧のみ」です（不変原則）" : "編集権限がありません（閲覧専用）";
+            showNotification(reason, "error");
             return;
         }
 
@@ -248,22 +287,19 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                     throw upsertError;
                 }
 
-                setEditMode(true);
-                setLockedBy(null);
+                setLockState({ userId: currentUserId || null, dateKey: currentDateKey });
                 showNotification("編集モードで開きました", "success");
             } else {
                 console.log("[Board] Locked by another user:", route.edit_locked_by);
-                setEditMode(false);
-                setLockedBy(route.edit_locked_by);
+                setLockState({ userId: route.edit_locked_by, dateKey: currentDateKey });
                 showNotification(`${route.edit_locked_by}が編集中です`, "info");
             }
         } catch (e: any) {
             // 【再発防止 / 統治】RLS制限や401が発生した場合でも、管理者はローカル編集を続行可能にする
             const userContextRole = user?.role;
             if (userContextRole === 'admin') {
-                setEditMode(true);
                 setCanEditBoard(true);
-                setLockedBy(null);
+                setLockState({ userId: currentUserId || null, dateKey: currentDateKey });
                 showNotification("管理者モード（ローカル保存）で開きました", "success");
             } else {
                 const msg = e?.message?.includes('401') ? "認証エラーが発生しました。再ログインを推奨します。" : "同期中にエラーが発生しました。";
@@ -281,8 +317,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                 last_activity_at: null
             }).eq('date', currentDateKey).eq('edit_locked_by', currentUserId || '');
 
-            setEditMode(false);
-            setLockedBy(null);
+            setLockState({ userId: null, dateKey: currentDateKey });
             showNotification("編集権を解放しました", "success");
         } catch (e) {
             console.error("Release lock error:", e);
@@ -301,13 +336,20 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     }, [editMode, currentDateKey, currentUserId]);
 
     // Initial Lock Request (Reset per Date)
-    const [lastLockedDate, setLastLockedDate] = useState<string | null>(null);
     useEffect(() => {
-        if (isDataLoaded && lastLockedDate !== currentDateKey) {
-            setLastLockedDate(currentDateKey);
+        if (isDataLoaded && !isPastDate) {
             requestEditLock();
         }
-    }, [isDataLoaded, currentDateKey, lastLockedDate, requestEditLock]);
+    }, [isDataLoaded, currentDateKey, requestEditLock, isPastDate]);
+
+    // Cleanup when DateKey changes (Zombie Lock Prevention)
+    useEffect(() => {
+        return () => {
+            if (editMode) {
+                releaseEditLock();
+            }
+        };
+    }, [currentDateKey, editMode, releaseEditLock]);
 
     // ----------------------------------------
     // 4. Persistence & Real-time
@@ -396,18 +438,81 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         }
     };
 
+    // Phase 12: Handle Post-Confirmation Exception Logging
+    const handleExceptionChange = async (
+        jobId: string,
+        exceptionType: 'MOVE' | 'REASSIGN' | 'SWAP' | 'CANCEL' | 'ADD',
+        proposedState: any, // The new job object, mapped to SupabaseJob structure, or BoardJob if keeping logic local
+        reasonMasterId?: string,
+        reasonFreeText?: string,
+        promoteRequested?: boolean
+    ) => {
+        setIsSyncing(true);
+        try {
+            const targetJob = jobs.find(j => j.id === jobId);
+            if (!targetJob) throw new Error("Job not found");
+
+            const beforeState = { ...targetJob };
+
+            const boardException = {
+                route_date: currentDateKey,
+                job_id: jobId,
+                exception_type: exceptionType,
+                before_state: beforeState,
+                after_state: proposedState,
+                reason_master_id: reasonMasterId,
+                reason_free_text: reasonFreeText,
+                promote_requested: promoteRequested,
+                actor_id: currentUserId
+            };
+
+            // 1. Log the Exception
+            const { error: exceptionError } = await supabase
+                .from('board_exceptions')
+                .insert([boardException]);
+
+            if (exceptionError) throw exceptionError;
+
+            // 2. Optimistic UI update for the single job directly (since it bypasses typical edit rules)
+            setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...proposedState } : j));
+            recordHistory();
+
+            // 3. Persist actual state to handle real-time sync across clients (we trigger an RPC to keep SDR coherent)
+            const updatedJobs = jobs.map(j => j.id === jobId ? { ...j, ...proposedState } : j);
+            await supabase.rpc('rpc_execute_board_update', {
+                p_date: currentDateKey,
+                p_new_state: {
+                    jobs: updatedJobs,
+                    drivers,
+                    splits,
+                    pending: pendingJobs,
+                    edit_locked_by: currentUserId,
+                    edit_locked_at: new Date().toISOString()
+                },
+                p_decision_type: `EXCEPTION_${exceptionType}`,
+                p_reason: reasonFreeText || reasonMasterId || 'Exception Change'
+            } as any);
+
+            showNotification(`例外変更を記録しました`, "success");
+        } catch (e) {
+            console.error("Exception handling error:", e);
+            showNotification(`例外記録に失敗しました`, "error");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     // Real-time Subscription
     useEffect(() => {
         const channel = supabase.channel('board_changes')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'routes', filter: `date=eq.${currentDateKey}` }, (payload) => {
                 const newData = payload.new as any;
                 if (newData.edit_locked_by && newData.edit_locked_by !== currentUserId) {
-                    setEditMode(false);
-                    setLockedBy(newData.edit_locked_by);
+                    setLockState({ userId: newData.edit_locked_by, dateKey: currentDateKey });
                     showNotification(`${newData.edit_locked_by}が編集中です`, "info");
                 }
-                if (!newData.edit_locked_by && !editMode && lockedBy) {
-                    setLockedBy(null);
+                if (!newData.edit_locked_by && !editMode && lockState.userId) {
+                    setLockState({ userId: null, dateKey: currentDateKey });
                     showNotification("編集可能になりました", "success");
                 }
                 if (newData.updated_at && !editMode) {
@@ -425,9 +530,10 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-    }, [currentDateKey, currentUserId, editMode, lockedBy, showNotification]);
+    }, [currentDateKey, currentUserId, editMode, lockState.userId, showNotification]);
 
     const undo = useCallback(() => {
+        if (!editMode) return; // Prevent hallucinated state changes in view-only mode
         setHistory(prev => {
             if (prev.past.length === 0) return prev;
             const previous = prev.past[prev.past.length - 1];
@@ -444,6 +550,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     }, [jobs, pendingJobs, splits, drivers]);
 
     const redo = useCallback(() => {
+        if (!editMode) return; // Prevent hallucinated state changes in view-only mode
         setHistory(prev => {
             if (prev.future.length === 0) return prev;
             const next = prev.future[0];
@@ -518,9 +625,10 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         pendingJobs, setPendingJobs,
         splits, setSplits,
         isDataLoaded, isOffline, isSyncing,
-        editMode, lockedBy, canEditBoard,
+        editMode, lockedBy, canEditBoard, isPastDate, boardMode,
         showNotification,
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
+        handleExceptionChange, exceptionReasons, confirmedSnapshot,
         handleRegisterTemplate,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn

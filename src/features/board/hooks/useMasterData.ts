@@ -54,7 +54,7 @@ export const useMasterData = () => {
 
                 const newCache = {
                     drivers: processedDrivers,
-                    vehicles: (v.data || []) as MasterVehicle[],
+                    vehicles: (v.data || []) as unknown as MasterVehicle[],
                     customers: processedCustomers,
                     items: (i.data || []) as MasterItem[],
                     customerItemDefaults: (cid.data || []) as unknown as CustomerItemDefault[]

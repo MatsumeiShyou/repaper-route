@@ -81,6 +81,27 @@ export interface BoardHistoryEntry {
     drivers: BoardDriver[];
 }
 
+// Exception Recording Types (Phase 12: Data Governance)
+export interface ExceptionReasonMaster {
+    id: string;
+    label: string;
+    is_active: boolean;
+}
+
+export interface BoardException {
+    id: string;
+    route_date: string;
+    job_id: string;
+    exception_type: 'MOVE' | 'REASSIGN' | 'SWAP' | 'CANCEL' | 'ADD';
+    before_state: any;
+    after_state: any;
+    reason_master_id?: string;
+    reason_free_text?: string;
+    promote_requested?: boolean;
+    actor_id?: string;
+    created_at?: string;
+}
+
 export interface BoardHistory {
     past: BoardHistoryEntry[];
     future: BoardHistoryEntry[];

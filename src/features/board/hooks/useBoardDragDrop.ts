@@ -24,7 +24,8 @@ export const useBoardDragDrop = (
     setJobs: React.Dispatch<React.SetStateAction<BoardJob[]>>,
     _setSplits: React.Dispatch<React.SetStateAction<BoardSplit[]>>, // unused but kept for interface match
     recordHistory: () => void,
-    createProposal: ((state: any) => void) | null = null
+    createProposal: ((state: any) => void) | null = null,
+    onExceptionRequest?: (job: BoardJob, proposedState: any) => void // Phase 12: Exception Logging
 ) => {
 
     const [draggingJobId, setDraggingJobId] = useState<string | null>(null);
@@ -89,7 +90,8 @@ export const useBoardDragDrop = (
         if (e.button !== 0) return;
 
         // [GUARDRAIL] Lock check
-        if ((job as any).isLocked || (job as any).status === 'confirmed') {
+        // Phase 12: 'confirmed' status allows dragging to trigger Exception Logging modal. Only isLocked blocks.
+        if ((job as any).isLocked) {
             return;
         }
 
@@ -253,6 +255,12 @@ export const useBoardDragDrop = (
                             driverId: preview.driverId,
                             duration: preview.duration
                         };
+
+                        // Phase 12: Handle Confirmed Jobs Exception Request
+                        if (target.status === 'confirmed' && onExceptionRequest) {
+                            onExceptionRequest(target, proposedState);
+                            return; // Do NOT update state immediately
+                        }
 
                         if (createProposal) {
                             createProposal(proposedState);

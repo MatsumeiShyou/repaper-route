@@ -14,6 +14,13 @@
   - **事象**: DevContainer内でViteを正常起動しても、Windows側のブラウザから `localhost:5173` にアクセスすると無限ロード・ハングアップする。IPv6競合・ゾンビプロセスの排除後も発生（内部 `curl` は 200 OK）。
   - **対策・運用方針**: SADA-First Rule に則り、UI/ロジック検証はコンテナ内の自動テスト（Vitest/Playwright）で完結させる。最終レイアウト確認はCIデプロイ環境への `push` プレビューにて代替可能であるため、ローカルブラウザ確認へのこだわりは現状「技術的負債」としてスルーする。
 
+- [ ] **Imperative Sync Debt (F-SSOT Violations)**
+#type: impl_debt, #domain: architecture, #severity: medium
+#registered: 2026-03-08
+  - **事象**: `useMasterData.ts`, `InteractionContext.tsx`, `useBoardDragDrop.ts` 等において、他の状態から導出可能な値を `useState` と `useEffect` で同期させている（命令的同期）。
+  - **リスク**: 「状態の幻覚（Ghost Mode）」を再発させる潜在的火種。
+  - **対策**: 対象ドメインの改修時に、`useMemo` 等を用いた宣言的導出へリファクタリングを義務付ける。
+
 
 - [x] **Supabase 401 Whiteout (Anon Role RLS)**
 #type: fault_pattern, #domain: db, #severity: critical
@@ -78,6 +85,9 @@
 
 - [ ] **Strict Master-First: 簡易マスタ登録UI**
   - **概要**: 案件生成と同時に簡易的にマスタ登録を行うUIモジュール。
+
+- [ ] **過去データ例外修正フローのUI構築**
+  - **概要**: カレンダー機能により過去データが完全ロックされるようになったが、「業務上の例外としての事後修正」を行うための専用フロー（例外修正ボタンの設置と理由モーダル経由での限定的ロック解除）が未実装であるため対応する。
 
 - [x] **デバイス設定のクラウド同期（Supabase）**
   - **概要**: 現状 LocalStorage のみに保存されている `DeviceMode` を、ユーザープロファイルに保存し、複数端末で同期する。（実装完了・T3対応済）

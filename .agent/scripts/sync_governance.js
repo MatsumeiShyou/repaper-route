@@ -1,15 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import gov from './lib/gov_core.js';
+// session_manager is still used for the active_task logic 
+// which is broader than gov_core for now.
 import { getSession } from './session_manager.js';
 
-// Force UTF-8 for Windows Console
-if (process.platform === 'win32') {
-    process.stdout.setEncoding('utf8');
-    process.stderr.setEncoding('utf8');
-}
-
 const PROJECT_ROOT = process.cwd();
-const SESSION_PATH = path.join(PROJECT_ROOT, '.agent', 'session', 'active_task.json');
 const TASK_MD_PATH = path.join(PROJECT_ROOT, 'task.md');
 const AMPLOG_PATH = path.join(PROJECT_ROOT, 'AMPLOG.jsonl');
 
@@ -21,16 +17,18 @@ function generateTaskMarkdown(session) {
 
     let md = `# Task: ${session.active_task.name} [Sanctuary Sync]\n\n`;
     md += `## Status: ${session.active_task.status}\n`;
-    md += `## Last Updated: ${session.updated_at}\n\n`;
+    md += `## Last Updated: ${new Date().toISOString()}\n\n`;
 
     md += `## Intent / Context\n`;
-    session.intent_buffer.forEach(intent => {
+    (session.intent_buffer || []).forEach(intent => {
         md += `- ${intent}\n`;
     });
     md += `\n`;
 
     md += `## Execution Timeline (Auto-generated)\n`;
-    const phases = [
+
+    // GaC: task_templates.json からフェーズ名を取得
+    const phases = gov.getRule('task_templates', 'governance_refactoring') || [
         "Infrastructure & Session State",
         "pre_flight.js Redesign",
         "Automation Script (sync_governance.js)",
@@ -38,17 +36,15 @@ function generateTaskMarkdown(session) {
         "Transition & Verification"
     ];
 
-    const currentPhase = session.active_task.current_phase;
+    const currentPhase = session.active_task.current_phase || 1;
     const isCompleted = session.active_task.status === 'Completed';
 
     phases.forEach((name, i) => {
         const num = i + 1;
         const isActive = !isCompleted && num === currentPhase;
 
-        // Header
         md += `### Phase ${num}: ${name} ${isActive ? '[/]' : ''}\n`;
 
-        // Item
         let marker = '[ ]';
         if (num < currentPhase || isCompleted) {
             marker = '[x]';
@@ -63,37 +59,12 @@ function generateTaskMarkdown(session) {
     return md;
 }
 
-/**
- * LogSynchronizer: Session Intent を AMPLOG.jsonl に記録する
- */
-function syncAMPLOG(session) {
-    if (!session || session.intent_buffer.length === 0) return;
-
-    // 最新の Intent を取得 (重複記録防止は簡易版)
-    const lastIntent = session.intent_buffer[session.intent_buffer.length - 1];
-
-    const entry = {
-        date: new Date().toISOString(),
-        type: "GOVERNANCE_SYNC",
-        summary: `[Sanctuary Sync] ${lastIntent} (PW: ｙ)`,
-        detail: {
-            task: session.active_task.name,
-            phase: session.active_task.current_phase,
-            status: "Synchronized",
-            is_repair_lane: session.active_task.is_repair_lane
-        }
-    };
-
-    fs.appendFileSync(AMPLOG_PATH, JSON.stringify(entry) + '\n');
-    console.log(`✅ [Sync] AMPLOG.jsonl に記録しました: ${entry.summary}`);
-}
-
 function main() {
     console.log('🔄 Sanctuary Governance: Synchronizing physical evidence...');
 
     const session = getSession();
     if (!session) {
-        console.error('❌ Session state not found. Execute task_boundary/session initialization first.');
+        console.error('❌ Session state not found. Execute task_boundary first.');
         process.exit(1);
     }
 
@@ -101,9 +72,6 @@ function main() {
     const newMd = generateTaskMarkdown(session);
     fs.writeFileSync(TASK_MD_PATH, newMd, 'utf8');
     console.log('✅ [Sync] task.md をセッション状態と同期しました。');
-
-    // 2. Sync AMPLOG (Optional/Threshold-based but here for demo)
-    // syncAMPLOG(session);
 
     console.log('✨ [Sync] All evidence synchronized.');
 }

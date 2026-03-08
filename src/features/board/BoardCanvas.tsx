@@ -3,8 +3,7 @@ import { supabase } from '../../lib/supabase/client';
 import { TemplateManager } from '../logic/core/TemplateManager';
 
 import {
-    Save, Clipboard, RefreshCcw, Database, Undo2, Redo2, Layers, Loader2,
-    CheckCircle, AlertTriangle
+    RefreshCcw, AlertTriangle
 } from 'lucide-react';
 import { TemplateExpander } from '../logic/core/TemplateExpander';
 import { useBoardData } from './hooks/useBoardData';
@@ -26,6 +25,8 @@ import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
 import { SaveTemplateModal } from './components/SaveTemplateModal';
+import { BoardActionBar } from './components/BoardActionBar';
+import { getJSTNow, formatDateKey } from './utils/dateUtils';
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
@@ -38,8 +39,8 @@ export default function BoardCanvas() {
     } = useMasterData();
 
     // 1. Data & Logic Hook
-    const today = new Date();
-    const currentDateKey = today.toISOString().split('T')[0];
+    const [selectedDate, setSelectedDate] = useState<Date>(getJSTNow());
+    const currentDateKey = formatDateKey(selectedDate);
 
     const {
         masterDrivers,
@@ -48,7 +49,7 @@ export default function BoardCanvas() {
         pendingJobs, setPendingJobs,
         splits, setSplits,
         isDataLoaded, isSyncing,
-        editMode, canEditBoard,
+        editMode, canEditBoard, boardMode,
         handleSave, handleConfirmAll, handleRegisterTemplate, recordHistory, undo, redo,
         addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey);
@@ -151,7 +152,7 @@ export default function BoardCanvas() {
             if (fetchError) throw fetchError;
 
             // 2. 最適なテンプレートを選択 (nth_week 優先、なければ毎週)
-            const template = TemplateManager.findBestMatchingTemplate(templates || [], today);
+            const template = TemplateManager.findBestMatchingTemplate(templates || [], selectedDate);
 
             if (!template) {
                 alert("該当するテンプレートが見つかりませんでした。");
@@ -256,112 +257,24 @@ export default function BoardCanvas() {
                 }
             }}
         >
-            {/* Action Bar */}
-            <div className="h-14 flex justify-between items-center px-4 bg-white border-b border-gray-200 shadow-sm z-30">
-                <div className="flex items-center gap-4">
-                    {isSyncing && <Database size={16} className="text-amber-500 animate-pulse" />}
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-1">
-                        <button onClick={undo} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all" title="元に戻す">
-                            <Undo2 size={18} />
-                        </button>
-                        <button onClick={redo} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all" title="やり直し">
-                            <Redo2 size={18} />
-                        </button>
-                    </div>
-
-                    {editMode && (
-                        <button
-                            onClick={() => handleConfirmAll()}
-                            disabled={isSyncing}
-                            className={`px-3 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
-                                ${isSyncing ? 'bg-slate-100 text-slate-400' : 'bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-sm'}
-`}
-                            title="全ての計画案件を確定済みにします"
-                        >
-                            <CheckCircle size={16} />
-                            一括確定
-                        </button>
-                    )}
-
-                    {editMode && (
-                        <button
-                            onClick={() => setIsSaveTemplateModalOpen(true)}
-                            className="px-3 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 shadow-sm"
-                            title="現在の状態をテンプレートとして登録"
-                        >
-                            <Save size={16} />
-                            テンプレート登録
-                        </button>
-                    )}
-
-                    {editMode && (
-                        <button
-                            onClick={handleApplyTemplate}
-                            disabled={isExpanding}
-                            className={`px-3 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
-                                ${isExpanding ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 shadow-sm'}
-`}
-                            title="テンプレートを展開"
-                        >
-                            {isExpanding ? <Loader2 size={16} className="animate-spin" /> : <Layers size={16} />}
-                            {isExpanding ? '展開中...' : 'テンプレート適用'}
-                        </button>
-                    )}
-
-                    {editMode && (
-                        <button
-                            onClick={() => {
-                                if (!validation.isValid) {
-                                    const proceed = window.confirm(
-                                        `⚠️ ${validation.summary}\n\nこのまま保存しますか？`
-                                    );
-                                    if (!proceed) return;
-                                }
-
-                                if (validation.hasConfirmedChanges) {
-                                    const proceed = window.confirm(
-                                        "⚠️ 確定済みの案件が含まれています。変更理由の入力が必要です。\n続行しますか？"
-                                    );
-                                    if (!proceed) return;
-                                }
-
-                                setIsSaveModalOpen(true);
-                            }}
-                            disabled={isSyncing}
-                            className={`px-4 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
-                                ${isSyncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
-`}
-                        >
-                            <Save size={16} />
-                            {isSyncing ? '保存中...' : '保存'}
-                            {!validation.isValid && (
-                                <AlertTriangle size={14} className="text-amber-500 ml-1" />
-                            )}
-                        </button>
-                    )}
-
-                    <button
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className={`relative w-9 h-9 rounded-lg transition-all flex items-center justify-center
-                            ${isSidebarOpen ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}
-`}
-                        title={isSidebarOpen ? 'リストを閉じる' : '未配車リスト'}
-                    >
-                        <Clipboard size={18} />
-                        <span className={`absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white shadow-md transition-all duration-300
-                            ${pendingJobs.length > 0
-                                ? 'bg-gradient-to-br from-rose-500 to-pink-600'
-                                : 'bg-slate-300'
-                            }
-`}>
-                            {pendingJobs.length}
-                        </span>
-                    </button>
-                </div>
-            </div>
+            {/* Action Bar (Isolated Component for UI Stability) */}
+            <BoardActionBar
+                boardMode={boardMode}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                isSyncing={isSyncing}
+                undo={undo}
+                redo={redo}
+                handleConfirmAll={handleConfirmAll}
+                setIsSaveTemplateModalOpen={setIsSaveTemplateModalOpen}
+                handleApplyTemplate={handleApplyTemplate}
+                isExpanding={isExpanding}
+                validation={validation}
+                setIsSaveModalOpen={setIsSaveModalOpen}
+                isSidebarOpen={isSidebarOpen}
+                setIsSidebarOpen={setIsSidebarOpen}
+                pendingJobs={pendingJobs}
+            />
 
             <div className="flex flex-1 overflow-hidden relative">
                 <div className="flex-1 overflow-auto relative h-full bg-[#f8fafc]">
@@ -506,7 +419,7 @@ export default function BoardCanvas() {
                 isOpen={isSaveTemplateModalOpen}
                 onClose={() => setIsSaveTemplateModalOpen(false)}
                 onSave={handleRegisterTemplate}
-                currentDate={today}
+                currentDate={selectedDate}
             />
         </div>
     );

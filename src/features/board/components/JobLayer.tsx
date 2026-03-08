@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { AlertTriangle, Lock, Ban } from 'lucide-react';
 import { BoardJob, BoardDriver, BoardSplit } from '../../../types';
+import { Lock, AlertTriangle, Ban } from 'lucide-react';
 import { timeToMinutes } from '../logic/timeUtils';
 import { generateJobColorMap } from '../../core/config/theme';
 import { BOARD_CONSTANTS } from '../logic/constants';
@@ -50,7 +50,7 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                 <div
                     key={i}
                     className="absolute w-full border-t border-white/40 z-0"
-                    style={{ top: `${(i * 60 / 15) * SLOT_HEIGHT_PX}px` }}
+                    style={{ top: `${(i * 60 / 15) * SLOT_HEIGHT_PX} px` }}
                 />
             );
         }
@@ -71,19 +71,21 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                         {/* 100 Point Spec: Drop Target Shadow (Destination VIS) */}
                         {dropPreview && dropPreview.driverId === driver.id && (
                             <div
-                                className={`absolute w-[94%] left-[3%] rounded-md border-2 border-dashed pointer-events-none z-10 transition-all duration-150
+                                className={`absolute w - [94 %] left - [3 %] rounded - md border - 2 border - dashed pointer - events - none z - 10 transition - all duration - 150
                                     ${dropPreview.isPending ? 'opacity-30 bg-gray-400 border-gray-400' :
-                                        (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-500/10 border-red-400' : 'bg-emerald-500/10 border-emerald-400'}
-                                `}
+                                        (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-500/10 border-red-400' : 'bg-emerald-500/10 border-emerald-400'
+                                    }
+`}
                                 style={{
-                                    top: `${((timeToMinutes(dropPreview.startTime) - 360) / 15) * SLOT_HEIGHT_PX}px`,
-                                    height: `${(dropPreview.duration / 15) * SLOT_HEIGHT_PX}px`,
+                                    top: `${((timeToMinutes(dropPreview.startTime) - 360) / 15) * SLOT_HEIGHT_PX} px`,
+                                    height: `${(dropPreview.duration / 15) * SLOT_HEIGHT_PX} px`,
                                 }}
                             >
-                                <div className={`text-[10px] font-black px-1.5 py-0.5 rounded-sm m-1 inline-block
+                                <div className={`text - [10px] font - black px - 1.5 py - 0.5 rounded - sm m - 1 inline - block
                                     ${dropPreview.isPending ? 'bg-gray-200 text-gray-500' :
-                                        (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}
-                                `}>
+                                        (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                                    }
+`}>
                                     {dropPreview.startTime} {dropPreview.isPending ? '...' : (dropPreview.isOverlapError || dropPreview.isVehicleError) ? '×' : '➡'}
                                 </div>
                             </div>
@@ -98,34 +100,43 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                             const colorTheme = jobColorMap[job.id] || { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-700' };
 
                             // ガードレール状態の判別
-                            const isLocked = (job as any).isLocked || (job as any).status === 'confirmed';
+                            const isLocked = (job as any).isLocked;
+                            const isConfirmed = job.status === 'confirmed';
                             const hasWarning = (job as any).hasWarning;
                             const hasError = (job as any).hasError;
 
                             let borderClass = colorTheme.border;
-                            // Z-Index: 状態に応じた階層を決定（style属性で適用）
                             let zIndex: number = isLocked ? Z_INDEX.LOCK : Z_INDEX.DEFAULT;
+
                             if (isSelected) {
                                 borderClass = 'border-blue-500 ring-2 ring-blue-500';
                                 zIndex = Z_INDEX.SELECTED;
+                            } else if (isConfirmed && !isDragging) {
+                                borderClass = 'border-amber-400 border-2 border-dashed shadow-[0_0_8px_rgba(251,191,36,0.3)]';
+                            } else if (hasWarning) {
+                                borderClass = 'border-yellow-400 border-2';
+                            } else if (hasError) {
+                                borderClass = 'border-red-500 border-2';
+                            } else if (isLocked) {
+                                borderClass = 'border-gray-400';
                             }
-                            if (hasWarning) borderClass = 'border-yellow-400 border-2';
-                            if (hasError) borderClass = 'border-red-500 border-2';
-                            if (isLocked) borderClass = 'border-gray-400 bg-gray-200';
+
+                            // 確定済み案件は通常色を保持しつつ視覚的アフォーダンス（黄色破線）を持たせる
+                            const bgClass = isLocked ? 'bg-gray-200 text-gray-500 italic' :
+                                hasError ? 'bg-red-50 text-red-900' : colorTheme.bg;
 
                             return (
                                 <div
                                     key={job.id}
                                     data-job-id={job.id}
-                                    className={`absolute w-[94%] left-[3%] rounded-md border text-xs font-bold leading-tight shadow-sm overflow-hidden pointer-events-auto transition-[filter,transform] duration-75 flex flex-col justify-center
-                                        ${isLocked ? 'bg-gray-200 text-gray-500 italic' :
-                                            hasError ? 'bg-red-50 text-red-900' : colorTheme.bg} 
-                                        ${borderClass} ${hasError ? 'border-red-500' : colorTheme.border} ${hasError ? '' : colorTheme.text}
+                                    className={`absolute w - [94 %] left - [3 %] rounded - md border text - xs font - bold leading - tight shadow - sm overflow - hidden pointer - events - auto transition - [filter, transform] duration - 75 flex flex - col justify - center
+                                        ${bgClass} 
+                                        ${borderClass} ${hasError ? '' : colorTheme.text}
                                         ${isDragging ? 'opacity-40 shadow-none ring-0' : 'hover:brightness-95'}
-                                    `}
+`}
                                     style={{
-                                        top: `${topPx}px`,
-                                        height: `${heightPx}px`,
+                                        top: `${topPx} px`,
+                                        height: `${heightPx} px`,
                                         zIndex: zIndex,
                                     }}
                                     onClick={(e) => {
@@ -133,6 +144,7 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                         onJobClick(job.id, e);
                                     }}
                                     onContextMenu={(e) => {
+                                        e.stopPropagation();
                                         e.preventDefault();
                                         onAuditClick(job.id);
                                     }}
@@ -173,6 +185,11 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                             <span className="truncate">{job.title}</span>
                                             <div className="flex shrink-0 gap-0.5">
                                                 {isLocked && <Lock size={10} className="text-gray-400" />}
+                                                {isConfirmed && !isLocked && (
+                                                    <span title="確定済み（変更は例外として記録）" className="flex items-center">
+                                                        <AlertTriangle size={10} className="text-amber-500" />
+                                                    </span>
+                                                )}
                                                 {hasWarning && <AlertTriangle size={10} className="text-yellow-600" />}
                                                 {hasError && <Ban size={10} className="text-red-600" />}
                                             </div>
