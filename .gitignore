@@ -135,3 +135,4 @@ GOVERNANCE_REPORT.md
 
 # Antigravity Session State
 .agent/session/active_task.json
+.agent/session/
