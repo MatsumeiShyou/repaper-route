@@ -11,6 +11,10 @@ import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { getSession } from './session_manager.js';
+import { readJsonStrict } from './lib/gov_loader.js';
+
+// §N Logic Binding: 'COMPLIANCE_LIMITS'
+// §N Logic Binding: 'HANDOFF_AUDIT'
 
 // Force UTF-8 for Windows Console
 if (process.platform === 'win32') {
@@ -98,40 +102,48 @@ function getActiveTier() {
 
 /**
  * [AGENTS.md §E / 代替案Ω] git diff 静的解析によるティア自動検出
- * 自己申告ティアとの乖離を検出し警告を出す。
+ * v6.5.1: `governance/risk_matrix.json` から動的にルールを読み込む
+ */
+/**
+ * [AGENTS.md §E / 代替案Ω] git diff 静的解析によるティア自動検出
+ * v6.7: §N (Zero-Fallback) 準拠
  */
 function detectTierFromDiff(changedFiles) {
-    if (changedFiles.length === 0) return 'T1';
+    if (changedFiles.length === 0) {
+        console.log('[TRACE] Logic [TIER_DETECT] No files changed. Defaulting to T1.');
+        return 'T1';
+    }
 
     const normalized = changedFiles.map(f => f.replace(/\\/g, '/'));
+    const matrixPath = path.join(PROJECT_ROOT, 'governance', 'risk_matrix.json');
 
-    // T3 シグナル: DB構造変更、セキュリティ関連、統治構造変更
-    const t3Signals = normalized.some(f =>
-        f.includes('supabase/migrations/') ||
-        f.includes('auth') ||
-        f.includes('security') ||
-        f === 'AGENTS.md' ||
-        f.includes('.agent/scripts/') ||
-        f.includes('.agent/gate/')
-    );
-    if (t3Signals) return 'T3';
+    // §N: Zero-Fallback. 読み込み失敗時は Hard Crash される。
+    const { rules, default_tier } = readJsonStrict(matrixPath, 'TIER_DEFINITION', 'Restore governance/risk_matrix.json');
 
-    // T1 シグナル: ドキュメント、設定、CSS、コメントのみ
-    const isT1 = normalized.every(f =>
-        f.endsWith('.md') ||
-        f.endsWith('.json') ||
-        f.endsWith('.css') ||
-        f.endsWith('.log') ||
-        f.endsWith('.txt') ||
-        f.startsWith('.vscode') ||
-        f.startsWith('.agent/config/') ||
-        f.startsWith('.agent/workflows/') ||
-        f.startsWith('docs/')
-    );
-    if (isT1) return 'T1';
+    // 高リスク（T3）から順に評価
+    const sortedRules = rules.sort((a, b) => (b.tier > a.tier ? 1 : -1));
+    for (const rule of sortedRules) {
+        const matchingFile = normalized.find(file => {
+            if (rule.condition.includes('path.includes')) {
+                const pattern = rule.condition.match(/'([^']+)'/)[1];
+                return file.includes(pattern);
+            }
+            if (rule.condition.includes('path.endsWith')) {
+                const pattern = rule.condition.match(/'([^']+)'/)[1];
+                return file.endsWith(pattern);
+            }
+            return false;
+        });
 
-    // それ以外は T2
-    return 'T2';
+        if (matchingFile) {
+            console.log(`[TRACE] Logic [TIER_MATCH] File [${matchingFile}] triggered Tier [${rule.tier}] via rule [${rule.id || 'anonymous'}]`);
+            return rule.tier;
+        }
+    }
+
+    const tier = default_tier || 'T1';
+    console.log(`[TRACE] Logic [TIER_DEFAULT] No high-risk rules matched. Assigned: ${tier}`);
+    return tier;
 }
 
 /**
@@ -227,7 +239,7 @@ function validateTaskActive(effectiveTier) {
     console.error('\n🚫───────────── [ TASK EXECUTION LOCK ] ─────────────🚫');
     console.error('❌ 進行中のタスク（Intent または [/]）が見つかりません。');
     console.error('   → AGENTS.md §E/I: 実装前に必ず Task Boundary または task.md を更新せよ。');
-    console.error('   → [根本解決]: task_boundary ツールを実行して意志（Intent）を宣言してください。');
+    console.error('   → [FIX_REQUIRED]: task_boundary ツールを実行して意思（Intent）を宣言してください。');
     console.error('🚫──────────────────────────────────────────────────🚫\n');
     process.exit(1);
 }
@@ -549,9 +561,103 @@ function validateCAVR(changedFiles, effectiveTier) {
 // メイン実行
 // ═══════════════════════════════════════════════════
 
+/**
+ * [CAP v2.2] Execution Handoff Validation
+ */
+function validateHandoff(effectiveTier) {
+    if (effectiveTier !== 'T3') return;
+
+    console.log('\n🤝 [Handoff Gate] 執行前のハンドオフ（design_ref）を検証中...');
+
+    const session = getSession();
+    const AMPLOG_PATH = path.join(PROJECT_ROOT, 'AMPLOG.jsonl');
+
+    // 1. Session check
+    if (session?.active_task?.design_ref) {
+        console.log(`✅ [Handoff Gate] セッション上で承認済み設計を確認: ${session.active_task.design_ref}`);
+        return;
+    }
+
+    // 2. AMPLOG check (v2.2 standard: last 10 entries)
+    if (fs.existsSync(AMPLOG_PATH)) {
+        try {
+            console.log(`[TRACE] Logic [HANDOFF_AUDIT] Checking data from ${path.basename(AMPLOG_PATH)}`);
+            const content = fs.readFileSync(AMPLOG_PATH, 'utf8');
+            const lines = content.trim().split('\n').filter(l => l.trim()).reverse().slice(0, 10);
+
+            for (const line of lines) {
+                const entry = JSON.parse(line);
+                // "design_ref" または "SDR-ID" または説明文中の特定の記録を探す
+                const ref = entry.design_ref || entry.detail?.design_ref ||
+                    (entry.summary && entry.summary.match(/design_ref:\s*([^\s,]+)/)?.[1]);
+
+                if (ref) {
+                    console.log(`✅ [Handoff Gate] AMPLOG より承認済み設計を確認: ${ref}`);
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn(`⚠️  [Handoff Gate] AMPLOG 解析中にエラーが発生しました: ${e.message}`);
+        }
+    }
+
+    console.error('\n🚫───────────── [ HANDOFF REQUIRED ] ─────────────🚫');
+    console.error('❌ 執行フェーズ（Executor）に必要な設計指示（design_ref）が見つかりません。');
+    console.error('   → CAP v2.2: Executor は承認済みの設計指示がない限り、動作を拒絶しなければなりません。');
+    console.error('   → [解決案]: Analyzer プロセスで設計を完了し、AMPLOG に `design_ref` を記録してください。');
+    console.error('🚫──────────────────────────────────────────────🚫\n');
+    process.exit(1);
+}
+
+/**
+ * [GaC v6.5.1] Inventory Sentinel (Self-Audit Engine)
+ */
+function validateInventory() {
+    console.log('\n👁️  [Sentinel] ガバナンス・インベントリの整合性を監査中...');
+    const inventoryPath = path.join(PROJECT_ROOT, 'governance', 'inventory.json');
+
+    // §N: Zero-Fallback
+    const { registry } = readJsonStrict(inventoryPath, 'INVENTORY_REGISTRY', 'Recover governance/inventory.json');
+    const physicalScripts = fs.readdirSync(SCRIPTS_DIR).filter(f => f.endsWith('.js') || f.endsWith('.cjs'));
+
+    // 1. Missing File Check
+    for (const item of registry) {
+        const fullPath = path.join(PROJECT_ROOT, item.path);
+        if (!fs.existsSync(fullPath)) {
+            console.error(`\n❌ [Sentinel] 定義済み資産の欠落: ${item.path}`);
+            console.error(`   → [FIX_REQUIRED]: 資産 ID [${item.id}] を復元するか、インベントリを更新してください。`);
+            process.exit(1);
+        }
+        if (!item.link_to_agents_md) {
+            console.error(`\n❌ [Sentinel] 憲法追跡性の欠落: ${item.path}`);
+            console.error(`   → [FIX_REQUIRED]: 資産 ID [${item.id}] に憲法条項 (§) を紐付けてください。`);
+            process.exit(1);
+        }
+    }
+
+    // 2. Unknown File Check (Ghost Logic Detection)
+    const inventoryPaths = new Set(registry.map(item => path.normalize(item.path)));
+    for (const script of physicalScripts) {
+        const relPath = path.join('.agent', 'scripts', script);
+        if (!inventoryPaths.has(path.normalize(relPath))) {
+            console.warn(`\n⚠️  [Sentinel] 未登録の不純物を検知: ${relPath}`);
+            console.warn('   → [FIX_REQUIRED]: 不要なスクリプトを削除するか、インベントリに正当性を登録してください。');
+            // T3 の場合はハードブロック
+            if (getActiveTier() === 'T3') {
+                console.error('🚫 [Sentinel Block] T3 ティアにおいて正体不明の不純物混入は許されません。');
+                process.exit(1);
+            }
+        }
+    }
+    console.log('✅ [Sentinel] インベントリ整合性 OK。物理資産は正典と一致しています。');
+}
+
 async function main() {
-    console.log('🛡️  Antigravity Dynamic Governance: Pre-flight Check (v5.0)');
+    console.log('🛡️  Antigravity Dynamic Governance: Pre-flight Check (v6.7 Ghost-Logic-Containment)');
     console.log('============================================================');
+
+    // 0. Sentinel 自律監査 [v6.5.1 Activation]
+    validateInventory();
 
     const charsetOk = runCheck('Encoding Sentinel', `node "${path.join(SCRIPTS_DIR, 'guardian_charset.js')}"`);
     if (!charsetOk) process.exit(1);
@@ -582,6 +688,12 @@ async function main() {
     const declaredTier = getActiveTier();
     const effectiveTier = validateTierConsistency(declaredTier, allChangedFiles);
     console.log(`\n🎯 [ティア] 適用ティア: ${effectiveTier}`);
+
+    // 1.2 ハンドオフ検証 [v6.4 CAP-Sync]
+    validateHandoff(effectiveTier);
+
+    // 1.3 負債検証 [v6.5.1 Activation]
+    validateDebt(effectiveTier);
 
     // 1.5 零容認ゲート (Zero-Tolerance Gate) [v5.5]
     if (effectiveTier === 'T3') {
@@ -638,6 +750,18 @@ async function main() {
 
     const reflectOk = runCheck('Compliance Audit', `node "${path.join(SCRIPTS_DIR, 'reflect.js')}"`);
     if (!reflectOk) process.exit(1);
+
+    // 5. [CAP v3.0] Thought Audit (T3 Only Reinforced)
+    if (effectiveTier === 'T3') {
+        process.stdout.write('🔍 [Pre-flight] Validating Cognitive Governance (§P)... ');
+        const thoughtOk = runCheck('Thought Audit (Sentinel 3.0)', `node "${path.join(SCRIPTS_DIR, 'thought_gate.js')}" --audit-session`);
+
+        if (!thoughtOk) {
+            console.error('\n❌ [CRITICAL] 統治監査に失敗しました。指示に対して [CAP_TRACE] による思考が記録されていないか、古い内容です。');
+            process.exit(1);
+        }
+        console.log('PASS.');
+    }
 
     console.log(`\n✨ [Pre-flight] ALL SYSTEMS NOMINAL (${effectiveTier}). Implementation authorized.`);
     process.exit(0);

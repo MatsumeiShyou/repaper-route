@@ -7,5 +7,40 @@
             "walkthrough.md"
         ],
         "approval_token": "(PW: ｙ)"
+    },
+    "bypass_rules": {
+        "extensions": [
+            ".md",
+            ".json",
+            ".vscode",
+            ".agent/"
+        ],
+        "files": [
+            "AMPLOG.md"
+        ]
+    },
+    "governance_paths": [
+        "AGENTS.md",
+        "governance/",
+        ".agent/scripts/"
+    ],
+    "design_intent": {
+        "keywords": [
+            "計画",
+            "設計",
+            "再考",
+            "検討",
+            "構築",
+            "修正案",
+            "plan",
+            "design",
+            "refactor",
+            "architect"
+        ],
+        "artifacts": [
+            "governance/ADR",
+            "implementation_plan.md",
+            "task.md"
+        ]
     }
 }

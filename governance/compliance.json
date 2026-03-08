@@ -23,5 +23,19 @@
         "max_files_per_scan": 20,
         "max_tokens_per_research": 100000,
         "pre_flight_block_threshold": 30
+    },
+    "audit_rules": {
+        "days_to_check": 7,
+        "protected_patterns": [
+            ".env",
+            "node_modules",
+            ".local"
+        ],
+        "temporary_file_patterns": [
+            ".bak",
+            "debug_",
+            ".diag_test",
+            "_output.*\\.txt$"
+        ]
     }
 }

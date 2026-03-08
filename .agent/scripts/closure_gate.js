@@ -10,6 +10,7 @@ import { existsSync, readdirSync, statSync, readFileSync, writeFileSync } from '
 import { join } from 'path';
 import crypto from 'crypto';
 import { incrementRetryCount, resetRetryCount } from './session_manager.js';
+import { readJsonStrict } from './lib/gov_loader.js';
 
 // --- Configuration & Constants ---
 const REFLECT_FLAG = process.argv.includes('--reflect');
@@ -44,10 +45,8 @@ function registerExitTracker() {
 function getActiveTier() {
     const sessionPath = join(process.cwd(), '.agent', 'session', 'active_task.json');
     try {
-        if (existsSync(sessionPath)) {
-            const session = JSON.parse(readFileSync(sessionPath, 'utf8'));
-            return session?.active_task?.tier || null;
-        }
+        const session = readJsonStrict(sessionPath, 'SESSION_DATA');
+        return session?.active_task?.tier || null;
     } catch (e) { /* ignore */ }
     return null;
 }
@@ -218,7 +217,7 @@ function verifyEvidenceChain() {
     const sessionPath = join(process.cwd(), '.agent', 'session', 'active_task.json');
     if (!existsSync(sessionPath)) throw new Error('C-E-V ERROR: Session file missing.');
 
-    const session = JSON.parse(readFileSync(sessionPath, 'utf8'));
+    const session = readJsonStrict(sessionPath, 'EVIDENCE_AUDIT');
     const { negative_proof, positive_proof, evidence_hash } = session.active_task || {};
 
     if (!negative_proof) {
@@ -250,8 +249,10 @@ function detectGovChanges() {
         const diffUnpushed = runCommand(`git diff origin/main..HEAD --name-only`, true);
         const combinedDiff = (diffCached + '\n' + diffUnpushed).replace(/\\/g, '/');
 
-        const govPaths = ['AGENTS.md', 'governance/', '.agent/scripts/'];
-        return govPaths.some(path => combinedDiff.includes(path));
+        const condPath = join(process.cwd(), 'governance', 'closure_conditions.json');
+        const { governance_paths } = readJsonStrict(condPath, 'GOV_CHANGE_DETECTION');
+
+        return governance_paths.some(p => combinedDiff.includes(p));
     } catch (e) {
         return false;
     }
@@ -279,10 +280,8 @@ async function main() {
     const sessionPath = join(process.cwd(), '.agent', 'session', 'active_task.json');
     let retryCount = 0;
     try {
-        if (existsSync(sessionPath)) {
-            const session = JSON.parse(readFileSync(sessionPath, 'utf8'));
-            retryCount = session?.active_task?.t2_retry_count || 0;
-        }
+        const session = readJsonStrict(sessionPath, 'RETRY_CHECK');
+        retryCount = session?.active_task?.t2_retry_count || 0;
     } catch (e) { /* ignore */ }
 
     if (retryCount >= 2) {
@@ -306,8 +305,9 @@ async function main() {
             } catch (e) { /* ignore */ }
 
             if (!govChanged) {
-                Log.error('🚫 [RECURRENCE BLOCKER] 2回以上のリトライが発生していますが、再発防止策（ADR/物理ゲート）の追加が確認できません。');
-                Log.error('   反映を中断しました。再発防止プロトコルに従い、分析と恒久的な対策を実装してください。');
+                console.error('\n🚫 [RECURRENCE BLOCKER] 2回以上のリトライが発生していますが、再発防止策（ADR/物理ゲート）の追加が確認できません。');
+                console.error('   反映を中断しました。再発防止プロトコルに従い、分析と恒久的な対策を実装してください。');
+                console.error('   → [FIX_REQUIRED]: 憲法 §E 修正または ADR の追加を行ってください。');
                 process.exit(1);
             }
         }
@@ -335,16 +335,17 @@ async function main() {
         let bypassEligible = false;
 
         if (changedFiles.length > 0) {
+            const condPath = join(process.cwd(), 'governance', 'closure_conditions.json');
+            const { bypass_rules } = readJsonStrict(condPath, 'EPISTEMIC_BYPASS');
+
             const isBypassable = (file) => {
-                return file.endsWith('.md') ||
-                    file.endsWith('.json') ||
-                    file.endsWith('AMPLOG.md') ||
-                    file.startsWith('.vscode') ||
-                    file.startsWith('.agent/');
+                return bypass_rules.extensions.some(ext => file.endsWith(ext)) ||
+                    bypass_rules.files.some(f => file === f);
             };
             bypassEligible = changedFiles.every(isBypassable);
 
             if (bypassEligible) {
+                console.log(`[TRACE] Logic [BYPASS_ACT] Bypass triggered for: ${changedFiles.slice(0, 3).join(', ')}...`);
                 Log.success('Epistemic Bypass Activated: Only documents/configs changed. Skipping heavy tests.');
             } else {
                 Log.info(`Code changes detected (${changedFiles.length} files). Full Verification Required.`);
@@ -414,8 +415,9 @@ async function main() {
             }
 
             // --- [GaC v6.2] Design Integrity Check (Locker) ---
-            Log.info('Checking Design Integrity (§C-4 Protocol)...');
-            const designKeywords = ['計画', '設計', '再考', '検討', '構築', '修正案', 'plan', 'design', 'refactor', 'architect'];
+            const condPath = join(process.cwd(), 'governance', 'closure_conditions.json');
+            const { design_intent } = readJsonStrict(condPath, 'DESIGN_KEYWORD_LOOKUP');
+            const designKeywords = design_intent.keywords;
 
             // 直近のコミットメッセージまたは指示に関連するキーワードを確認
             const lastCommitMsg = runCommand('git log -1 --pretty=%B', true).toLowerCase();
@@ -423,9 +425,11 @@ async function main() {
 
             if (hasDesignIntent) {
                 Log.info('  -> Design Intent detected. Verifying artifact traces...');
-                const designArtifacts = ['governance/ADR', 'implementation_plan.md', 'task.md'];
+                const condPath = join(process.cwd(), 'governance', 'closure_conditions.json');
+                const { design_intent } = readJsonStrict(condPath, 'DESIGN_INTEGRITY');
+
                 const hasArtifactChange = changedFiles.some(file =>
-                    designArtifacts.some(art => file.includes(art.replace(/\\/g, '/')))
+                    design_intent.artifacts.some(art => file.includes(art.replace(/\\/g, '/')))
                 );
 
                 if (!hasArtifactChange) {

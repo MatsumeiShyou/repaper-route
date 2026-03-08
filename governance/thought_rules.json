@@ -1,0 +1,110 @@
+{
+    "version": "1.0",
+    "protocol": "CAP v3.0 (Cognitive Amplification Process)",
+    "reasoning_budget": {
+        "min_decomposition_count": 5,
+        "max_decomposition_count": 10,
+        "min_hypotheses_count": 2,
+        "max_hypotheses_count": 3,
+        "min_risk_audits": 2,
+        "max_risk_audits": 3,
+        "redesign_limit": 1
+    },
+    "thinking_steps": [
+        {
+            "id": 1,
+            "name": "要件要約",
+            "mode": "整理者"
+        },
+        {
+            "id": 2,
+            "name": "前提抽出",
+            "mode": "整理者"
+        },
+        {
+            "id": 3,
+            "name": "不確実性評価",
+            "mode": "整理者"
+        },
+        {
+            "id": 4,
+            "name": "問題分解",
+            "mode": "設計者"
+        },
+        {
+            "id": 5,
+            "name": "仮説生成",
+            "mode": "設計者",
+            "requirements": [
+                "Evidence Mapping"
+            ]
+        },
+        {
+            "id": 6,
+            "name": "技術検証",
+            "mode": "実装思考"
+        },
+        {
+            "id": 7,
+            "name": "内部監査",
+            "mode": "監査者"
+        },
+        {
+            "id": 8,
+            "name": "推奨決定",
+            "mode": "監査者"
+        },
+        {
+            "id": 9,
+            "name": "検査ログ",
+            "mode": "監査者"
+        },
+        {
+            "id": 10,
+            "name": "自己レビュー",
+            "mode": "監査者"
+        }
+    ],
+    "tiered_depth": {
+        "T1": {
+            "required_steps": [
+                1,
+                8
+            ],
+            "description": "L0/L1 Only"
+        },
+        "T2": {
+            "required_steps": [
+                1,
+                2,
+                4,
+                5,
+                8
+            ],
+            "description": "Standard Analysis"
+        },
+        "T3": {
+            "required_steps": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ],
+            "description": "Full Cognitive Governance"
+        }
+    },
+    "audit_thresholds": {
+        "min_edit_distance_ratio": 0.3,
+        "max_token_buffer_ratio": 0.8
+    },
+    "bypass_rules": {
+        "emergency_repair": true,
+        "talk_only": true
+    }
+}

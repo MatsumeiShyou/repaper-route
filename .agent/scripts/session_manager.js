@@ -11,6 +11,10 @@ export const getSession = () => {
 
 export const updateSession = (data) => {
     const current = getSession() || {};
+    // current_request_id が未定義の場合は null で初期化
+    if (current.active_task && current.active_task.current_request_id === undefined) {
+        current.active_task.current_request_id = null;
+    }
     const updated = { ...current, ...data, updated_at: new Date().toISOString() };
     fs.writeFileSync(SESSION_PATH, JSON.stringify(updated, null, 4));
 };
@@ -102,4 +106,91 @@ export const lockEvidence = (type, content) => {
     } catch (e) {
         console.error(`FAILED TO APPEND AUDIT LOG: ${e.message}`);
     }
+};
+
+/**
+ * CAP v3.0: 思考ログを更新する
+ * @param {number} stepId 
+ * @param {string} mode 
+ * @param {string} content 
+ */
+export const updateThinkingLog = (stepId, mode, content) => {
+    const session = getSession();
+    if (!session || !session.active_task) return;
+
+    const currentLog = session.active_task.thinking_log || [];
+    const requestId = session.active_task.current_request_id || null;
+
+    const newEntry = {
+        step_id: stepId,
+        mode: mode,
+        content: content, // 監査のためにテキスト自体を保持
+        content_hash: crypto.createHash('sha256').update(content).digest('hex'),
+        request_id: requestId, // 指示 ID とのバインド
+        timestamp: new Date().toISOString()
+    };
+
+    updateSession({
+        active_task: {
+            ...session.active_task,
+            thinking_log: [...currentLog, newEntry]
+        }
+    });
+};
+
+/**
+ * CAP v3.0: 再設計（思考やり直し）回数をインクリメントする
+ */
+export const incrementRedesignCount = () => {
+    const session = getSession();
+    if (!session || !session.active_task) return;
+
+    const currentCount = session.active_task.redesign_count || 0;
+
+    updateSession({
+        active_task: {
+            ...session.active_task,
+            redesign_count: currentCount + 1
+        }
+    });
+
+    // AMPLOG への記録
+    const ampLogPath = path.join(process.cwd(), 'AMPLOG.jsonl');
+    const logEntry = JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'WARN',
+        event: 'REDESIGN_INCREMENT',
+        count: currentCount + 1,
+        task: session.active_task.name
+    }) + '\n';
+
+    try { fs.appendFileSync(ampLogPath, logEntry, 'utf8'); } catch (e) { }
+};
+
+/**
+ * CAP v3.0: 指示IDの変更を検知し、古い思考ログをアーカイブ（クリア）する
+ * @param {string} newRequestId 
+ */
+export const archiveOldThoughts = (newRequestId) => {
+    const session = getSession();
+    if (!session || !session.active_task) return;
+
+    const currentRequestId = session.active_task.current_request_id;
+    if (currentRequestId !== newRequestId) {
+        console.log(`[session_manager] Request-ID change detected: ${currentRequestId} -> ${newRequestId}. Archiving old thoughts.`);
+        updateSession({
+            active_task: {
+                ...session.active_task,
+                current_request_id: newRequestId,
+                thinking_log: [] // ログをクリアして鮮度を保証
+            }
+        });
+    }
+};
+
+/**
+ * CAP v3.0: セッションの最終更新日時のみを更新する
+ */
+export const touchSession = () => {
+    updateSession({});
 };

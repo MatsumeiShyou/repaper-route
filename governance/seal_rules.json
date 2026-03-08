@@ -1,0 +1,11 @@
+{
+    "SEAL_PATTERNS": [
+        "(PW: ｙ)",
+        "\uff59",
+        "ｙ"
+    ],
+    "DEBT_CRITICAL_LABELS": [
+        "#severity: critical",
+        "#severity: high"
+    ]
+}

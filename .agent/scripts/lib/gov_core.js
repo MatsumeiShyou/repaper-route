@@ -1,15 +1,17 @@
 /**
  * TBNY DXOS Governance Core Library (EAL) v1.2 (ESM)
  * Environment Abstraction Layer for OS/Shell dependency management.
+ * Logic Key: 'RULE_LOAD'
  */
 
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import { readJsonStrict } from './gov_loader.js';
 
-// TBNY DXOS Seal Token: Full-width y (ｙ) -> \uff59
-const SEAL_TOKEN = '\uff59';
-const REQUIRED_SEAL = `(PW: ${SEAL_TOKEN})`;
+// TBNY DXOS Seal Token: §N 準拠 (seal_rules.json から取得推奨)
+let SEAL_TOKEN = '\uff59';
+let REQUIRED_SEAL = `(PW: ${SEAL_TOKEN})`;
 
 class GovernanceCore {
     constructor() {
@@ -99,7 +101,7 @@ class GovernanceCore {
 
     /**
      * Load compliance rules from JSON
-     * v1.3: Support for reorganized governance/ structure
+     * v6.7: §N Zero-Fallback compliance
      */
     getRule(fileName, keyPath) {
         const potentialPaths = [
@@ -108,15 +110,17 @@ class GovernanceCore {
         ];
 
         let data = null;
+        let foundPath = null;
         for (const filePath of potentialPaths) {
             if (fs.existsSync(filePath)) {
-                try {
-                    data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-                    break;
-                } catch (e) {
-                    console.error(`[GovCore] Failed to parse rule ${fileName} at ${filePath}: ${e.message}`);
-                }
+                foundPath = filePath;
+                break;
             }
+        }
+
+        if (foundPath) {
+            // §N: Zero-Fallback
+            data = readJsonStrict(foundPath, `RULE_LOAD:${fileName}`, `Restore ${foundPath}`);
         }
 
         if (!data) return null;

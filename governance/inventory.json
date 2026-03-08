@@ -1,0 +1,181 @@
+{
+    "version": "v1.6",
+    "last_audit": "2026-03-08",
+    "registry": [
+        {
+            "id": "SCR-GATE-PRE",
+            "path": ".agent/scripts/pre_flight.js",
+            "link_to_agents_md": "§E",
+            "purpose": "Risk-proportional execution gateway (T1-T3)",
+            "risk_score": 5,
+            "fix_required": "node .agent/scripts/pre_flight.js",
+            "logic_data_mapping": {
+                "TIER_DEFINITION": "governance/risk_matrix.json",
+                "COMPLIANCE_LIMITS": "governance/compliance.json",
+                "INVENTORY_REGISTRY": "governance/inventory.json",
+                "HANDOFF_AUDIT": "AMPLOG.jsonl"
+            }
+        },
+        {
+            "id": "SCR-GATE-THO",
+            "path": ".agent/scripts/thought_gate.js",
+            "link_to_agents_md": "§P",
+            "purpose": "Cognitive budget & Logic alignment gate (Sentinel 3.0)",
+            "risk_score": 5,
+            "fix_required": "node .agent/scripts/thought_gate.js",
+            "logic_data_mapping": {
+                "THOUGHT_RULES": "governance/thought_rules.json",
+                "BUDGET_AUDIT": ".agent/session/active_task.json"
+            }
+        },
+        {
+            "id": "SCR-GATE-CLO",
+            "path": ".agent/scripts/closure_gate.js",
+            "link_to_agents_md": "§L",
+            "purpose": "100pt closure & reflection gate",
+            "risk_score": 4,
+            "fix_required": "npm run done",
+            "logic_data_mapping": {
+                "SESSION_DATA": ".agent/session/active_task.json",
+                "EVIDENCE_AUDIT": ".agent/session/active_task.json",
+                "RETRY_CHECK": ".agent/session/active_task.json",
+                "GOV_CHANGE_DETECTION": "governance/closure_conditions.json",
+                "EPISTEMIC_BYPASS": "governance/closure_conditions.json",
+                "DESIGN_KEYWORD_LOOKUP": "governance/closure_conditions.json",
+                "DESIGN_INTEGRITY": "governance/closure_conditions.json"
+            }
+        },
+        {
+            "id": "SCR-GATE-EPI",
+            "path": ".agent/scripts/epistemic_gate.js",
+            "link_to_agents_md": "§K-6",
+            "purpose": "Epistemic transparency verification gate",
+            "risk_score": 4,
+            "fix_required": "node .agent/scripts/epistemic_gate.js",
+            "logic_data_mapping": {
+                "EPISTEMIC_MARKERS": "governance/epistemic_rules.json"
+            }
+        },
+        {
+            "id": "SCR-UTIL-REF",
+            "path": ".agent/scripts/reflect.js",
+            "link_to_agents_md": "§G",
+            "purpose": "Sanctuary purification & asset protection",
+            "risk_score": 4,
+            "fix_required": "node .agent/scripts/reflect.js --purge",
+            "logic_data_mapping": {
+                "AUDIT_DAYS_LOOKUP": "governance/compliance.json",
+                "OFFENDER_SCAN": "governance/compliance.json",
+                "RETRY_PATTERN_AUDIT": "governance/compliance.json",
+                "PURGE_PROTECTION": "governance/compliance.json"
+            }
+        },
+        {
+            "id": "SCR-UTIL-SEA",
+            "path": ".agent/scripts/check_seal.js",
+            "link_to_agents_md": "§L",
+            "purpose": "AMPLOG integrity & tamper detection",
+            "risk_score": 3,
+            "fix_required": "node .agent/scripts/check_seal.js",
+            "logic_data_mapping": {
+                "SEAL_VALIDATION": "governance/seal_rules.json",
+                "DEBT_AUDIT": "governance/seal_rules.json",
+                "SEAL_AUDIT": "AMPLOG.jsonl",
+                "MIGRATION_SYNC": "SCHEMA_HISTORY.md"
+            }
+        },
+        {
+            "id": "LIB-GOV-LOA",
+            "path": ".agent/scripts/lib/gov_loader.js",
+            "link_to_agents_md": "§N",
+            "purpose": "Core enforcement library for Zero-Fallback & Traceability",
+            "risk_score": 5,
+            "fix_required": "Restore this file from git",
+            "logic_data_mapping": {
+                "PROTOCOL_ERROR": "INTERNAL"
+            }
+        },
+        {
+            "id": "LIB-GOV-COR",
+            "path": ".agent/scripts/lib/gov_core.js",
+            "link_to_agents_md": "§N",
+            "purpose": "Environment Abstraction Layer & rule sync utility",
+            "risk_score": 5,
+            "fix_required": "Restore this file from git",
+            "logic_data_mapping": {
+                "RULE_LOAD": "governance/*.json"
+            }
+        },
+        {
+            "id": "CFG-RISK",
+            "path": "governance/risk_matrix.json",
+            "link_to_agents_md": "§E",
+            "purpose": "Tier classification rules (SSOT)",
+            "risk_score": 5,
+            "fix_required": "Correct the JSON structure",
+            "logic_data_mapping": {
+                "TIER_RULES": "INTERNAL"
+            }
+        },
+        {
+            "id": "CFG-THO",
+            "path": "governance/thought_rules.json",
+            "link_to_agents_md": "§P",
+            "purpose": "Cognitive budget & Thinking step SSOT",
+            "risk_score": 5,
+            "fix_required": "Correct the JSON structure",
+            "logic_data_mapping": {
+                "THOUGHT_BUDGETS": "INTERNAL"
+            }
+        },
+        {
+            "id": "CFG-CLO",
+            "path": "governance/closure_conditions.json",
+            "link_to_agents_md": "§L",
+            "purpose": "Task closure & seal definitions",
+            "risk_score": 4,
+            "fix_required": "Correct the JSON structure",
+            "logic_data_mapping": {
+                "SEAL_RULES": "INTERNAL"
+            }
+        },
+        {
+            "id": "CFG-EPI",
+            "path": "governance/epistemic_rules.json",
+            "link_to_agents_md": "§K-6",
+            "purpose": "Epistemic marker definitions",
+            "risk_score": 3,
+            "fix_required": "Correct the JSON structure",
+            "logic_data_mapping": {
+                "MARKER_RULES": "INTERNAL"
+            }
+        },
+        {
+            "id": "CFG-SEA",
+            "path": "governance/seal_rules.json",
+            "link_to_agents_md": "§L",
+            "purpose": "Seal patterns & debt critical labels",
+            "risk_score": 3,
+            "fix_required": "Correct the JSON structure",
+            "logic_data_mapping": {
+                "SEAL_PATTERNS": "INTERNAL"
+            }
+        },
+        {
+            "id": "CFG-COM",
+            "path": "governance/compliance.json",
+            "link_to_agents_md": "§G",
+            "purpose": "General compliance limits & audit periods",
+            "risk_score": 3,
+            "fix_required": "Correct the JSON structure",
+            "logic_data_mapping": {
+                "AUDIT_LIMITS": "INTERNAL"
+            }
+        }
+    ],
+    "protection_policy": {
+        "unknown_file_action": "BLOCK",
+        "missing_definition_action": "BLOCK",
+        "check_frequency": "Every Pre-flight"
+    }
+}
