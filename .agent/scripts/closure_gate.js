@@ -280,8 +280,14 @@ async function main() {
                         runCommand(process.platform === 'win32' ? `Remove-Item -Force "${file}"` : `rm -f "${file}"`, true);
                     }
                 } catch (delErr) {
-                    Log.error(`Failed to delete ${file}`);
+                    Log.error(`Failed to delete ${file}. Manual intervention required.`);
+                    throw new Error(`SAFETY BLOCK: ${file} could not be cleaned up automatically.`);
                 }
+            }
+            // 削除後に Git 状態が Dirty の場合はエラーとする (今回のような不整合防止)
+            const remainingStatus = runCommand('git status --porcelain', true);
+            if (remainingStatus.includes('?? ') || remainingStatus.includes(' M ')) {
+                Log.warn('Workspace still dirty after cleanup. Verifying integrity...');
             }
             Log.success('Auto-Cleanup passed. Workspace is clean.');
         } else {
