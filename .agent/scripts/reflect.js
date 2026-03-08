@@ -155,8 +155,15 @@ function main() {
     if (shouldPurge && cleanupViolations.length > 0) {
         console.log('\n🧹 [Purge] Starting automatic cleanup...');
         const offenders = cleanupViolations[0].details.split('\n');
+        const PROTECTED_PATTERNS = [/\.env/, /node_modules/, /\.local/];
         let purgedCount = 0;
         offenders.forEach(file => {
+            const isProtected = PROTECTED_PATTERNS.some(p => p.test(file));
+            if (isProtected) {
+                console.log(`   🛡️  Skipped (Protected): ${file}`);
+                return;
+            }
+
             try {
                 const absPath = path.join(PROJECT_ROOT, file);
                 if (fs.existsSync(absPath)) {
