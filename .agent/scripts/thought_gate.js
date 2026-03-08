@@ -35,6 +35,26 @@ function calculateActionRisk(mentionedPaths, tier = 'T1') {
 }
 
 /**
+ * Sentinel 5.0: 憲法保護 (Constitutional Guard)
+ * 思考ログ内にルールを歪めようとする意図がないかをスキャンする。
+ */
+function checkConstitutionalGuard(content, rules) {
+    const config = rules.constitutional_guard;
+    if (!config) return;
+
+    for (const keyword of config.forbidden_intent_keywords) {
+        if (content.includes(keyword)) {
+            ProtocolError.crash(`
+🚨 [CONSTITUTIONAL GUARD] 憲法保護インターロックが作動しました。
+意図検知: "${keyword}"
+原因: 思考ログ内に、自らの都合でルールや憲法（AGENTS.md）を緩和・修正しようとする「自己正当化バイアス」が検出されました。
+対策: §P に基づき、ルールを曲げずに実装を完遂するか、法的に不可能な理由を「誠実なデッドロック」として報告してください。
+            `);
+        }
+    }
+}
+
+/**
  * [AUDIT] 思考ログの整合性と予算の検証 (100pt Reinforced Edition)
  */
 export function auditThought(thinkingEntries) {
@@ -44,6 +64,12 @@ export function auditThought(thinkingEntries) {
     const session = getSession();
     const currentRequestId = session?.active_task?.current_request_id || null;
     const tier = session?.active_task?.tier || 'T1';
+
+    const rawOutput = thinkingEntries.map(e => e.content).join('\n');
+
+    // --- Sentinel 5.0 Audit Start ---
+    checkConstitutionalGuard(rawOutput, rules);
+    // --- Sentinel 5.0 Audit End ---
 
     // 1. Request-ID Binding (Staleness Protection)
     for (const entry of thinkingEntries) {
@@ -57,7 +83,6 @@ AGENTS.md §P 違反: 思考ログの鮮度エラー (Stale Thoughts)
     }
 
     // 2. Parse Context & Dynamic Risk Evaluate
-    const rawOutput = thinkingEntries.map(e => e.content).join('\n');
     const pathRegex = /(?:[a-zA-Z]:)?[\\/](?:[\w.-]+[\\/])*[\w.-]+\.\w+/g;
     const mentionedPaths = [...new Set(rawOutput.match(pathRegex) || [])]
         .map(p => path.resolve(PROJECT_ROOT, p.replace(/[.,:;]$/, '')));

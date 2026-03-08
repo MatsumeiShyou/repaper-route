@@ -240,6 +240,83 @@ function verifyEvidenceChain() {
 }
 
 /**
+ * Sentinel 5.0: 誠実なデッドロック報告の自動生成
+ */
+function generateDeadlockReport(violations) {
+    const templatePath = join(process.cwd(), 'governance', 'templates', 'DEADLOCK_REPORT.md');
+    const reportPath = join(process.cwd(), 'DEADLOCK_REPORT_ACTIVE.md');
+
+    let content = fs.existsSync(templatePath)
+        ? readFileSync(templatePath, 'utf8')
+        : '# Honest Deadlock Report\n';
+
+    const timestamp = new Date().toISOString();
+    const violationList = violations.map(v => `- ${v}`).join('\n');
+
+    content = content
+        .replace('[何を実現しようとしたか]', '自動反映（npm run done）の試行')
+        .replace('[どの条文・ファイルが壁となったか]', '憲法資産の不変性（§P / Constitutional Guard）')
+        .replace('[Sentinel 5.0 による遮断の証跡]', `${timestamp}\n${violationList}`);
+
+    writeFileSync(reportPath, content);
+    Log.warn(`\n⚠️ [DEADLOCK] '${reportPath}' を生成しました。内容を確認してください。`);
+}
+
+/**
+ * Sentinel 5.0: 憲法整合性検証 (Constitutional Integrity)
+ * セッション開始時のスナップショットと現在の物理状態を比較する。
+ */
+function verifyConstitutionalIntegrity() {
+    Log.info('Verifying Constitutional Integrity (Sentinel 5.0)...');
+    const sessionPath = join(process.cwd(), '.agent', 'session', 'active_task.json');
+    if (!existsSync(sessionPath)) return;
+
+    const session = readJsonStrict(sessionPath, 'INTEGRITY_AUDIT');
+    const snapshot = session.active_task?.gov_snapshot || {};
+    const isLegislationMode = session.active_task?.mode === 'LEGISLATION';
+
+    if (Object.keys(snapshot).length === 0) {
+        Log.warn('No gov_snapshot found. Skipping integrity check (First run?).');
+        return;
+    }
+
+    const violations = [];
+    for (const [relPath, expectedHash] of Object.entries(snapshot)) {
+        const fullPath = join(process.cwd(), relPath);
+        if (!existsSync(fullPath)) {
+            violations.push(`MISSING: ${relPath}`);
+            continue;
+        }
+
+        const content = readFileSync(fullPath, 'utf8');
+        const actualHash = crypto.createHash('sha256').update(content).digest('hex');
+
+        if (actualHash !== expectedHash) {
+            violations.push(`MODIFIED: ${relPath}`);
+        }
+    }
+
+    if (violations.length > 0) {
+        if (isLegislationMode) {
+            Log.warn(`[LEGISLATION MODE] Constitutional changes detected: ${violations.join(', ')}`);
+            Log.warn('Proceeding with authorized legislation.');
+        } else {
+            Log.error('🚫 [CONSTITUTIONAL LOCKER] 憲法資産の不正な変更を検知しました。');
+            violations.forEach(v => Log.error(`   - ${v}`));
+
+            // レポート生成
+            generateDeadlockReport(violations);
+
+            Log.error('\n原因: 実装フェーズ（Executor）において、承認なくルールや憲法が書き換えられました。');
+            Log.error('対策: §P に基づき、変更を元に戻すか、立法モード（Legislation Mode）でやり直してください。');
+            process.exit(1);
+        }
+    } else {
+        Log.success('Constitutional Integrity verified (Zero unexpected changes).');
+    }
+}
+
+/**
  * Git 差分から統治に関わる重要ファイルの変更を検知する
  * @returns {boolean}
  */
@@ -275,6 +352,10 @@ async function main() {
     }
 
     Log.info(`Initiating 100pt Closure Protocol (Tier: ${activeTier || 'AUTO'})...`);
+
+    // --- Sentinel 5.0 Audit Start ---
+    verifyConstitutionalIntegrity();
+    // --- Sentinel 5.0 Audit End ---
 
     // --- [GaC v6.1] Retry Awareness ---
     const sessionPath = join(process.cwd(), '.agent', 'session', 'active_task.json');

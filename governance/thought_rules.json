@@ -106,5 +106,25 @@
     "bypass_rules": {
         "emergency_repair": true,
         "talk_only": true
+    },
+    "constitutional_guard": {
+        "forbidden_intent_keywords": [
+            "ルール緩和",
+            "憲法修正",
+            "憲法を修正",
+            "ガバナンスを調整",
+            "AGENTS.md",
+            "governance/",
+            "bypass",
+            "バイパス",
+            "例外を適用",
+            "緩和",
+            "適正化"
+        ],
+        "legislation_mode_required": [
+            "AGENTS.md",
+            "governance/",
+            ".agent/scripts/"
+        ]
     }
 }

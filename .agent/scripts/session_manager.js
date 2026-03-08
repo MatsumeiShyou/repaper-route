@@ -189,6 +189,54 @@ export const archiveOldThoughts = (newRequestId) => {
 };
 
 /**
+ * Sentinel 5.0: 憲法資産のスナップショットを撮影し記録する
+ */
+export const captureGovSnapshot = () => {
+    const session = getSession();
+    if (!session || !session.active_task) return;
+
+    // すでにスナップショットが存在し、かつ立法モードでない場合は上書きしない
+    const currentSnapshot = session.active_task.gov_snapshot || {};
+    const hasSnapshot = Object.keys(currentSnapshot).length > 0;
+    const isLegislationMode = session.active_task.mode === 'LEGISLATION'; // 未来の拡張用
+
+    if (hasSnapshot && !isLegislationMode) {
+        console.log('[session_manager] Gov snapshot already exists. Skipping capture to enforce immutability.');
+        return;
+    }
+
+    const condPath = path.join(process.cwd(), 'governance', 'closure_conditions.json');
+    if (!fs.existsSync(condPath)) return;
+
+    const { governance_paths } = JSON.parse(fs.readFileSync(condPath, 'utf8'));
+    const snapshot = {};
+
+    function scan(target) {
+        const absPath = path.isAbsolute(target) ? target : path.join(process.cwd(), target);
+        if (!fs.existsSync(absPath)) return;
+
+        if (fs.statSync(absPath).isDirectory()) {
+            fs.readdirSync(absPath).forEach(file => scan(path.join(target, file)));
+        } else {
+            const content = fs.readFileSync(absPath, 'utf8');
+            const hash = crypto.createHash('sha256').update(content).digest('hex');
+            const relPath = path.relative(process.cwd(), absPath).replace(/\\/g, '/');
+            snapshot[relPath] = hash;
+        }
+    }
+
+    console.log('[session_manager] Capturing governance snapshot...');
+    governance_paths.forEach(p => scan(p));
+
+    updateSession({
+        active_task: {
+            ...session.active_task,
+            gov_snapshot: snapshot
+        }
+    });
+};
+
+/**
  * CAP v3.0: セッションの最終更新日時のみを更新する
  */
 export const touchSession = () => {

@@ -10,7 +10,7 @@
 import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import { getSession } from './session_manager.js';
+import { getSession, captureGovSnapshot } from './session_manager.js';
 import { readJsonStrict } from './lib/gov_loader.js';
 
 // §N Logic Binding: 'COMPLIANCE_LIMITS'
@@ -688,6 +688,9 @@ async function main() {
     const declaredTier = getActiveTier();
     const effectiveTier = validateTierConsistency(declaredTier, allChangedFiles);
     console.log(`\n🎯 [ティア] 適用ティア: ${effectiveTier}`);
+
+    // [Sentinel 5.0] 憲法スナップショットの固定 (B-3 / §P)
+    captureGovSnapshot();
 
     // 1.2 ハンドオフ検証 [v6.4 CAP-Sync]
     validateHandoff(effectiveTier);
