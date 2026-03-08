@@ -62,7 +62,10 @@
         {
             "id": 10,
             "name": "自己レビュー",
-            "mode": "監査者"
+            "mode": "監査者",
+            "requirements": [
+                "AGENTS.md §G [TASK_CLOSED] 形式の最終確認"
+            ]
         }
     ],
     "tiered_depth": {

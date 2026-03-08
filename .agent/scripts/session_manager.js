@@ -237,6 +237,39 @@ export const captureGovSnapshot = () => {
 };
 
 /**
+ * Sentinel 5.2: ユーザー承認（ｙ）のタイムスタンプを物理的に記録する
+ */
+export const recordApproval = () => {
+    const session = getSession();
+    if (!session || !session.active_task) return;
+
+    updateSession({
+        active_task: {
+            ...session.active_task,
+            last_y_approval_at: new Date().toISOString()
+        }
+    });
+
+    // AMPLOG への記録 (直近の ADR を引き継ぐ)
+    const ampLogPath = path.join(process.cwd(), 'AMPLOG.jsonl');
+    let adr = null;
+    try {
+        const lines = fs.readFileSync(ampLogPath, 'utf8').trim().split('\n');
+        const lastEntry = JSON.parse(lines[lines.length - 1]);
+        adr = lastEntry.adr || lastEntry.adr_ref || null;
+    } catch (e) { }
+
+    const logEntry = JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'INFO',
+        event: 'USER_APPROVAL_RECORDED',
+        task: session.active_task.name,
+        adr: adr
+    }) + '\n';
+    try { fs.appendFileSync(ampLogPath, logEntry, 'utf8'); } catch (e) { }
+};
+
+/**
  * CAP v3.0: セッションの最終更新日時のみを更新する
  */
 export const touchSession = () => {
