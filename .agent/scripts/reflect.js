@@ -89,11 +89,23 @@ function checkCleanupViolations() {
             const entries = fs.readdirSync(dir, { withFileTypes: true });
             for (const entry of entries) {
                 const fullPath = path.join(dir, entry.name);
-                if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
-                    scan(fullPath);
+                const isAgentDir = entry.name === '.agent';
+                const isSessionDir = dir.includes('.agent') && entry.name === 'session';
+
+                if (entry.isDirectory()) {
+                    // .agent ディレクトリとその下の session は許可、それ以外のドットディレクトリはスキップ
+                    if (isAgentDir || isSessionDir || !entry.name.startsWith('.')) {
+                        if (entry.name !== 'node_modules') scan(fullPath);
+                    }
                 } else if (entry.isFile()) {
-                    if (entry.name.endsWith('.bak') || entry.name.startsWith('debug_') || entry.name.match(/_output.*\.txt$/)) {
-                        offenders.push(fullPath.replace(PROJECT_ROOT, '.'));
+                    const isOffender =
+                        entry.name.endsWith('.bak') ||
+                        entry.name.startsWith('debug_') ||
+                        entry.name === '.diag_test' || // 明示的に追加
+                        entry.name.match(/_output.*\.txt$/);
+
+                    if (isOffender) {
+                        offenders.push(fullPath.replace(PROJECT_ROOT + path.sep, '').replace(/\\/g, '/'));
                     }
                 }
             }
@@ -132,12 +144,54 @@ function generateReport(violations) {
 function main() {
     console.log('🔍 [Reflect] Sanctuary Audit Start');
 
+    const args = process.argv.slice(2);
+    const shouldPurge = args.includes('--purge');
+
     const session = getSession();
     const isRepairLane = session?.active_task?.is_repair_lane || false;
 
+    const cleanupViolations = checkCleanupViolations();
+
+    if (shouldPurge && cleanupViolations.length > 0) {
+        console.log('\n🧹 [Purge] Starting automatic cleanup...');
+        const offenders = cleanupViolations[0].details.split('\n');
+        let purgedCount = 0;
+        offenders.forEach(file => {
+            try {
+                const absPath = path.join(PROJECT_ROOT, file);
+                if (fs.existsSync(absPath)) {
+                    fs.unlinkSync(absPath);
+                    console.log(`   ✅ Deleted: ${file}`);
+                    purgedCount++;
+                }
+            } catch (err) {
+                console.error(`   ❌ Failed to delete ${file}: ${err.message}`);
+            }
+        });
+
+        if (purgedCount > 0) {
+            // AMPLOG への記録
+            const logEntry = JSON.stringify({
+                timestamp: new Date().toISOString(),
+                level: 'INFO',
+                event: 'SANCTUARY_PURGE',
+                count: purgedCount,
+                files: offenders,
+                task: session?.active_task?.name || 'Unknown'
+            }) + '\n';
+            try { fs.appendFileSync(AMPLOG_PATH, logEntry, 'utf8'); } catch (e) { }
+        }
+
+        // 削除後に再チェック
+        const remainingViolations = checkCleanupViolations();
+        if (remainingViolations.length === 0) {
+            console.log('✨ [Purge] All detected offenders have been purged.');
+        }
+    }
+
     const violations = [
         ...checkAMPLOGViolations(),
-        ...checkCleanupViolations(),
+        ...(shouldPurge ? checkCleanupViolations() : cleanupViolations),
         ...checkRetryPatterns()
     ];
 

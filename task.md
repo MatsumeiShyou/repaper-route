@@ -28,3 +28,5 @@
 
 > [!NOTE]
 > このファイルは Sanctuary Governance により自動生成されています。手動編集は sync_governance.js により上書きされます。
+
+- [/] Phase 7: Sanctuary Purification (v5.5) [In-Progress]

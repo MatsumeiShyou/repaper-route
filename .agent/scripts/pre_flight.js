@@ -583,6 +583,28 @@ async function main() {
     const effectiveTier = validateTierConsistency(declaredTier, allChangedFiles);
     console.log(`\n🎯 [ティア] 適用ティア: ${effectiveTier}`);
 
+    // 1.5 零容認ゲート (Zero-Tolerance Gate) [v5.5]
+    if (effectiveTier === 'T3') {
+        console.log('\n🛡️  [Zero-Tolerance Gate] 潔白状態を検証中...');
+        const untrackedFiles = execSync('git status --porcelain', { encoding: 'utf8' })
+            .split('\n')
+            .filter(line => line.startsWith('??'))
+            .map(line => line.slice(3).trim());
+
+        if (untrackedFiles.length > 0) {
+            console.error('\n🚫───────────── [ REPOSITORY IMPURITY DETECTED ] ─────────────🚫');
+            console.error(`❌ 未追跡ファイル（Untracked Files）が ${untrackedFiles.length} 件検出されました。`);
+            untrackedFiles.slice(0, 5).forEach(f => console.error(`   - ${f}`));
+            if (untrackedFiles.length > 5) console.error(`   ...他 ${untrackedFiles.length - 5} 件`);
+            console.error('\n   → AGENTS.md §K-6 (v5.5): 100点統治において不純物の混入は許されません。');
+            console.error('   → [解決案]: `node .agent/scripts/reflect.js --purge` を実行して自浄してください。');
+            console.error('   → 手動で作成したファイルの場合は、gitignore に追加するか削除してください。');
+            console.error('🚫──────────────────────────────────────────────────────────🚫\n');
+            process.exit(1);
+        }
+        console.log('✅ [Zero-Tolerance Gate] 潔白（Clean State）が証明されました。');
+    }
+
     // 2. T2 リトライカウンター検証
     validateT2RetryCount();
 

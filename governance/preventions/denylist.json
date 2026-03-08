@@ -16,6 +16,14 @@
                 "src/**/*.tsx",
                 "src/**/*.ts"
             ]
+        },
+        {
+            "id": "session-leakage",
+            "pattern": "\\.agent/session/.*",
+            "message": "SESSION LEAKAGE: セッションディレクトリ内のファイルが Git 追跡対象に含まれています。`.gitignore` を確認し、`git rm --cached` で除外してください。一時的な診断ファイルはコミット前に物理削除が必要です。",
+            "include": [
+                ".agent/session/**/*"
+            ]
         }
     ]
 }
