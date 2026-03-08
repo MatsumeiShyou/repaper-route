@@ -6,7 +6,7 @@
  */
 
 import { execSync, spawn } from 'child_process';
-import { existsSync, readdirSync, statSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, statSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { parseArgs } from 'util';
 
@@ -98,8 +98,7 @@ function updateShadowRegistry() {
         }
 
         shadowData.registry = newRegistry;
-        const fs = require('fs'); // fallback for internal script consistency
-        fs.writeFileSync(SHADOW_REGISTRY_PATH, JSON.stringify(shadowData, null, 4));
+        writeFileSync(SHADOW_REGISTRY_PATH, JSON.stringify(shadowData, null, 4));
     } catch (e) {
         Log.warn(`Failed to update shadow registry: ${e.message}`);
     }
