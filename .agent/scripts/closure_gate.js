@@ -318,6 +318,32 @@ async function main() {
                 }
             }
 
+            // --- [GaC v6.2] Design Integrity Check (Locker) ---
+            Log.info('Checking Design Integrity (§C-4 Protocol)...');
+            const designKeywords = ['計画', '設計', '再考', '検討', '構築', '修正案', 'plan', 'design', 'refactor', 'architect'];
+
+            // 直近のコミットメッセージまたは指示に関連するキーワードを確認
+            const lastCommitMsg = runCommand('git log -1 --pretty=%B', true).toLowerCase();
+            const hasDesignIntent = designKeywords.some(kw => lastCommitMsg.includes(kw));
+
+            if (hasDesignIntent) {
+                Log.info('  -> Design Intent detected. Verifying artifact traces...');
+                const designArtifacts = ['governance/ADR', 'implementation_plan.md', 'task.md'];
+                const hasArtifactChange = changedFiles.some(file =>
+                    designArtifacts.some(art => file.includes(art.replace(/\\/g, '/')))
+                );
+
+                if (!hasArtifactChange) {
+                    Log.error('🚫 [CONSTITUTIONAL LOCKER] 設計意図が検出されましたが、設計証跡（ADR/Plan/Task）の更新が確認できません。');
+                    Log.error('   憲法 §C-4 に基づき、設計フェーズを完遂してから反映してください。');
+                    Log.error('   反映を物理的にブロックしました。');
+                    process.exit(1);
+                }
+                Log.success('Design Integrity Verified. Traces found.');
+            } else {
+                Log.info('  -> No immediate design intent detected. Standard gate applied.');
+            }
+
             Log.info(`Running Type Check and Test Suite in PARALLEL [${activeTier || 'FULL'}]...`);
             try {
                 const typeCheck = runCommandAsync('npx', ['tsc', '--noEmit']);

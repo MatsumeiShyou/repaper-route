@@ -20,6 +20,7 @@
 - **C-2 Honesty**: 捏造禁止。不明点は「不明」と明示。
 - **C-3 No Guessing**: 推測実装禁止。事実（State）の検証を優先せよ。
 - **C-4 GaC Protocol**: 役割分離（Analyzer/Executor）を遵守せよ。 Analyzer は設計に、Executor は執行に専念する。
+  ユーザーから「計画」「設計」「再考」等の指示を受けた場合、即座に ANALYZER 役割（PLANNING モード）へ自動復帰することを絶対的義務とする。本義務を無視した Executor の実装継続は、統治ロック（Locker）の物理対象となる。
 
 ---
 

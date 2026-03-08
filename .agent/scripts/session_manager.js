@@ -45,8 +45,12 @@ export const incrementRetryCount = (reason = 'Unknown failure') => {
     }) + '\n';
 
     try {
-        fs.appendFileSync(ampLogPath, logEntry);
-    } catch (e) { /* silent fail for audit log */ }
+        // process.on('exit') 下で確実に書き込むため、依存を最小化した fs.appendFileSync を同期実行
+        fs.appendFileSync(ampLogPath, logEntry, 'utf8');
+    } catch (e) {
+        // 緊急フォールバック: コンソールへの直接出力 (これすら exit 時には見えない可能性があるが)
+        console.error(`FAILED TO APPEND AUDIT LOG: ${e.message}`);
+    }
 };
 
 export const resetRetryCount = () => {

@@ -8,6 +8,16 @@
             "scope": [
                 "./*"
             ]
+        },
+        {
+            "id": "design-bypass-locker",
+            "pattern": ".*",
+            "message": "CONSTITUTIONAL VIOLATION (§C-4): ユーザーからの「計画/設計」指示に対し、設計証跡 (ADR/Plan) の更新が確認できません。Analyzer 役割へ復帰し、設計を完遂させてください。",
+            "condition": "last_instruction.matches(/計画|設計|再考|検討|構築/) && !changed_files.includes('governance/ADR') && !changed_files.includes('implementation_plan.md')",
+            "scope": [
+                "src/**",
+                "app/**"
+            ]
         }
     ]
 }
