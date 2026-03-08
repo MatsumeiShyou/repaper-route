@@ -589,10 +589,10 @@ async function main() {
     // 3. ティア別ゲート検証
     validateTaskActive(effectiveTier);
     validateCognitiveCheckpoint(allChangedFiles, effectiveTier);
+    validateRecurrencePrevention(allChangedFiles, effectiveTier);
     validateSmartDbSync(allChangedFiles, effectiveTier);
     validateCAVR(allChangedFiles, effectiveTier);
     validateGovernanceCompliance(allChangedFiles, effectiveTier);
-    validateRecurrencePrevention(allChangedFiles, effectiveTier);
     validateAntiSpiral(effectiveTier);
 
     // 4. Epistemic Cache（ティア統合版）

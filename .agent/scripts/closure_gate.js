@@ -141,8 +141,16 @@ async function main() {
         // 簡易的に git diff で /governance/ ディレクトリの変更を確認
         let govChanged = false;
         try {
-            const diff = execSync('git diff --cached --name-only', { encoding: 'utf-8' });
-            govChanged = diff.includes('governance/') || diff.includes('AGENTS.md');
+            // 1. Stage された差分を確認
+            const diffCached = execSync('git diff --cached --name-only', { encoding: 'utf-8' });
+            // 2. まだ push されていないコミット（HEAD）の差分を確認
+            let diffUnpushed = '';
+            try {
+                diffUnpushed = execSync(`git diff origin/${BRANCH}..HEAD --name-only`, { encoding: 'utf-8' });
+            } catch (e) { /* upstream がない場合は無視 */ }
+
+            const combinedDiff = (diffCached + '\n' + diffUnpushed).replace(/\\/g, '/');
+            govChanged = combinedDiff.includes('governance/') || combinedDiff.includes('AGENTS.md');
         } catch (e) { /* ignore */ }
 
         if (!govChanged) {
