@@ -8,11 +8,36 @@
 import { execSync, spawn } from 'child_process';
 import { existsSync, readdirSync, statSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { parseArgs } from 'util';
+import { incrementRetryCount, resetRetryCount } from './session_manager.js';
 
 // --- Configuration & Constants ---
 const REFLECT_FLAG = process.argv.includes('--reflect');
+const BYPASS_RETRY_FLAG = process.argv.includes('--bypass-retry');
 const BRANCH = 'main';
+
+let completionFlag = false;
+
+// --- [GaC v6.1] Fail-Safe Exit Tracker ---
+function registerExitTracker() {
+    process.on('exit', (code) => {
+        if (!completionFlag) {
+            // 正常完了（反映成功）フラグが立っていない状態での終了はすべてリトライとみなす
+            // Note: process.on('exit') 内では同期コードしか実行できないため
+            // incrementRetryCount は内部で fs.writeFileSync/fs.appendFileSync を使用しており同期実行可能
+            const reason = code === 0 ? 'Unexpected termination without completion flag' : `Process exited with error code: ${code}`;
+            incrementRetryCount(reason);
+        }
+    });
+
+    // SIGINT (Ctrl+C) などのシグナルもハンドル
+    const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+    signals.forEach(sig => {
+        process.on(sig, () => {
+            Log.error(`\n[FATAL] ${sig} Detected. Registering as task retry...`);
+            process.exit(1); // これにより 'exit' イベントがトリガーされる
+        });
+    });
+}
 
 // --- ティア判定 ---
 function getActiveTier() {
@@ -154,6 +179,9 @@ function executeReflection(tier) {
 }
 
 async function main() {
+    // Stage 0: Register Fail-Safe Observer
+    registerExitTracker();
+
     const activeTier = getActiveTier();
     Log.info(`Initiating 100pt Closure Protocol (Tier: ${activeTier || 'AUTO'})...`);
 
@@ -168,27 +196,30 @@ async function main() {
     } catch (e) { /* ignore */ }
 
     if (retryCount >= 2) {
-        Log.warn(`High Retry Count Detected (${retryCount}). Recurrence prevention check enforced.`);
-        // 物理的証跡の確認（ADR または preventions への追記が直近コミットに含まれているか、等）
-        // 簡易的に git diff で /governance/ ディレクトリの変更を確認
-        let govChanged = false;
-        try {
-            // 1. Stage された差分を確認
-            const diffCached = execSync('git diff --cached --name-only', { encoding: 'utf-8' });
-            // 2. まだ push されていないコミット（HEAD）の差分を確認
-            let diffUnpushed = '';
+        if (BYPASS_RETRY_FLAG) {
+            Log.warn('🚨 [ESCAPE HATCH] --bypass-retry detected. Bypassing recurrence locker (T3 Event).');
+            // 実際はここで readline 等で理由を求めるべきだが、非対話型のためログに警告を残す
+            incrementRetryCount(`USER BYPASSED RECURRENCE LOCKER at count ${retryCount}`);
+        } else {
+            Log.warn(`High Retry Count Detected (${retryCount}). Recurrence prevention check enforced.`);
+            // 物理的証跡の確認（ADR または preventions への追記が直近コミットに含まれているか、等）
+            let govChanged = false;
             try {
-                diffUnpushed = execSync(`git diff origin/${BRANCH}..HEAD --name-only`, { encoding: 'utf-8' });
-            } catch (e) { /* upstream がない場合は無視 */ }
+                const diffCached = execSync('git diff --cached --name-only', { encoding: 'utf-8' });
+                let diffUnpushed = '';
+                try {
+                    diffUnpushed = execSync(`git diff origin/${BRANCH}..HEAD --name-only`, { encoding: 'utf-8' });
+                } catch (e) { /* upstream なし */ }
 
-            const combinedDiff = (diffCached + '\n' + diffUnpushed).replace(/\\/g, '/');
-            govChanged = combinedDiff.includes('governance/') || combinedDiff.includes('AGENTS.md');
-        } catch (e) { /* ignore */ }
+                const combinedDiff = (diffCached + '\n' + diffUnpushed).replace(/\\/g, '/');
+                govChanged = combinedDiff.includes('governance/') || combinedDiff.includes('AGENTS.md');
+            } catch (e) { /* ignore */ }
 
-        if (!govChanged) {
-            Log.error('🚫 [RECURRENCE BLOCKER] 2回以上のリトライが発生していますが、再発防止策（ADR/物理ゲート）の追加が確認できません。');
-            Log.error('   反映を中断しました。再発防止プロトコルに従い、分析と恒久的な対策を実装してください。');
-            process.exit(1);
+            if (!govChanged) {
+                Log.error('🚫 [RECURRENCE BLOCKER] 2回以上のリトライが発生していますが、再発防止策（ADR/物理ゲート）の追加が確認できません。');
+                Log.error('   反映を中断しました。再発防止プロトコルに従い、分析と恒久的な対策を実装してください。');
+                process.exit(1);
+            }
         }
     }
 
@@ -302,6 +333,11 @@ async function main() {
         }
 
         Log.sealed(activeTier);
+
+        // --- SECURE COMPLETION ---
+        completionFlag = true;
+        resetRetryCount();
+
         process.exit(0);
 
     } catch (error) {

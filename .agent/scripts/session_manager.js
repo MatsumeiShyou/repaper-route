@@ -19,15 +19,44 @@ export const isTaskActive = () => {
     return session?.active_task?.status === 'In-Progress';
 };
 
-export const incrementRetryCount = () => {
+export const incrementRetryCount = (reason = 'Unknown failure') => {
     const session = getSession();
     if (!session || !session.active_task) return;
 
     const currentCount = session.active_task.t2_retry_count || 0;
+    const newCount = currentCount + 1;
+
     updateSession({
         active_task: {
             ...session.active_task,
-            t2_retry_count: currentCount + 1
+            t2_retry_count: newCount
+        }
+    });
+
+    // AMPlOG への最小限の記録 (物理証跡)
+    const ampLogPath = path.join(process.cwd(), 'AMPLOG.jsonl');
+    const logEntry = JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'WARN',
+        event: 'RETRY_INCREMENT',
+        reason: reason,
+        count: newCount,
+        task: session.active_task.name
+    }) + '\n';
+
+    try {
+        fs.appendFileSync(ampLogPath, logEntry);
+    } catch (e) { /* silent fail for audit log */ }
+};
+
+export const resetRetryCount = () => {
+    const session = getSession();
+    if (!session || !session.active_task) return;
+
+    updateSession({
+        active_task: {
+            ...session.active_task,
+            t2_retry_count: 0
         }
     });
 };
