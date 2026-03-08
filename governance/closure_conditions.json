@@ -1,0 +1,13 @@
+{
+    "T3_seal_protocol": {
+        "steps": [
+            "node scripts/pre_flight.js",
+            "node .agent/scripts/record_amp.js",
+            "node .agent/scripts/check_seal.js"
+        ],
+        "required_artifacts": [
+            "walkthrough.md"
+        ],
+        "approval_token": "(PW: ｙ)"
+    }
+}

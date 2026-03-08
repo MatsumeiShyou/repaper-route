@@ -1,0 +1,24 @@
+{
+    "analyzer": {
+        "max_problem_decomposition": 5,
+        "min_hypothesis_count": 2,
+        "max_hypothesis_count": 3,
+        "min_audit_risk_patterns": 2,
+        "mode_sequence": [
+            "整理者",
+            "設計者",
+            "実装思考",
+            "監査者"
+        ],
+        "confidence_threshold": {
+            "low": 40,
+            "medium": 70,
+            "high": 90
+        }
+    },
+    "executor": {
+        "require_design_ref": true,
+        "allow_unapproved_execution": false,
+        "strict_mode": true
+    }
+}

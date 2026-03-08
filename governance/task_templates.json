@@ -1,0 +1,9 @@
+{
+    "governance_refactoring": [
+        "Infrastructure & Session State",
+        "pre_flight.js Redesign",
+        "Automation Script (sync_governance.js)",
+        "Constitution Update (AGENTS.md)",
+        "Transition & Verification"
+    ]
+}

@@ -1,0 +1,11 @@
+{
+    "platform": "windows",
+    "shell": "powershell",
+    "encoding": "utf-8",
+    "commands": {
+        "tail": "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Content -Tail",
+        "cat": "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Content",
+        "ls": "dir"
+    },
+    "script_runtime": "node"
+}

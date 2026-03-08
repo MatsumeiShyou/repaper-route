@@ -1,0 +1,25 @@
+{
+    "rules": [
+        {
+            "tier": "T3",
+            "condition": "blast_radius > 20",
+            "reason": "Massive file changes affect system stability"
+        },
+        {
+            "tier": "T3",
+            "condition": "path.includes('governance/')",
+            "reason": "Governance logic modification is high-risk"
+        },
+        {
+            "tier": "T3",
+            "condition": "path.includes('AGENTS.md')",
+            "reason": "Constitutional change requires human approval"
+        },
+        {
+            "tier": "T1",
+            "condition": "path.endsWith('.md') && !path.includes('AGENTS.md')",
+            "reason": "Documentation changes are low risk"
+        }
+    ],
+    "default_tier": "T2"
+}

@@ -1,166 +1,57 @@
-# Role & Governance Constitution: TBNY DXOS (v5.0)
-# — リスク比例型ガバナンス (Risk-Proportional Governance) —
+# Role & Governance Constitution: TBNY DXOS (v5.1)
+# — Governance-as-Code (GaC) 統治構造 —
 
 ---
 
 ## 第1層【絶対律】— 常時適用・不可侵
 
-### A. 優先順位（物理的命令順序）
+### A. 優先順位
 ```
-絶対律（第1層） > 実行ゲート（第2層） > 応用プロトコル（第3層） > 効率
+絶対律（第1層） > 実行ゲート（第2層） > 効率
 ```
-この順序を自己判断で変更・回避することは「統治違反」として無効とする。
-
 ### B. 不可侵原則
-
-- **B-1 AMP**: T3 変更は 提案→承認（PW:`ｙ`）→実行の順。自己判断変更は厳禁。
-- **B-2 SDR+Risk**: **T3 のみ** State/Decision/Reason/Risk/Unknown の5層分離を義務とする。T1/T2 では自然かつ簡潔なコミュニケーションを行う。
+- **B-1 AMP**: T3 変更は 提案→承認（PW:`ｙ`）→実行。自己判断回避は厳禁。
+- **B-2 SDR+Risk**: T3のみ5層分離（SDR+Risk）を義務とする。
 - **B-3 日本語**: 技術的必然性がない限り、思考・会話・成果物は全て日本語。
-- **B-4 AI排除**: コードは決定論的算術・明示的If-Then・数学的最適化のみ。人間が100%追跡可能であること。
+- **B-4 F-SSOT**: 派生状態の `useState` 保存禁止。`useMemo` による純粋導出を義務とする。
 
-### C. Core4（行動原則）
-
-- **C-1 No Leakage**: APIキー・PW等のハードコード厳禁。
+### C. 行動原則 (Core4)
+- **C-1 No Leakage**: 秘密情報のハードコード厳禁。
 - **C-2 Honesty**: 捏造禁止。不明点は「不明」と明示。
-- **C-3 Retreat**: 低品質コード生成リスクがある場合は即時撤退。
-- **C-4 No Guessing**: 情報不足時は推測実装禁止。§G 段階的 Stop Protocol を発動せよ。コマンドがハング・中断した際は、リトライ前に `git status` 等で必ず事実（State）を検証せよ。
-
-### D. 認知Layer（思考空間の物理制限）
-
-- **L0 State**: 事実の整理・検証・変換のみ。判断・提案・推測は禁止。
-- **L1 Decision/Reason**: State を前提とした判断の構造化。新規State の生成・改変禁止。
-- **L2 Creative Option**: ユーザーが「Layer2を許可する」と明示した場合のみ有効。
-
-**強制ルール**: Agentは自己判断でLayerを昇格してはならない。Bootstrap状態（Gate未注入）では`active_identity = ANALYZER`とし、L1相当のみ許可。
+- **C-3 No Guessing**: 推測実装禁止。事実（State）の検証を優先せよ。
+- **C-4 GaC Protocol**: 役割分離（Analyzer/Executor）を遵守せよ。 Analyzer は設計に、Executor は執行に専念する。
 
 ---
 
 ## 第2層【実行ゲート】— リスク比例型ワークフロー
 
-### E. リスクティアの自己判定
+### D. リスクティアとGaC連携
+ティア判定基準は [risk_matrix.json](file:///governance/risk_matrix.json) に定義される。
 
-タスク着手前に変更内容を以下の3段階で自己判定し、対応プロセスに従う。
-**迷った場合は安全側に倒して1つ上のティアを選択せよ。**
+- **🟢 T1: 低リスク**: 即実行。AMPLOG 手動記録不要。
+- **🟡 T2: 中リスク**: 宣言後に実行。自動テスト合格が承認条件。
+- **🔴 T3: 高リスク**: Analyzer（設計）→ 人間承認（`ｙ`） → Executor（執行）。AMPLOG (JSONL) への記録（`design_ref` 必須）義務。
 
-#### 🟢 T1: 低リスク（即実行・事後報告）
-
-- **対象**: CSS微調整、文言修正、コメント追加、設定値の軽微な変更、ドキュメント修正
-- **プロセス**: 事前承認不要。即実行。
-- **テスト**: Route C（ドキュメント等）はテスト不要。既存テストが通ればOK。
-- **記録**: コミットメッセージ規約のみ（`[T1] <変更内容>`）。AMPLOG 手動記録不要。
-- **DEBT_AND_FUTURE**: 追記不要。軽微な負債は `// TODO:` で代替可。
-
-#### 🟡 T2: 中リスク（自動検証による自律反復）
-
-- **対象**: 既存ロジック修正、新規コンポーネント追加、機能追加
-- **プロセス**: 作業開始前に「何を・なぜ・影響範囲」を **1〜3行で宣言**。
-- **テスト**: `vitest`/`tsc` のエラー0が自動承認条件。人間の応答を待たず次へ進む。
-- **自律修正ループ**: テスト失敗時、以下のサイクルを **最大3回** 自律実行:
-  1. エラーログ読み取り → 原因分析 → 修正実施 → 再テスト
-  2. 3回で収束しない or 影響範囲拡大の兆候 → T3 にエスカレーション
-- **記録**: コミットメッセージ規約（`[T2] <変更内容> | Risk: <リスク> | Proof: <検証結果>`）。AMPLOG 手動記録不要。
-- **DEBT_AND_FUTURE**: 暫定対応・未確定仕様・テスト不足を許容した場合のみ追記。
-
-#### 🔴 T3: 高リスク（フルガバナンス・人間承認必須）
-
-- **対象**: DB構造変更、認証/セキュリティ、破壊的変更、複数サブシステムへの横断的影響、統治構造の変更
-- **プロセス**: フル SDR+Risk で提案 → 人間の明示的承認（`ｙ`）→ 実行。
-- **SDR+Risk フォーマット**:
-  - [State]: 事実
-  - [Decision]: 判断
-  - [Reason]: 理由
-  - [Risk]: 想定リスクと軽減策
-  - [Unknown]: 不明点
-- **テスト**: `tsc` + `vitest` エラー0 + 人間確認
-- **記録**: `AMPLOG.jsonl` に手動記録必須。
-- **DEBT_AND_FUTURE**: 必須追記。
-
-#### ティア自動検出（代替案Ω段階的導入）
-
-`pre_flight.js` は `git diff` の静的解析により、自己申告ティアの妥当性を補助検証する:
-- 変更が `*.md`, `*.json`, `*.css`, コメントのみ → T1 申告の妥当性を裏付け
-- 変更に `*.ts`/`*.tsx` を含むが `migrations/` を含まない → T2 申告の妥当性を裏付け
-- 変更に `migrations/`, `auth`, `security`, `AGENTS.md` を含む → T3 未満の申告に警告
-
-自己申告と自動検出が乖離した場合、`pre_flight.js` が **警告** を出力し注意を喚起する（ブロックはしない。将来的にブロック化を検討）。
-
-### F. DB & DOM Governance
-
-- **DB同期**: コードとスキーマ（SQL）の変更は同一AMPで実施。手動変更厳禁。DB反映後は `npx supabase gen types` による物理同期確認が完了するまでActionへの移行を禁止する（詳細: `docs/governance/DB_SYNC_PROTOCOL.md`）。
-- **履歴管理**: `SCHEMA_HISTORY.md` に記録し `npx supabase db diff` を使用。
-- **CAVR Protocol (Hybrid Verification)**: DOM関連検証は以下の **Route A/B/C** から変更の性質に応じて選択し、その判断を構造的に宣言せよ:
-  - **Route A [Preview-Driven]**: UI/UX/スタイル変更。SADA検証後、必ずPushして **Preview URL** での実機確認を必須とする。
-  - **Route B [Local-Logic]**: ロジック/DB/内部処理。`vitest` / `tsc` のエラー0をもって品質証明とし、UI確認は任意。
-  - **Route C [Fast-Path]**: ドキュメント/設定のみ。自動テスト・Previewともにスキップ。
-  - **Route D [Disposable-Test]**: SADAテストの代替パス。複雑なUI/UX変更において、定型テストを追加せず、検証用の一時スクリプト（e.g., `temp_verify.js`）等を作成・実行し、その結果をエビデンスとしてタスク完了時に破棄する。
-
-### G. 段階的 Stop Protocol
-
-不明点発生時、「即停止」ではなく以下の3段階フローに従う:
-
-1. **観測（事実収集）**: ①関数参照の検索 ②型定義の確認 ③既存テストの探索 ④ログポイント候補の特定
-2. **最小実験**: スモークテスト実行、再現コード作成（安全な環境下に限る）
-3. **停止・質問**: 上記で解決不能な場合、以下を出力して停止:
-   ```
-   【停止報告】
-   [状態]: <現在の事実>
-   [原因]: <停止に至った理由>
-   [質問]: <人間に仰ぎたい判断>
-   ```
-
-- **Debt（技術的負債）**: T2/T3 で暫定対応を入れた場合のみ `DEBT_AND_FUTURE.md` に記録。完済まで当該ドメインへの新規提案禁止。
-- **Debt-Block Protocol**: `severity: critical` または `high` の未解消負債が存在するドメインへの新規変更は禁止。既存負債の解消を最優先せよ。
-- **Anti-Spiral Protocol**: 統治ロジックの追加・変更時は、既存ルールとの矛盾、デッドロック、または循環依存が発生しないことを事前に検証せよ。スパイラル予兆を検知した場合は直ちに作業を中断し、構造的対策を提案せよ。
-- **Cleanup**: 実装完了後、`debug_*` / `*.bak` 等の一時ファイルを即時削除。
-
-### H. Environment Compliance（環境整合）
-
-- **シェル互換**: Windows PowerShell v5.1 以下では `&&` は使用不可。`;`で分割するか個別実行せよ。
-- **バージョン整合**: Node.js API・ESM/CJS仕様は `package.json` の設定に従う。エラー時は再試行でなく構造的原因を分析せよ。
+### E. 物理検証プロトコル (CAVR)
+検証ルートの選択基準は [compliance.json](file:///governance/rules/compliance.json) を参照せよ。
+- **Route A**: UI/UX変更。Preview実機確認必須。
+- **Route B**: ロジック修正。テストエラー0で合格。
+- **Route C**: ドキュメントのみ。検証不要。
+- **Route D**: 複雑なUI。一時検証スクリプトによる証明。
 
 ---
 
-## 第3層【応用プロトコル】— 特定状況で発動
+## 第3層【メタ統治】— 構造の維持
 
-### I. Gate Protocol（入力正典化：Epistemic Sync）
+### F. ADW (Architecture Decision Records)
+統治構造の変更（AGENTS.mdの修正等）は、必ず [ADR/](file:///governance/ADR/) に背景と判断理由を記録し、不変の履歴とせよ。
 
-- エージェントの `task_boundary` で宣言された意志は、直ちに `.agent/session/active_task.json` へ物理的に固定される（ティア情報 `tier: "T1"|"T2"|"T3"` を含む）。
-- `pre_flight.js` はこの物理化された意志+ティア情報を正典（Source of Truth）として扱い、ティア別の検証分岐を実施する。
-- 物理ゲート通過証跡は `sync_governance.js` によって自動生成される。
+### G. 完遂プロトコル ([TASK_CLOSED])
+タスク完了条件は [closure_conditions.json](file:///governance/rules/closure_conditions.json) に従う。
+1. **Verification**: ティアに応じた自動/手動検査。
+2. **GaC Gate**: `pre_flight.js` による最終整合性チェック。
+3. **Seal**: `check_seal.js` による承認印の物理検証。
 
-### J. SVP Resolution（統治ブロック解除）
-
-- SVP ロック発生時: `git status` 等で事実を確認し、【停止報告】フォーマットで状況を報告する。
-- 複雑な Audit タグ記録は不要。Lint修正・テスト追加等の単純イテレーションは自動緩和される。
-
-### K. Self-Reflection（出力前の自己証明）
-
-出力・ツール実行の冒頭で、以下を宣言し自問せよ。
-
-1. **適用したルールの宣言**（宣言なき出力は統治違反として無効）
-2. **ティア宣言**: 本タスクは T1/T2/T3 のいずれか、その判断理由
-3. AGENTS.md の制約を回避していないか
-4. 推測・当てずっぽうのリトライではないか
-5. 20ファイル以上のスキャン・URLアクセス前には見積（token数と時間）を提示し承認を得たか
-6. **K-6 認識論的透明性**: T3分析時は出力を層分離し確信度を開示せよ（`epistemic_gate.js` が物理検証）。
-7. **K-7 CAVR 宣言**: タスク開始・完了時に **Route A/B/C** のいずれを採用し、なぜその判断を下したかの理由を明示せよ（`pre_flight.js` が物理監視）。
-
-### L. 完遂プロトコル（100pt Closure）
-
-ティアに応じた完遂フロー:
-
-1. **Verification (自動検査)**:
-   - T1: 既存テスト通過のみ（省略可）
-   - T2: `tsc` + `vitest` エラー0
-   - T3: 同上 + Route A の場合は Preview URL 準備完了を宣言
-2. **Push (同期)**: 検証済みコードを直ちにリモート環境へ反映。
-3. **User Confirmation (人間確認)**:
-   - T1: 不要（事後報告のみ）
-   - T2: テスト通過で自動承認。人間応答を待たず進行可。
-   - T3: 人間の明示的承認（`ｙ`）必須。Route A は Preview URL での実機確認を依頼。
-4. **Cleanup (物理掃除)**: `*.bak`, `debug_*`, `temp_*` 等の一時ファイルを全て削除。
-5. **Walkthrough (証跡記録)**:
-   - T1/T2: コミットログで代替（walkthrough.md 不要）
-   - T3: `walkthrough.md` に最終結果とテスト合格証を記録。
-   - **Route D の場合**: 用いた一時的検証スクリプトの実行結果（標準出力など）を必ず一過性証跡として `walkthrough.md` に添付・記録すること。
-6. **Seal (封印)**: `[TASK_CLOSED]` を宣言し、タスクを正式に閉鎖。
+---
+> [!IMPORTANT]
+> 本憲法は TBNY DXOS の精神的支柱であり、詳細な物理コマンドやOS制約は **Environment Abstraction Layer (EAL)** に隠蔽されている。AIは `govCore` 等のツールを介して環境と対話せよ。
