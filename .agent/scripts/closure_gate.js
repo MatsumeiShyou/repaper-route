@@ -125,6 +125,33 @@ async function main() {
     const activeTier = getActiveTier();
     Log.info(`Initiating 100pt Closure Protocol (Tier: ${activeTier || 'AUTO'})...`);
 
+    // --- [GaC v6.1] Retry Awareness ---
+    const sessionPath = join(process.cwd(), '.agent', 'session', 'active_task.json');
+    let retryCount = 0;
+    try {
+        if (existsSync(sessionPath)) {
+            const session = JSON.parse(readFileSync(sessionPath, 'utf8'));
+            retryCount = session?.active_task?.t2_retry_count || 0;
+        }
+    } catch (e) { /* ignore */ }
+
+    if (retryCount >= 2) {
+        Log.warn(`High Retry Count Detected (${retryCount}). Recurrence prevention check enforced.`);
+        // 物理的証跡の確認（ADR または preventions への追記が直近コミットに含まれているか、等）
+        // 簡易的に git diff で /governance/ ディレクトリの変更を確認
+        let govChanged = false;
+        try {
+            const diff = execSync('git diff --cached --name-only', { encoding: 'utf-8' });
+            govChanged = diff.includes('governance/') || diff.includes('AGENTS.md');
+        } catch (e) { /* ignore */ }
+
+        if (!govChanged) {
+            Log.error('🚫 [RECURRENCE BLOCKER] 2回以上のリトライが発生していますが、再発防止策（ADR/物理ゲート）の追加が確認できません。');
+            Log.error('   反映を中断しました。再発防止プロトコルに従い、分析と恒久的な対策を実装してください。');
+            process.exit(1);
+        }
+    }
+
     try {
         // [§L] Epistemic Bypass Check + ティア統合
         Log.info('Checking changed files (Epistemic Bypass + Tier)...');

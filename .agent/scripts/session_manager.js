@@ -18,3 +18,16 @@ export const isTaskActive = () => {
     const session = getSession();
     return session?.active_task?.status === 'In-Progress';
 };
+
+export const incrementRetryCount = () => {
+    const session = getSession();
+    if (!session || !session.active_task) return;
+
+    const currentCount = session.active_task.t2_retry_count || 0;
+    updateSession({
+        active_task: {
+            ...session.active_task,
+            t2_retry_count: currentCount + 1
+        }
+    });
+};

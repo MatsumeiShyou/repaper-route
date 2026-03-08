@@ -24,6 +24,8 @@ const SCRIPTS_DIR = path.join(PROJECT_ROOT, '.agent', 'scripts');
 const TASK_MD_PATH = path.join(PROJECT_ROOT, 'task.md');
 const RULES_PATH = path.join(PROJECT_ROOT, '.agent', 'config', 'governance_rules.json');
 const SESSION_PATH = path.join(PROJECT_ROOT, '.agent', 'session', 'active_task.json');
+const DENYLIST_PATH = path.join(PROJECT_ROOT, 'governance', 'preventions', 'denylist.json');
+const SHADOW_REGISTRY_PATH = path.join(PROJECT_ROOT, 'governance', 'preventions', 'shadow_registry.json');
 
 // --- Utilities ---
 function runCheck(name, command) {
@@ -383,6 +385,81 @@ function validateGovernanceCompliance(changedFiles, effectiveTier) {
 }
 
 /**
+ * [GaC v6.1] Recurrence Prevention Scan
+ */
+function validateRecurrencePrevention(changedFiles, effectiveTier) {
+    if (effectiveTier === 'T1' || changedFiles.length === 0) return;
+    if (!fs.existsSync(DENYLIST_PATH)) return;
+
+    console.log('\n🛡️  [Recurrence Gate] 再発防止アンチパターンをスキャン中...');
+
+    try {
+        const { rules } = JSON.parse(fs.readFileSync(DENYLIST_PATH, 'utf8'));
+        let shadowRegistry = { registry: [] };
+        if (fs.existsSync(SHADOW_REGISTRY_PATH)) {
+            shadowRegistry = JSON.parse(fs.readFileSync(SHADOW_REGISTRY_PATH, 'utf8'));
+        }
+
+        let violations = [];
+        let shadowWarnings = [];
+
+        for (const file of changedFiles) {
+            if (!fs.existsSync(file)) continue;
+            const content = fs.readFileSync(file, 'utf8');
+
+            for (const rule of rules) {
+                // scope チェック (glob 簡易実装)
+                const isTarget = rule.include.some(pattern => {
+                    const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+                    return regex.test(file.replace(/\\/g, '/')) || regex.test(path.basename(file));
+                });
+
+                if (!isTarget) continue;
+
+                // パターンチェック
+                const patternRegex = new RegExp(rule.pattern, 'g');
+                if (patternRegex.test(content)) {
+                    const isShadow = shadowRegistry.registry.some(s => s.ruleId === rule.id);
+                    if (isShadow) {
+                        shadowWarnings.push({ file, rule });
+                    } else {
+                        violations.push({ file, rule });
+                    }
+                }
+            }
+        }
+
+        if (shadowWarnings.length > 0) {
+            console.warn(`\n⚠️  [Recurrence Gate] シャドウ期間中のルール警告 (${shadowWarnings.length}件):`);
+            shadowWarnings.forEach(v => {
+                console.warn(`   【警告】: ${v.file} - ${v.rule.name} (Shadow Mode)`);
+                console.warn(`   【詳細】: ${v.rule.message}`);
+            });
+        }
+
+        if (violations.length > 0) {
+            console.error('\n🚫───────────── [ RECURRENCE BLOCK ] ─────────────🚫');
+            console.error(`❌ ${violations.length} 件の再発防止違反が検知されました。`);
+            violations.forEach(v => {
+                console.error(`\n   【ファイル】: ${v.file}`);
+                console.error(`   【ルール】: ${v.rule.name}`);
+                console.error(`   【警告】: ${v.rule.message}`);
+                console.error(`   【理由】: 本パターンは過去にリトライが多発したアンチパターンとして登録されています。`);
+            });
+            console.error('\n🚫──────────────────────────────────────────────🚫\n');
+            process.exit(1);
+        }
+
+        if (violations.length === 0 && shadowWarnings.length === 0) {
+            console.log('✅ [Recurrence Gate] 再発防止違反は見つかりませんでした。');
+        }
+
+    } catch (e) {
+        console.warn(`⚠️  [Recurrence Gate] スキャン実行中にエラーが発生しました: ${e.message}`);
+    }
+}
+
+/**
  * [AGENTS.md §F] CAVR Enforcement
  */
 function validateCAVR(changedFiles, effectiveTier) {
@@ -515,6 +592,7 @@ async function main() {
     validateSmartDbSync(allChangedFiles, effectiveTier);
     validateCAVR(allChangedFiles, effectiveTier);
     validateGovernanceCompliance(allChangedFiles, effectiveTier);
+    validateRecurrencePrevention(allChangedFiles, effectiveTier);
     validateAntiSpiral(effectiveTier);
 
     // 4. Epistemic Cache（ティア統合版）
