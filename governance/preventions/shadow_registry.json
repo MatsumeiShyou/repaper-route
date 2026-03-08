@@ -1,9 +1,4 @@
 {
     "shadow_period_tasks": 3,
-    "registry": [
-        {
-            "ruleId": "rule_v61_test",
-            "tasksRemaining": 2
-        }
-    ]
+    "registry": []
 }
