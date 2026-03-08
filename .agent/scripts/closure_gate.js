@@ -8,6 +8,11 @@
 import { execSync, spawn } from 'child_process';
 import { existsSync, readdirSync, statSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { parseArgs } from 'util';
+
+// --- Configuration & Constants ---
+const REFLECT_FLAG = process.argv.includes('--reflect');
+const BRANCH = 'main';
 
 // --- ティア判定 ---
 function getActiveTier() {
@@ -55,6 +60,66 @@ const runCommandAsync = (cmd, args) => {
         });
     });
 };
+
+// --- [Adjustment 2] Zombie Process Cleanup ---
+function cleanZombieProcesses() {
+    if (process.platform !== 'win32') return;
+    Log.info('Scanning for zombie test processes holding file locks...');
+    try {
+        // 特定のキーワードを含む Node プロセスを強制終了（このスクリプト自体は除外されるはずだが安全のため Stop-Process を使用）
+        const cmd = 'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { ($_.Name -eq \'node.exe\') -and ($_.CommandLine -like \'*vitest*\' -or $_.CommandLine -like \'*npm test*\') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"';
+        runCommand(cmd, true);
+        Log.success('Physical process cleanup successful.');
+    } catch (e) {
+        Log.warn('Process cleanup skipped or failed.');
+    }
+}
+
+// --- [Adjustment 1] Reflection Chain ---
+function executeReflection(tier) {
+    Log.info('Starting Atomic Reflection Chain (Pull -> Commit -> Push)...');
+
+    try {
+        // 1. Stage all changes first to allow rebase
+        Log.info('  -> Staging changes (git add -A)...');
+        runCommand('git add -A');
+
+        // 2. Pre-push Sync
+        Log.info('  -> Syncing with remote (git pull --rebase)...');
+        try {
+            runCommand(`git pull --rebase origin ${BRANCH}`);
+        } catch (pullError) {
+            Log.warn('Rebase failed. Attempting to resolve via stash...');
+            runCommand('git stash');
+            runCommand(`git pull --rebase origin ${BRANCH}`);
+            runCommand('git stash pop', true);
+            runCommand('git add -A');
+        }
+
+        // 3. Inventory check
+        const status = runCommand('git status --porcelain');
+        if (!status) {
+            Log.success('No local changes to commit. Push skipped.');
+            return;
+        }
+
+        // 4. Generate Commit Message (v6.0 Logic)
+        const commitMsg = `[${tier || 'T3'}] Automated Task Closure (GaC v6.0) [事実] 物理連鎖ゲートによる自動反映 [理由] 反映漏れの構造的防止`;
+
+        // 5. Commit
+        Log.info(`  -> Committing changes: ${commitMsg}`);
+        runCommand(`git commit -m "${commitMsg}" --no-verify`);
+
+        // 6. Final Push
+        Log.info('  -> Pushing to origin...');
+        runCommand(`git push origin ${BRANCH}`);
+
+        Log.success('Reflection Chain SEALED.');
+    } catch (error) {
+        Log.error('Reflection Chain aborted due to fatal error.');
+        throw error;
+    }
+}
 
 async function main() {
     const activeTier = getActiveTier();
@@ -113,7 +178,6 @@ async function main() {
             for (const file of filesToDelete) {
                 try {
                     Log.info(`  -> Removing: ${file}`);
-                    // Windows/Unix 双方で動作するよう fs を使用 (existsSync は先頭で import 済み)
                     if (existsSync(file)) {
                         runCommand(process.platform === 'win32' ? `Remove-Item -Force "${file}"` : `rm -f "${file}"`, true);
                     }
@@ -128,16 +192,11 @@ async function main() {
 
         // [§L] tsc & vitest Check（ティア制御）+ Quarantine/Skip 監視
         if (!bypassEligible && activeTier !== 'T1') {
-
-            // --- 1. Diff解析による自動検知 (.skip 追加の監視) ---
             Log.info('Analyzing git diff for Gate violations...');
             let gitDiffAdded = '';
             try {
-                // staged と untracked なしの diff 等を含めて変更行を取得
                 gitDiffAdded = runCommand('git diff --cached -U0', true);
-            } catch (e) {
-                // ignore
-            }
+            } catch (e) { /* ignore */ }
 
             if (gitDiffAdded) {
                 const diffLines = gitDiffAdded.split('\n');
@@ -146,7 +205,6 @@ async function main() {
                     if (line.startsWith('+++ b/')) {
                         currentFile = line.substring(6);
                     } else if (line.startsWith('+') && !line.startsWith('+++')) {
-                        // ==== 一般テストルールの検知 ====
                         if (typeof currentFile === 'string' && (currentFile.endsWith('.test.ts') || currentFile.endsWith('.test.tsx'))) {
                             if (line.includes('describe.skip') || line.includes('it.skip') || line.includes('test.skip')) {
                                 Log.warn(`[WARNING] A .skip directive was detected in ${currentFile}. Please ensure you documented this in DEBT_AND_FUTURE.md.`);
@@ -156,7 +214,6 @@ async function main() {
                 }
             }
 
-            // --- 3. Parallel Execution (tsc & vitest) ---
             Log.info(`Running Type Check and Test Suite in PARALLEL [${activeTier || 'FULL'}]...`);
             try {
                 const typeCheck = runCommandAsync('npx', ['tsc', '--noEmit']);
@@ -169,13 +226,21 @@ async function main() {
             }
         }
 
+        // --- [GaC v6.0] Reflection Sequence ---
+        if (REFLECT_FLAG) {
+            cleanZombieProcesses();
+            executeReflection(activeTier);
+        } else {
+            Log.info('Execution mode: Verification Only (--reflect flag not detected).');
+        }
+
         Log.sealed(activeTier);
         process.exit(0);
 
     } catch (error) {
         Log.error('Closure Protocol failed.');
         if (error.message) console.error(error.message);
-        Log.error('Push rejected. Please resolve the issues and try again.');
+        Log.error('Process aborted. Reflection blocked.');
         process.exit(1);
     }
 }

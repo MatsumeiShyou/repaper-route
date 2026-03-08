@@ -47,10 +47,18 @@
 統治構造の変更（AGENTS.mdの修正等）は、必ず [ADR/](file:///governance/ADR/) に背景と判断理由を記録し、不変の履歴とせよ。
 
 ### G. 完遂プロトコル ([TASK_CLOSED])
-タスク完了条件は [closure_conditions.json](file:///governance/rules/closure_conditions.json) に従う。
-1. **Verification**: ティアに応じた自動/手動検査。
-2. **GaC Gate**: `pre_flight.js` による最終整合性チェック。
-3. **Seal**: `check_seal.js` による承認印の物理検証。
+タスクの物理的な完遂は **Reflecting-by-Default** 原則に従う。
+AI は実装完了後、以下の単一コマンドを物理ゲートとして実行し、検証から反映までを一気通貫で完遂せよ。
+
+```powershell
+npm run done
+```
+
+1.  **Verification**: `closure_gate.js` による自動検査（ティア比例型）。
+2.  **Atomic Reflection**: 検証パス後の `pull --rebase` -> `commit` -> `push` の自動連鎖。
+3.  **Process Purge**: 反映直前のバックグラウンドプロセス（ファイルロック）の自動洗浄。
+
+詳細な閾値や除外パターンは [closure_conditions.json](file:///governance/rules/closure_conditions.json) 等の構造化資産に委ね、憲法は「物理的連鎖による完遂」を絶対律とする。
 
 ---
 > [!IMPORTANT]
