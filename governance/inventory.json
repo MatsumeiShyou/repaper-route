@@ -172,6 +172,17 @@
                 "AUDIT_LIMITS": "INTERNAL"
             }
         }
+        {
+            "id": "SCR-UTIL-AMP",
+            "path": ".agent/scripts/record_amp.js",
+            "link_to_agents_md": "§B-1",
+            "purpose": "AMP (Asset Modification Protocol) record utility",
+            "risk_score": 3,
+            "fix_required": "node .agent/scripts/record_amp.js",
+            "logic_data_mapping": {
+                "AMP_RECORD": "AMPLOG.jsonl"
+            }
+        }
     ],
     "protection_policy": {
         "unknown_file_action": "BLOCK",
