@@ -8,6 +8,7 @@
 import { execSync, spawn } from 'child_process';
 import { existsSync, readdirSync, statSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import crypto from 'crypto';
 import { incrementRetryCount, resetRetryCount } from './session_manager.js';
 
 // --- Configuration & Constants ---
@@ -100,6 +101,36 @@ function cleanZombieProcesses() {
     }
 }
 
+// --- [GaC v6.1] Self-Diagnostic Engine (第0関門) ---
+function runSelfDiagnostic() {
+    Log.info('Running Self-Diagnostic (Stage 0: Integrity Check)...');
+    try {
+        const diagPath = join(process.cwd(), '.agent', 'session', '.diag_test');
+
+        // 1. FS Write/Read Test
+        const testContent = `DIAG_${Date.now()}`;
+        writeFileSync(diagPath, testContent);
+        const readBack = readFileSync(diagPath, 'utf8');
+        if (readBack !== testContent) throw new Error('FS Integrity Mismatch');
+        if (existsSync(diagPath)) {
+            runCommand(process.platform === 'win32' ? `Remove-Item -Force "${diagPath}"` : `rm -f "${diagPath}"`, true);
+        }
+
+        // 2. Git Connectivity Test
+        runCommand('git --version', false);
+
+        Log.success('Self-Diagnostic passed. Agent environment is healthy.');
+    } catch (e) {
+        Log.error('FAILED: Self-Diagnostic (Agent Integrity Compromised)');
+        Log.error(`Reason: ${e.message}`);
+        Log.error('\n[EMERGENCY GUIDE]');
+        Log.error('1. Check file permissions in .agent/session/');
+        Log.error('2. Ensure node processes are not locking required files.');
+        Log.error('3. Verify git is accessible from current shell.');
+        process.exit(1);
+    }
+}
+
 const DENYLIST_PATH = join(process.cwd(), 'governance', 'preventions', 'denylist.json');
 const SHADOW_REGISTRY_PATH = join(process.cwd(), 'governance', 'preventions', 'shadow_registry.json');
 
@@ -178,11 +209,70 @@ function executeReflection(tier) {
     }
 }
 
-async function main() {
-    // Stage 0: Register Fail-Safe Observer
-    registerExitTracker();
+/**
+ * 原因と結果の検証 (C-E-V) 証跡の整合性を検証する
+ * @returns {void}
+ */
+function verifyEvidenceChain() {
+    Log.info('Verifying Cause-and-Effect Verification (C-E-V) Evidence Chain...');
+    const sessionPath = join(process.cwd(), '.agent', 'session', 'active_task.json');
+    if (!existsSync(sessionPath)) throw new Error('C-E-V ERROR: Session file missing.');
 
-    const activeTier = getActiveTier();
+    const session = JSON.parse(readFileSync(sessionPath, 'utf8'));
+    const { negative_proof, positive_proof, evidence_hash } = session.active_task || {};
+
+    if (!negative_proof) {
+        throw new Error('C-E-V BLOCK: Negative Proof (修正前の失敗再現証跡) が記録されていません。');
+    }
+    if (!positive_proof) {
+        throw new Error('C-E-V BLOCK: Positive Proof (修正後の成功証明証跡) が記録されていません。');
+    }
+
+    // ハッシュ整合性チェック (ハルシネーション/改ざん防止)
+    const actualHash = crypto.createHash('sha256').update(positive_proof).digest('hex');
+    if (evidence_hash !== actualHash) {
+        Log.error('EVIDENCE CORRUPTION DETECTED!');
+        Log.error(`Expected Hash: ${evidence_hash}`);
+        Log.error(`Actual Hash:   ${actualHash}`);
+        throw new Error('C-E-V BLOCK: 記録された証跡ハッシュが不一致です。再収集してください。');
+    }
+
+    Log.success('Evidence Chain verified (Negative/Positive proofs match hash).');
+}
+
+/**
+ * Git 差分から統治に関わる重要ファイルの変更を検知する
+ * @returns {boolean}
+ */
+function detectGovChanges() {
+    try {
+        const diffCached = runCommand('git diff --cached --name-only', true);
+        const diffUnpushed = runCommand(`git diff origin/main..HEAD --name-only`, true);
+        const combinedDiff = (diffCached + '\n' + diffUnpushed).replace(/\\/g, '/');
+
+        const govPaths = ['AGENTS.md', 'governance/', '.agent/scripts/'];
+        return govPaths.some(path => combinedDiff.includes(path));
+    } catch (e) {
+        return false;
+    }
+}
+
+async function main() {
+    // Stage 0: Register Fail-Safe Observer & Self-Diagnostic
+    registerExitTracker();
+    runSelfDiagnostic();
+
+    let activeTier = getActiveTier();
+
+    // --- [GaC v6.1] Physical Tier Escalation ---
+    if (detectGovChanges()) {
+        if (activeTier !== 'T3') {
+            Log.warn('🚨 [PHYSICAL ESCALATION] Governance asset changes detected.');
+            Log.warn('   Forcing T3 Cause-and-Effect Verification (C-E-V) Protocol.');
+            activeTier = 'T3';
+        }
+    }
+
     Log.info(`Initiating 100pt Closure Protocol (Tier: ${activeTier || 'AUTO'})...`);
 
     // --- [GaC v6.1] Retry Awareness ---
@@ -261,6 +351,11 @@ async function main() {
             }
         } else {
             Log.info('No unpushed file changes detected. Proceeding with standard gate.');
+        }
+
+        // --- [GaC v6.2] Cause-and-Effect Verification (C-E-V) Enforcement ---
+        if (activeTier === 'T3') {
+            verifyEvidenceChain();
         }
 
         // [G8.1.3] Safety Block Check

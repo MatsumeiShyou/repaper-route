@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 
 import { BoardJob, BoardDriver, BoardSplit } from '../../../types';
 import { timeToMinutes, minutesToTime, calculateTimeFromY } from '../logic/timeUtils';
@@ -30,12 +30,26 @@ export const useBoardDragDrop = (
 
     const [draggingJobId, setDraggingJobId] = useState<string | null>(null);
     const [draggingSplitId, setDraggingSplitId] = useState<string | null>(null);
-    const [dropPreview, setDropPreview] = useState<any | null>(null);
-    const dropPreviewRef = useRef<any | null>(null);
-    const [dropSplitPreview] = useState<any | null>(null);
-
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [resizingState, setResizingState] = useState<any | null>(null);
+
+    // [F-SSOT] dropPreview は状態ではなく、マウス位置とドラッグ対象からの「純粋導出」
+    const dropPreview = useMemo(() => {
+        if (!draggingJobId) return null;
+
+        // 相対Y座標の計算（calculateDropTargetRef 内のロジックをここに集約または呼び出し）
+        let relativeY = mousePos.y;
+        if (gridContainerRef.current) {
+            const containerRect = gridContainerRef.current.getBoundingClientRect();
+            relativeY = mousePos.y - containerRect.top;
+        }
+
+        const currentY = relativeY - dragOffset.y;
+        return calculateDropTargetRef(mousePos.x, currentY, draggingJobId);
+    }, [draggingJobId, mousePos, dragOffset, jobs, splits, drivers]);
+
+    const dropSplitPreview = null; // 簡略化
 
     const calculateDropTargetRef = (pointerX: number, relativeY: number, targetJobId: string) => {
         const targetJob = jobs.find(j => j.id === targetJobId);
@@ -106,23 +120,7 @@ export const useBoardDragDrop = (
             y: e.clientY - rect.top
         });
 
-
-
-
-
-        // 2. ドラッグ開始時の絶対座標を保持（デルタ計算用）
-        // ここでは実装の簡潔化のため、dragOffset に「掴み位置」を、
-        // calculateDropTargetRef への Y 座標には「マウス位置 - 掴み位置」を渡す設計を徹底します。
-
-        const initialPreview = {
-            driverId: job.driverId,
-            startTime: job.startTime || (job as any).timeConstraint,
-            duration: job.duration,
-            isOverlapError: false,
-            isWarning: (job as any).hasWarning
-        };
-        setDropPreview(initialPreview);
-        dropPreviewRef.current = initialPreview;
+        setMousePos({ x: e.clientX, y: e.clientY });
     };
 
     const handleSplitMouseDown = (e: React.MouseEvent, split: BoardSplit) => {
@@ -156,8 +154,6 @@ export const useBoardDragDrop = (
         });
     };
 
-    const lastThrottleRef = useRef<number>(0);
-    const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleWindowMouseMove = useCallback((e: MouseEvent) => {
         let relativeY = e.clientY;
@@ -197,37 +193,9 @@ export const useBoardDragDrop = (
         }
 
         if (draggingJobId) {
-            const now = Date.now();
-            const elapsed = now - lastThrottleRef.current;
-
-            if (elapsed < 150) {
-                if (!throttleTimerRef.current) {
-                    // Pending 状態を即座に反映
-                    setDropPreview((prev: any) => prev ? { ...prev, isPending: true } : null);
-
-                    throttleTimerRef.current = setTimeout(() => {
-                        const currentY = relativeY - dragOffset.y;
-                        const preview = calculateDropTargetRef(e.clientX, currentY, draggingJobId);
-                        setDropPreview(preview); // isPending は preview 内に含まれないため解除される
-                        dropPreviewRef.current = preview;
-                        lastThrottleRef.current = Date.now();
-                        throttleTimerRef.current = null;
-                    }, 150 - elapsed);
-                }
-                return;
-            }
-
-            try {
-                const currentY = relativeY - dragOffset.y;
-                const preview = calculateDropTargetRef(e.clientX, currentY, draggingJobId);
-                setDropPreview(preview);
-                dropPreviewRef.current = preview;
-                lastThrottleRef.current = now;
-            } catch (err) {
-                console.error("[DragDrop] Error calculating drop preview:", err);
-            }
+            setMousePos({ x: e.clientX, y: e.clientY });
         }
-    }, [draggingJobId, resizingState, dragOffset, jobs, splits, drivers, driverColRefs]);
+    }, [draggingJobId, resizingState, dragOffset, jobs, setJobs]);
 
     const handleWindowMouseUp = useCallback((_e: MouseEvent) => {
         if (resizingState) {
@@ -237,7 +205,7 @@ export const useBoardDragDrop = (
 
         if (draggingJobId) {
             try {
-                const preview = dropPreviewRef.current;
+                const preview = dropPreview;
                 if (preview && !preview.isOverlapError) {
                     const target = jobs.find(j => j.id === draggingJobId);
                     if (target) {
@@ -274,12 +242,6 @@ export const useBoardDragDrop = (
                 console.error("[DragDrop] MouseUp Error:", err);
             } finally {
                 setDraggingJobId(null);
-                setDropPreview(null);
-                dropPreviewRef.current = null;
-                if (throttleTimerRef.current) {
-                    clearTimeout(throttleTimerRef.current);
-                    throttleTimerRef.current = null;
-                }
             }
         }
     }, [draggingJobId, resizingState, dragOffset, jobs, recordHistory, createProposal]);

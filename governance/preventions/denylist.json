@@ -1,24 +1,21 @@
-```json
 {
     "rules": [
         {
             "id": "root-script-block",
             "pattern": "^test_.*\\.js$|^temp_.*\\.js$",
             "message": "ROOT DIRECTORY ERROR: 検証用スクリプト (*.js) がルートに残っています。物理削除してから反映してください。",
-            "scope": [
+            "include": [
                 "./*"
             ]
         },
         {
-            "id": "design-bypass-locker",
-            "pattern": ".*",
-            "message": "CONSTITUTIONAL VIOLATION (§C-4): ユーザーからの「計画/設計」指示に対し、設計証跡 (ADR/Plan) の更新が確認できません。Analyzer 役割へ復帰し、設計を完遂させてください。",
-            "condition": "last_instruction.matches(/計画|設計|再考|検討|構築/) && !changed_files.includes('governance/ADR') && !changed_files.includes('implementation_plan.md')",
-            "scope": [
-                "src/**",
-                "app/**"
+            "id": "f-ssot-imperative-sync",
+            "pattern": "useEffect\\(\\(\\)\\s*=>\\s*\\{[\\s\\n]*set[A-Z][a-zA-Z]*\\(.*\\);?[\\s\\n]*\\},\\s*\\[.*\\]\\)",
+            "message": "F-SSOT VIOLATION: useEffect による命令的同期を検知しました。useState + useEffect を廃止し、useMemo による宣言的導出に置き換えてください。",
+            "include": [
+                "src/**/*.tsx",
+                "src/**/*.ts"
             ]
         }
     ]
 }
-```

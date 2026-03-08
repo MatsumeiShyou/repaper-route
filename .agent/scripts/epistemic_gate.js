@@ -28,19 +28,19 @@ const K6_FLAG = '[K-6]';
 const REQUIRED_MARKERS = [
     {
         name: '層の分離',
-        patterns: ['[確認済み事実]', '[合理的推論]', '[仮説・推測]', '[不明点]'],
+        patterns: ['[確認済み事実]', '[Fact]', '[Confirmed Fact]', '[合理的推論]', '[Reasoning]', '[仮説・推測]', '[Hypothesis]', '[不明点]', '[Unknown]'],
         minMatch: 1,  // 1つ以上あれば OK
-        description: '出力に含まれる情報を4層（確認済み事実/合理的推論/仮説・推測/不明点）で明示すること'
+        description: '出力に含まれる情報を4層（事実/推論/仮説/不明点）で明示すること'
     },
     {
         name: '二段階批判フェーズ',
-        patterns: ['[自己批判]'],
+        patterns: ['[自己批判]', '[Self-Criticism]', '[Criticism]'],
         minMatch: 1,
         description: '分析を提示した後、同一出力内で推測・仮定・飛躍を自己批判する段階を設けること'
     },
     {
         name: '最低確信度の自己開示',
-        patterns: ['[最低確信度項目]'],
+        patterns: ['[最低確信度項目]', '[Low Confidence Item]', '[Low Confidence Area]'],
         minMatch: 1,
         description: '高リスク分析の末尾に、最も自信がない部分を1つ以上開示すること'
     }

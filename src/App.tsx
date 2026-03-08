@@ -2,6 +2,7 @@ import React from 'react'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider, useAuth } from './contexts/AuthProvider'
 import { InteractionProvider } from './contexts/InteractionContext'
+import { MasterDataProvider } from './contexts/MasterDataContext'
 import { ProfilePortal } from './components/ProfilePortal'
 import { RefreshCcw, Database } from 'lucide-react'
 import { AdminLayout } from './components/AdminLayout'
@@ -108,11 +109,13 @@ export default function App() {
     return (
         <ErrorBoundary name="GlobalApp">
             <AuthProvider>
-                <InteractionProvider>
-                    <NotificationProvider>
-                        <AppContent />
-                    </NotificationProvider>
-                </InteractionProvider>
+                <MasterDataProvider>
+                    <InteractionProvider>
+                        <NotificationProvider>
+                            <AppContent />
+                        </NotificationProvider>
+                    </InteractionProvider>
+                </MasterDataProvider>
             </AuthProvider>
         </ErrorBoundary>
     )

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthProvider';
 import { supabase } from '../lib/supabase/client';
 
@@ -35,47 +35,36 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({ childr
         return (saved as DeviceMode) || 'auto';
     });
 
-    // 実際の有効なモード（'auto' を解釈した結果）
-    const [activeMode, setActiveMode] = useState<ActiveDeviceMode>('pc');
+    // フェーズ 1.2: ウィンドウサイズ/タッチ特性の監視 (派生用)
+    const [windowMetrics, setWindowMetrics] = useState({
+        width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+        isTouch: typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : false
+    });
 
-    // フェーズ 1.2 & 1.3: 適応型初期化と永続化
     useEffect(() => {
-        localStorage.setItem('sanctuary_device_mode', deviceMode);
-
-        if (deviceMode === 'auto') {
-            const isTouch = window.matchMedia
-                ? window.matchMedia('(pointer: coarse)').matches
-                : false;
-            const width = window.innerWidth;
-
-            if (isTouch) {
-                setActiveMode(width >= 768 ? 'tablet' : 'mobile');
-            } else {
-                setActiveMode('pc');
-            }
-        } else {
-            setActiveMode(deviceMode);
-        }
-    }, [deviceMode]);
-
-    // 'auto' モード時のリサイズ/モード切替を動的に処理
-    useEffect(() => {
-        if (deviceMode !== 'auto') return;
-
         const handleResize = () => {
-            const isTouch = window.matchMedia
-                ? window.matchMedia('(pointer: coarse)').matches
-                : false;
-            const width = window.innerWidth;
-            if (isTouch) {
-                setActiveMode(width >= 768 ? 'tablet' : 'mobile');
-            } else {
-                setActiveMode('pc');
-            }
+            setWindowMetrics({
+                width: window.innerWidth,
+                isTouch: window.matchMedia('(pointer: coarse)').matches
+            });
         };
-
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // 実際の有効なモード（F-SSOT: 状態ではなく memo による導出）
+    const activeMode = useMemo<ActiveDeviceMode>(() => {
+        if (deviceMode !== 'auto') return deviceMode;
+
+        if (windowMetrics.isTouch) {
+            return windowMetrics.width >= 768 ? 'tablet' : 'mobile';
+        }
+        return 'pc';
+    }, [deviceMode, windowMetrics]);
+
+    // フェーズ 1.3: 永続化のみを担当する副作用
+    useEffect(() => {
+        localStorage.setItem('sanctuary_device_mode', deviceMode);
     }, [deviceMode]);
 
     // クラウドから初期値をフェッチ

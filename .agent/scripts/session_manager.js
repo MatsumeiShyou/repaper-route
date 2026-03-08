@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 const SESSION_PATH = path.join(process.cwd(), '.agent', 'session', 'active_task.json');
 
@@ -63,4 +64,42 @@ export const resetRetryCount = () => {
             t2_retry_count: 0
         }
     });
+};
+
+/**
+ * 原因と結果の検証 (C-E-V) 証跡を物理的にロックする
+ * @param {'negative' | 'positive'} type 
+ * @param {string} content 証跡内容 (ログ等)
+ */
+export const lockEvidence = (type, content) => {
+    const session = getSession();
+    if (!session || !session.active_task) return;
+
+    const hash = crypto.createHash('sha256').update(content).digest('hex');
+    const field = type === 'negative' ? 'negative_proof' : 'positive_proof';
+
+    updateSession({
+        active_task: {
+            ...session.active_task,
+            [field]: content,
+            evidence_hash: hash // 常に最新のハッシュを保持
+        }
+    });
+
+    // AMPLOG への記録
+    const ampLogPath = path.join(process.cwd(), 'AMPLOG.jsonl');
+    const logEntry = JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'INFO',
+        event: 'EVIDENCE_LOCKED',
+        type: type,
+        hash: hash,
+        task: session.active_task.name
+    }) + '\n';
+
+    try {
+        fs.appendFileSync(ampLogPath, logEntry, 'utf8');
+    } catch (e) {
+        console.error(`FAILED TO APPEND AUDIT LOG: ${e.message}`);
+    }
 };
