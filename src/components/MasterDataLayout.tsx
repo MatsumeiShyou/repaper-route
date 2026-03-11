@@ -17,11 +17,13 @@ import {
 import { supabase } from '../lib/supabase/client';
 import useMasterCRUD from '../hooks/useMasterCRUD';
 import { Modal } from './Modal';
-import { MasterSchema, MasterColumn, MASTER_SCHEMAS } from '../config/masterSchema';
+import { MasterSchema, MasterColumn, MASTER_SCHEMAS, MasterField } from '../config/masterSchema';
+import { serializeMasterData, normalizeDays } from '../utils/serialization';
 
 interface MasterDataLayoutProps {
     schema: MasterSchema;
 }
+
 
 export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) => {
     // 汎用レイアウトなので Record<string, any> として扱う
@@ -116,10 +118,11 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
     };
 
     const handleSave = async (formData: Record<string, any>) => {
+        const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName);
         if (editingItem) {
-            await updateItem(editingItem[schema.primaryKey], formData);
+            await updateItem(editingItem[schema.primaryKey], serialized);
         } else {
-            await createItem(formData);
+            await createItem(serialized);
         }
         setIsModalOpen(false);
     };
@@ -249,20 +252,6 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
     );
 };
 
-function normalizeDays(value: any): string[] {
-    if (Array.isArray(value)) return value;
-    if (value && typeof value === 'object') {
-        const days: string[] = [];
-        const mapping: Record<string, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun', hol: 'Hol', oth: 'Oth' };
-        for (const [k, v] of Object.entries(value)) {
-            if (v === true && mapping[k.toLowerCase()]) {
-                days.push(mapping[k.toLowerCase()]);
-            }
-        }
-        return days;
-    }
-    return [];
-}
 
 function renderCell(item: Record<string, any>, col: MasterColumn) {
     const value = item[col.key];
@@ -545,10 +534,11 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
                             />
                         ) : field.type === 'select' ? (
                             <select
-                                className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                                className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                                 value={formData[field.name] || ''}
                                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                                 required={field.required}
+                                disabled={field.updatable === false && !!initialData}
                             >
                                 <option value="">選択してください</option>
                                 {field.options?.map(opt => (
@@ -690,8 +680,9 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
                                         className="sr-only peer"
                                         checked={!!formData[field.name]}
                                         onChange={(e) => setFormData({ ...formData, [field.name]: e.target.checked })}
+                                        disabled={field.updatable === false && !!initialData}
                                     />
-                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 peer-disabled:opacity-50"></div>
                                     <span className="ml-3 text-sm font-medium text-slate-500 dark:text-slate-400">
                                         {formData[field.name] ? '有効' : '無効'}
                                     </span>
@@ -700,11 +691,12 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
                         ) : (
                             <input
                                 type={field.type}
-                                className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                                className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                                 value={formData[field.name] || ''}
                                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                                 required={field.required}
                                 placeholder={field.placeholder}
+                                disabled={field.updatable === false && !!initialData}
                             />
                         )}
                     </div>

@@ -112,7 +112,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                         title="全ての計画案件を確定済みにします"
                     >
                         <CheckCircle size={16} />
-                        一括確定
+                        シフト確定
                     </button>
                 )}
 
@@ -123,7 +123,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                         title="現在の状態をテンプレートとして登録"
                     >
                         <Save size={16} />
-                        テンプレート登録
+                        tpl登録
                     </button>
                 )}
 
@@ -137,7 +137,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                         title="テンプレートを展開"
                     >
                         {isExpanding ? <Loader2 size={16} className="animate-spin" /> : <Layers size={16} />}
-                        {isExpanding ? '展開中...' : 'テンプレート適用'}
+                        {isExpanding ? '展開中...' : 'tplから適用'}
                     </button>
                 )}
 
@@ -166,7 +166,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                         `}
                     >
                         <Save size={16} />
-                        {isSyncing ? '保存中...' : '保存'}
+                        {isSyncing ? '保存中...' : '変更を保存'}
                         {!validation.isValid && (
                             <AlertTriangle size={14} className="text-amber-500 ml-1" />
                         )}

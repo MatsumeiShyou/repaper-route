@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase/client';
 import { MasterSchema } from '../config/masterSchema';
 import { invalidateMasterCache } from '../features/board/hooks/useMasterData';
+import { serializeMasterData } from '../utils/serialization';
 
 /**
  * 汎用マスタCRUDフック (TypeScript版)
@@ -42,11 +43,15 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
                 }
             });
 
+            // 物理保存用のシリアライズ
+            const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName);
+
             const { error: err } = await (supabase as any)
                 .rpc('rpc_execute_master_update', {
                     p_table_name: schema.rpcTableName,
-                    p_core_data: formData,
-                    p_reason: 'マスタ管理画面からの新規登録'
+                    p_id: String(formData[schema.primaryKey as keyof T] || ''),
+                    p_core_data: serialized,
+                    p_reason: `マスタ登録: ${window.navigator.userAgent}`
                 });
             if (err) throw err;
             invalidateMasterCache();
@@ -59,7 +64,7 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
 
     const updateItem = async (idValue: string | number, formData: Partial<T>) => {
         try {
-            // Phase 7-2: 更新可能項目のみにフィルタリング (防衛的UI)
+            // Phase 7-2: 更新可能項目のみにフィルタリング (防衛的UI) & シリアライズ
             const updatableData: Partial<T> = {};
             schema.fields.forEach(f => {
                 if (f.updatable !== false && formData[f.name as keyof T] !== undefined) {
@@ -67,12 +72,14 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
                 }
             });
 
+            const serialized = serializeMasterData(updatableData, schema.fields, schema.rpcTableName);
+
             const { error: err } = await (supabase as any)
                 .rpc('rpc_execute_master_update', {
                     p_table_name: schema.rpcTableName,
-                    p_id: idValue,
-                    p_core_data: updatableData,
-                    p_reason: 'マスタ管理画面からの更新'
+                    p_id: String(idValue),
+                    p_core_data: serialized,
+                    p_reason: `マスタ更新: ${window.navigator.userAgent}`
                 });
             if (err) throw err;
             invalidateMasterCache();
@@ -88,9 +95,9 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
             const { error: err } = await (supabase as any)
                 .rpc('rpc_execute_master_update', {
                     p_table_name: schema.rpcTableName,
-                    p_id: idValue,
+                    p_id: String(idValue),
                     p_core_data: { is_active: false },
-                    p_reason: 'マスタ管理画面からのアーカイブ'
+                    p_reason: `マスタ削除: ${window.navigator.userAgent}`
                 });
             if (err) throw err;
             invalidateMasterCache();

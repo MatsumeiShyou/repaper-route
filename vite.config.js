@@ -29,9 +29,6 @@ export default defineConfig(({ mode }) => {
             strictPort: true,
             watch: {
                 usePolling: true, // Critical for Windows/WSL2 Docker Volumes
-            },
-            hmr: {
-                clientPort: 5173,
             }
         },
     }

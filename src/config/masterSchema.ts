@@ -147,7 +147,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         description: '現場制約（車両制限/時間）および巡回ルート設定',
         viewName: 'view_master_points',
         rpcTableName: 'master_collection_points',
-        primaryKey: 'id',
+        primaryKey: 'location_id',
         searchFields: ['display_name', 'address', 'contractor_name', 'default_route_code', 'area'],
         columns: [
             {
@@ -271,6 +271,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
             { key: 'is_active', label: '有効状態', type: 'status' }
         ],
         fields: [
+            { name: 'location_id', label: '管理番号', type: 'text', updatable: false, placeholder: '例: 28' },
             { name: 'display_name', label: '拠点名（表示用）', type: 'text', required: true, placeholder: '例: ○○スーパー(AM)' },
             { name: 'furigana', label: 'ﾌﾘｶﾞﾅ（半角ｶﾅ）', type: 'text', placeholder: '例: ﾏﾙﾏﾙｽｰﾊﾟｰ' },
             { name: 'area', label: '地域', type: 'text', placeholder: '例: 中央区, 六本木' },

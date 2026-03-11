@@ -1,32 +1,20 @@
-# Task: Fundamental Governance & Interface Optimization [Sanctuary Sync]
+# Task Checklist - Workflow Protection & Governance Cleanup
 
-## Status: Completed
-## Last Updated: 2026-02-28T21:12:00Z
-
-## Intent / Context
-- Sanctuary Governance finalized: Intent-driven programmatic traceability.
-- External Memory implemented: ANTIPATTERN_REGISTRY for recurring failure prevention.
-- Terminal Environment optimized: stdio:pipe mojibake fix & silent run.ps1.
-- Operational efficiency: zero-terminal pattern recording via --auto mode.
-
-## Execution Timeline (Auto-generated)
-### Phase 1: Infrastructure & Session State 
-- [x] Phase 1: Infrastructure & Session State
-
-### Phase 2: pre_flight.js Redesign 
-- [x] Phase 2: pre_flight.js Redesign
-
-### Phase 3: Automation Script (sync_governance.js) 
-- [x] Phase 3: Automation Script (sync_governance.js)
-
-### Phase 4: Constitution Update (AGENTS.md) 
-- [x] Phase 4: Constitution Update (AGENTS.md)
-
-### Phase 5: Transition & Verification 
-- [x] Phase 5: Transition & Verification
-
-
-> [!NOTE]
-> このファイルは Sanctuary Governance により自動生成されています。手動編集は sync_governance.js により上書きされます。
-
-- [/] Phase 7: Sanctuary Purification (v5.5) [In-Progress]
+- [x] Restore lost workflow files (`git restore`)
+- [x] Populate global workflows directory (`C:\Users\shiyo\.gemini\antigravity\global_workflows`)
+- [x] Update `compliance.json` to protect workflow directories
+- [x] Update `denylist.json` to warn about workflow file deletion
+- [x] Register missing scripts in `inventory.json`
+- [x] Fix `pre_flight.js` ReferenceError (validateDebt crash)
+- [x] Zero-Residue Purification
+    - [x] 1.1 Identify all untracked files in the workspace
+    - [x] 1.2 Purge temporary items via `reflect.js --purge`
+    - [x] 1.3 Verify "Clean State" for T3 gating
+- [x] Atomic Governance Commit
+    - [x] 2.1 Record AMP entry with `design_ref`
+    - [x] 2.2 Stage final governance assets
+    - [x] 2.3 Execute T3 commit and validate success (Route B)
+- [x] Physical Push & Closure
+    - [x] 3.1 Perform `npm run done` or `/push`
+    - [x] 3.2 Verify workflow visibility and protection rules
+    - [x] 3.3 Create `walkthrough.md` and declare `**[TASK_CLOSED]**`

@@ -593,8 +593,64 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         recordHistory();
     }, [editMode, jobs, recordHistory, showNotification]);
 
+    // Phase 4: Import Periodic Jobs from Master
+    const importPeriodicJobs = useCallback(async () => {
+        if (!editMode || !currentDateKey) return;
+
+        setIsSyncing(true);
+        try {
+            const { PeriodicJobImporter } = await import('../../../lib/PeriodicJobImporter');
+            const targetDate = new Date(currentDateKey);
+            const masterPoints = await PeriodicJobImporter.fetchPointsByDate(targetDate);
+
+            if (masterPoints.length === 0) {
+                showNotification("本日（マスタ設定）の定期案件はありません", "info");
+                return;
+            }
+
+            // Map master points to BoardJob objects
+            const newJobs: BoardJob[] = masterPoints.map(p => ({
+                id: `periodic_${p.location_id}_${currentDateKey.replace(/-/g, '')}`,
+                title: p.name,
+                bucket: p.visit_slot === 'AM' ? 'AM' : p.visit_slot === 'PM' ? 'PM' : 'AM', // Default logic
+                duration: (p as any).duration_minutes || 60, // Use duration_minutes from Master if exists
+                area: p.area || p.display_name || '',
+                requiredVehicle: p.restricted_vehicle_id ? '要車両' : undefined,
+                note: p.note || undefined,
+                isSpot: p.is_spot_only || false,
+                timeConstraint: p.time_constraint_type !== 'NONE' ? '要確認' : undefined,
+                taskType: p.special_type === 'NONE' ? 'collection' : 'special',
+                status: 'planned' as const,
+                location_id: p.location_id // Correct field name from index.ts
+            }));
+
+            // Duplicate Prevention: Check if already exists in jobs or pendingJobs
+            const existingLocationIds = new Set([
+                ...jobs.map(j => j.location_id),
+                ...pendingJobs.map(j => j.location_id)
+            ].filter(Boolean));
+
+            const finalNewJobs = newJobs.filter(nj => !existingLocationIds.has(nj.location_id));
+
+            if (finalNewJobs.length === 0) {
+                showNotification("すべての定期案件は既に読み込み済みです", "info");
+                return;
+            }
+
+            setPendingJobs(prev => [...prev, ...finalNewJobs]);
+            showNotification(`${finalNewJobs.length}件の定期案件を読み込みました`, "success");
+            recordHistory();
+
+        } catch (e) {
+            console.error("[Board] Import periodic jobs failed:", e);
+            showNotification("マスタからの読み込みに失敗しました", "error");
+        } finally {
+            setIsSyncing(false);
+        }
+    }, [editMode, currentDateKey, jobs, pendingJobs, showNotification, recordHistory]);
+
     // Phase 6.2: Register current state as a template
-    const handleRegisterTemplate = async (name: string, dayOfWeek: number, nthWeek: number | null) => {
+    const handleRegisterTemplate = useCallback(async (name: string, dayOfWeek: number, nthWeek: number | null) => {
         setIsSyncing(true);
         try {
             const { error } = await supabase.from('board_templates').insert({
@@ -616,7 +672,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         } finally {
             setIsSyncing(false);
         }
-    };
+    }, [jobs, drivers, splits, showNotification]);
 
     return {
         masterDrivers,
@@ -630,6 +686,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
         handleExceptionChange, exceptionReasons, confirmedSnapshot,
         handleRegisterTemplate,
+        importPeriodicJobs, // Export new function
         history, recordHistory, undo, redo,
         addColumn, deleteColumn
     };

@@ -51,6 +51,7 @@ export default function BoardCanvas() {
         isDataLoaded, isSyncing,
         editMode, canEditBoard, boardMode,
         handleSave, handleConfirmAll, handleRegisterTemplate, recordHistory, undo, redo,
+        importPeriodicJobs, // [NEW] Added for Phase 4
         addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey);
 
@@ -346,27 +347,28 @@ export default function BoardCanvas() {
                         selectedCell={selectedCell}
                         selectedJobId={selectedJobId}
                         onAddJob={handleAssignPendingJob}
+                        onLoadPeriodicJobs={importPeriodicJobs}
                         onClose={() => setIsSidebarOpen(false)}
+                        isSyncing={isSyncing}
+                        editMode={editMode}
                     />
                 </div>
             </div>
 
-            {/* フッター */}
-            <div className="h-8 px-4 bg-slate-900 border-t border-white/5 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-6 text-slate-500">
+            {/* フッター (最小情報のみ表示) */}
+            <div className="h-7 px-4 bg-slate-100 border-t border-slate-200 text-[10px] font-bold flex items-center gap-4 text-slate-500">
                 <span className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${editMode ? 'bg-emerald-500' : 'bg-slate-700'} `} />
-                    {editMode ? '編集モード（同期中）' : '閲覧モード（読み取り専用）'}
+                    <div className={`w-1.5 h-1.5 rounded-full ${editMode ? 'bg-emerald-500' : 'bg-slate-400'} `} />
+                    {editMode ? '編集可能' : '読み取り専用'}
                 </span>
-                <span>Sanctuary Engine v3.0.0-ts</span>
-                <span className="ml-auto flex items-center gap-2">
-                    {!validation.isValid && (
-                        <span className="flex items-center gap-1 text-amber-400">
-                            <AlertTriangle size={10} />
+                <span className="ml-auto">
+                    {!validation.isValid ? (
+                        <span className="flex items-center gap-1 text-amber-600">
+                            <AlertTriangle size={12} />
                             {validation.summary}
                         </span>
-                    )}
-                    {validation.isValid && (
-                        <span className="text-emerald-600">✓ {validation.summary}</span>
+                    ) : (
+                        <span className="text-emerald-600 italic">READY: {validation.summary}</span>
                     )}
                 </span>
             </div>

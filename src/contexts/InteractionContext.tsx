@@ -77,7 +77,7 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({ childr
                     .from('profiles')
                     .select('device_mode')
                     .eq('id', currentUser.id)
-                    .single();
+                    .maybeSingle();
 
                 if (error) {
                     console.error("[InteractionContext] Failed to fetch device_mode from profiles:", error.message);

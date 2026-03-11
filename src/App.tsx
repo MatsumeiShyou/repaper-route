@@ -42,7 +42,7 @@ function AppContent() {
         }
     }, [activeView]);
 
-    console.log("[App] レンダリング中. ユーザー:", currentUser?.name || 'ゲスト', "認証待ち:", isAuthLoading);
+    // console.log("[App] Rendering. User:", currentUser?.name || 'Guest', "AuthLoading:", isAuthLoading);
 
     if (isAuthLoading) {
         return (

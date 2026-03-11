@@ -25,7 +25,17 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+    const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
+        const saved = localStorage.getItem('repaper_auth_user');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error("Failed to parse saved auth user", e);
+            }
+        }
+        return null;
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [profiles, setProfiles] = useState<Profile[]>([]);
 
@@ -76,6 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             vehicle: user.vehicle_info || user.vehicle || undefined
         };
         setCurrentUser(userData);
+        localStorage.setItem('repaper_auth_user', JSON.stringify(userData));
     };
 
     const logout = () => {
@@ -83,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (window.confirm('ログアウトしますか？')) {
             console.log("[Auth] Logout confirmed - clearing user");
             setCurrentUser(null);
+            localStorage.removeItem('repaper_auth_user');
         }
     };
 

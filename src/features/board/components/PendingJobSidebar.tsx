@@ -1,6 +1,6 @@
 import React from 'react';
 import { BoardJob } from '../../../types';
-import { Database, Clock, AlertTriangle, X } from 'lucide-react';
+import { Database, Clock, AlertTriangle, X, RefreshCw } from 'lucide-react';
 import { getPendingJobColor } from '../../core/config/theme';
 
 interface PendingJobSidebarProps {
@@ -10,7 +10,10 @@ interface PendingJobSidebarProps {
     selectedCell: { driverId: string, time: string } | null;
     selectedJobId: string | null;
     onAddJob: (job: BoardJob) => void;
+    onLoadPeriodicJobs: () => void;
     onClose: () => void;
+    isSyncing?: boolean;
+    editMode?: boolean;
 }
 
 export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
@@ -20,7 +23,10 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
     selectedCell,
     selectedJobId,
     onAddJob,
-    onClose
+    onLoadPeriodicJobs,
+    onClose,
+    isSyncing = false,
+    editMode = false
 }) => {
 
     const filteredPendingJobs = pendingJobs.filter(job => {
@@ -40,9 +46,26 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
                         <Database size={18} />
                         未割当案件 ({filteredPendingJobs.length})
                     </h2>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors text-slate-400">
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {editMode && (
+                            <button
+                                onClick={onLoadPeriodicJobs}
+                                disabled={isSyncing}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all shadow-sm
+                                    ${isSyncing
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100 active:scale-95'
+                                    }`}
+                                title="マスタ設定から本日の定期案件を読み込みます"
+                            >
+                                <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
+                                <span>定期読込</span>
+                            </button>
+                        )}
+                        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors text-slate-400">
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filter Tabs */}
