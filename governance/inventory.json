@@ -182,6 +182,62 @@
             "logic_data_mapping": {
                 "AMP_RECORD": "AMPLOG.jsonl"
             }
+        },
+        {
+            "id": "SCR-UTIL-DEB",
+            "path": ".agent/scripts/check_debt.js",
+            "link_to_agents_md": "§G",
+            "purpose": "DEBT lifecycle automation: archive completed items older than 30 days",
+            "risk_score": 2,
+            "fix_required": "node .agent/scripts/check_debt.js",
+            "logic_data_mapping": {
+                "DEBT_SOURCE": "DEBT_AND_FUTURE.md",
+                "DEBT_ARCHIVE": "DEBT_ARCHIVE.md"
+            }
+        },
+        {
+            "id": "SCR-UTIL-STA",
+            "path": ".agent/scripts/gov_stats.js",
+            "link_to_agents_md": "§N",
+            "purpose": "Governance statistics and health reporting",
+            "risk_score": 2,
+            "fix_required": "node .agent/scripts/gov_stats.js",
+            "logic_data_mapping": {
+                "STATS_SOURCE": "governance/*.json"
+            }
+        },
+        {
+            "id": "SCR-UTIL-CHR",
+            "path": ".agent/scripts/guardian_charset.js",
+            "link_to_agents_md": "§N",
+            "purpose": "Character encoding & charset validation guardian",
+            "risk_score": 2,
+            "fix_required": "node .agent/scripts/guardian_charset.js",
+            "logic_data_mapping": {
+                "CHARSET_VALIDATION": "INTERNAL"
+            }
+        },
+        {
+            "id": "LIB-UTIL-SES",
+            "path": ".agent/scripts/session_manager.js",
+            "link_to_agents_md": "§G",
+            "purpose": "Session state management for active tasks",
+            "risk_score": 3,
+            "fix_required": "Restore this file from git",
+            "logic_data_mapping": {
+                "SESSION_DATA": ".agent/session/active_task.json"
+            }
+        },
+        {
+            "id": "SCR-UTIL-VLA",
+            "path": ".agent/scripts/verify_logic_alignment.js",
+            "link_to_agents_md": "§N",
+            "purpose": "Logic-data alignment verification between scripts and governance JSON",
+            "risk_score": 3,
+            "fix_required": "node .agent/scripts/verify_logic_alignment.js",
+            "logic_data_mapping": {
+                "ALIGNMENT_SOURCE": "governance/inventory.json"
+            }
         }
     ],
     "protection_policy": {

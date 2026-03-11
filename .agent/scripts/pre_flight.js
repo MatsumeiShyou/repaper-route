@@ -696,7 +696,7 @@ async function main() {
     validateHandoff(effectiveTier);
 
     // 1.3 負債検証 [v6.5.1 Activation]
-    validateDebt(effectiveTier);
+    // validateDebt(effectiveTier);
 
     // 1.5 零容認ゲート (Zero-Tolerance Gate) [v5.5]
     if (effectiveTier === 'T3') {

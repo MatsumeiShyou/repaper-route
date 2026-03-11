@@ -220,3 +220,4 @@
 {"timestamp":"2026-03-08T12:25:08.536Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Exit without completion","count":20}
 {"timestamp":"2026-03-08T12:25:38.196Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Exit without completion","count":21}
 {"timestamp":"2026-03-08T12:26:00.750Z","level":"INFO","event":"USER_APPROVAL_RECORDED","adr":null}
+{"timestamp":"2026-03-11T11:55:21.095Z","id":"d160142f-d41c-4e13-aa76-133052a5e976","summary":"Workflow Directory Protection (PW: ｙ)","detail":{"title":"Workflow Directory Protection","scope":"governance/compliance.json, governance/preventions/denylist.json, governance/inventory.json","impact":"Prevent accidental deletion of workflow files by adding protected_patterns and denylist rules","status":"(PW: ｙ)","design_ref":"file:///C:/Users/shiyo/.gemini/antigravity/brain/c0441af8-58ff-43d1-b38d-f708b0117180/implementation_plan.md","evidence_locked":true}}

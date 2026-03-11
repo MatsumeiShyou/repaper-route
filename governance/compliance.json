@@ -29,7 +29,9 @@
         "protected_patterns": [
             ".env",
             "node_modules",
-            ".local"
+            ".local",
+            ".agent/workflows",
+            "global_workflows"
         ],
         "temporary_file_patterns": [
             ".bak",
