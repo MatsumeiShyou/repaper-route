@@ -112,8 +112,28 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         setIsModalOpen(true);
     };
 
-    const handleEdit = (item: Record<string, any>) => {
-        setEditingItem(item);
+    const handleEdit = async (item: Record<string, any>) => {
+        // [T3 Fix] Viewには不足カラムがあるため、修正時はテーブル本体から最新をDeep Fetchする
+        if (schema.viewName !== schema.rpcTableName) {
+            try {
+                const { data: detail, error: fetchErr } = await supabase
+                    .from(schema.rpcTableName)
+                    .select('*')
+                    .eq(schema.primaryKey, item[schema.primaryKey])
+                    .single();
+                
+                if (!fetchErr && detail) {
+                    setEditingItem(detail);
+                } else {
+                    setEditingItem(item); // Fallback
+                }
+            } catch (err) {
+                console.error('Deep Fetch Error:', err);
+                setEditingItem(item);
+            }
+        } else {
+            setEditingItem(item);
+        }
         setIsModalOpen(true);
     };
 
