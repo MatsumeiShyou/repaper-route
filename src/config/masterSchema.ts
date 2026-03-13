@@ -151,6 +151,12 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         searchFields: ['display_name', 'address', 'contractor_name', 'default_route_code', 'area'],
         columns: [
             {
+                key: 'location_id',
+                label: 'No.',
+                type: 'text',
+                className: 'text-xs text-slate-400 font-mono w-12'
+            },
+            {
                 key: 'display_name',
                 subLabelKey: 'furigana', // ふりがなを表示
                 thirdLabelKey: 'address',

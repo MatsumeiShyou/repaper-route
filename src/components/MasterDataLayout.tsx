@@ -143,14 +143,24 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         setIsModalOpen(true);
     };
 
+    const [isSaving, setIsSaving] = useState(false);
+
     const handleSave = async (formData: Record<string, any>) => {
-        const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName);
-        if (editingItem) {
-            await updateItem(editingItem[schema.primaryKey], serialized);
-        } else {
-            await createItem(serialized);
+        try {
+            setIsSaving(true);
+            const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName);
+            if (editingItem) {
+                await updateItem(String(editingItem[schema.primaryKey]), serialized);
+            } else {
+                await createItem(serialized);
+            }
+            setIsModalOpen(false);
+        } catch (err) {
+            console.error('Save failed:', err);
+            alert(`保存に失敗しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
+        } finally {
+            setIsSaving(false);
         }
-        setIsModalOpen(false);
     };
 
     const handleDelete = async (id: string | number) => {
@@ -279,6 +289,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                         onSave={handleSave}
                         onDelete={editingItem ? () => handleDelete(editingItem[schema.primaryKey]) : undefined}
                         onCancel={() => setIsModalOpen(false)}
+                        isSaving={isSaving}
                     />
                 )}
             </Modal>
@@ -476,12 +487,13 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
     );
 }
 
-function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
+function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving }: {
     schema: MasterSchema,
     initialData: Record<string, any> | null,
     onSave: (data: Record<string, any>) => Promise<void>,
     onDelete?: () => Promise<void>,
-    onCancel: () => void
+    onCancel: () => void,
+    isSaving: boolean
 }) {
     const [formData, setFormData] = useState<Record<string, any>>(() => {
         const initial = { ...(initialData || {}) };
@@ -758,8 +770,19 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel }: {
                     <button type="button" onClick={onCancel} className="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
                         キャンセル
                     </button>
-                    <button type="submit" className="px-8 py-2 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
-                        保存する
+                    <button 
+                        type="submit" 
+                        disabled={isSaving}
+                        className={`px-8 py-2 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-2 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        {isSaving ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                保存中...
+                            </>
+                        ) : (
+                            '保存する'
+                        )}
                     </button>
                 </div>
             </div>
