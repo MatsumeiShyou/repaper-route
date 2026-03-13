@@ -46,6 +46,9 @@ export function serializeMasterData<T extends Record<string, any>>(
                     }
                 });
                 serialized[field.name] = obj;
+            } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+                // すでにオブジェクト形式（DB形式）の場合はそのまま通す
+                serialized[field.name] = value;
             } else {
                 serialized[field.name] = value;
             }
@@ -92,7 +95,7 @@ export function normalizeDays(days: any): string[] {
         return activeDays;
     }
 
-    if (Array.isArray(days)) return days.map(String);
-    if (typeof days === 'string') return days.split(',').map(s => s.trim());
+    if (Array.isArray(days)) return days.map(String).filter(s => s !== 'undefined' && s !== 'null');
+    if (typeof days === 'string' && days.trim() !== '') return days.split(',').map(s => s.trim()).filter(Boolean);
     return [];
 }

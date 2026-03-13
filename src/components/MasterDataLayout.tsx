@@ -112,10 +112,13 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         setIsModalOpen(true);
     };
 
+    const [isDeepFetching, setIsDeepFetching] = useState(false);
+
     const handleEdit = async (item: Record<string, any>) => {
         // [T3 Fix] Viewには不足カラムがあるため、修正時はテーブル本体から最新をDeep Fetchする
         if (schema.viewName !== schema.rpcTableName) {
             try {
+                setIsDeepFetching(true);
                 const { data: detail, error: fetchErr } = await supabase
                     .from(schema.rpcTableName)
                     .select('*')
@@ -125,11 +128,14 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                 if (!fetchErr && detail) {
                     setEditingItem(detail);
                 } else {
-                    setEditingItem(item); // Fallback
+                    console.warn('Deep Fetch failed, falling back to view data', fetchErr);
+                    setEditingItem(item);
                 }
             } catch (err) {
                 console.error('Deep Fetch Error:', err);
                 setEditingItem(item);
+            } finally {
+                setIsDeepFetching(false);
             }
         } else {
             setEditingItem(item);
@@ -260,13 +266,21 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                 onClose={() => setIsModalOpen(false)}
                 title={editingItem ? `${schema.title}を編集` : `新しい${schema.title.replace('管理', '')}を追加`}
             >
-                <MasterForm
-                    schema={schema}
-                    initialData={editingItem}
-                    onSave={handleSave}
-                    onDelete={editingItem ? () => handleDelete(editingItem[schema.primaryKey]) : undefined}
-                    onCancel={() => setIsModalOpen(false)}
-                />
+                {isDeepFetching ? (
+                    <div className="h-64 flex flex-col items-center justify-center gap-4">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                        <p className="text-slate-500 text-sm font-bold animate-pulse">最新データを取得中...</p>
+                    </div>
+                ) : (
+                    <MasterForm
+                        key={editingItem ? editingItem[schema.primaryKey] : 'new'}
+                        schema={schema}
+                        initialData={editingItem}
+                        onSave={handleSave}
+                        onDelete={editingItem ? () => handleDelete(editingItem[schema.primaryKey]) : undefined}
+                        onCancel={() => setIsModalOpen(false)}
+                    />
+                )}
             </Modal>
         </div>
     );
