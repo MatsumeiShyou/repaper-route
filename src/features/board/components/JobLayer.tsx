@@ -50,7 +50,7 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                 <div
                     key={i}
                     className="absolute w-full border-t border-white/40 z-0"
-                    style={{ top: `${(i * 60 / 15) * SLOT_HEIGHT_PX} px` }}
+                    style={{ top: `${(i * 60 / 15) * SLOT_HEIGHT_PX}px` }}
                 />
             );
         }

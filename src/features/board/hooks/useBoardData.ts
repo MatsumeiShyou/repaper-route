@@ -408,6 +408,16 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         recordHistory();
     }, [editMode, state.jobs, recordHistory, showNotification]);
 
+    const assignPendingJob = useCallback((job: BoardJob, driverId: string, time: string) => {
+        if (!editMode) return;
+        setState(prev => ({
+            ...prev,
+            jobs: [...prev.jobs, { ...job, driverId, timeConstraint: time, startTime: time }],
+            pendingJobs: prev.pendingJobs.filter(j => j.id !== job.id)
+        }));
+        recordHistory();
+    }, [editMode, recordHistory]);
+
     const importPeriodicJobs = useCallback(async () => {
         if (!editMode || !currentDateKey) return;
         try {
@@ -469,7 +479,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         showNotification,
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
         handleExceptionChange, exceptionReasons, confirmedSnapshot,
-        handleRegisterTemplate, importPeriodicJobs,
+        handleRegisterTemplate, importPeriodicJobs, assignPendingJob,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn
     };

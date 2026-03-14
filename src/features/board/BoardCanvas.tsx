@@ -52,7 +52,7 @@ export default function BoardCanvas() {
         isDataLoaded, isSyncing,
         editMode, canEditBoard, boardMode,
         handleSave, handleConfirmAll, handleRegisterTemplate, recordHistory, undo, redo,
-        importPeriodicJobs, // [NEW] Added for Phase 4
+        importPeriodicJobs, assignPendingJob,
         addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey);
 
@@ -124,15 +124,7 @@ export default function BoardCanvas() {
 
     const handleAssignPendingJob = (job: BoardJob) => {
         if (!editMode || !selectedCell) return;
-        const newJob: BoardJob = {
-            ...job,
-            driverId: selectedCell.driverId,
-            timeConstraint: selectedCell.time,
-            startTime: selectedCell.time
-        };
-        setJobs(prev => [...prev, newJob]);
-        setPendingJobs(prev => prev.filter(j => j.id !== job.id));
-        recordHistory();
+        assignPendingJob(job, selectedCell.driverId, selectedCell.time);
         setSelectedCell(null);
     };
 
