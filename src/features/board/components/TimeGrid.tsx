@@ -47,7 +47,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                 zIndex: Z_INDEX.PREVIEW
             }}>
                 {TIME_SLOTS.map(time => (
-                    <div key={time} style={{ height: '32px', width: '64px', minWidth: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
+                    <div key={time} style={{ height: '32px', width: '64px', minWidth: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
                         {time.endsWith(':00') ? time : ''}
                     </div>
                 ))}
@@ -69,7 +69,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                                 onDoubleClick={() => onCellDoubleClick(driver.id, time)}
 
                                 style={{
-                                    height: '44px',
+                                    height: `${BOARD_CONSTANTS.SLOT_HEIGHT_PX}px`,
                                     borderBottom: '1px solid #f1f5f9',
                                     backgroundColor: isSelected ? '#eff6ff' : 'transparent',
                                     cursor: 'pointer',

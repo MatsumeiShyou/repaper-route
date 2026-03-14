@@ -1,5 +1,11 @@
 export const QUARTER_HEIGHT_REM = 2;
 export const PIXELS_PER_REM = 16;
+
+/**
+ * 【物理定数】配車盤の最小時間単位（15分 = 1スロット）の高さ
+ * この値を変更すると、TimeGrid と JobLayer の両方に影響します。
+ * 常に 32px (2rem) を SSOT とします。
+ */
 export const CELL_HEIGHT_PX = QUARTER_HEIGHT_REM * PIXELS_PER_REM;
 
 export const TIME_SLOTS: string[] = [];
@@ -11,7 +17,7 @@ for (let h = 6; h < 18; h++) {
 
 // JobLayer.tsx 等から参照される定数オブジェクト
 export const BOARD_CONSTANTS = {
-    SLOT_HEIGHT_PX: CELL_HEIGHT_PX, // 1スロット（15分）あたりの高さ: 32px
+    SLOT_HEIGHT_PX: CELL_HEIGHT_PX, // 32px
     /**
      * Z-Index Hierarchy（物理法則）
      * ─────────────────────────────────

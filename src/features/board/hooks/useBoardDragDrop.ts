@@ -3,8 +3,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { BoardJob, BoardDriver, BoardSplit } from '../../../types';
 import { timeToMinutes, minutesToTime, calculateTimeFromY } from '../logic/timeUtils';
 import { calculateCollision, checkVehicleCompatibility } from '../logic/collision';
-
-const CELL_HEIGHT_PX = 32;
+import { CELL_HEIGHT_PX } from '../logic/constants';
 
 export interface DragDropState {
     draggingJobId: string | null;

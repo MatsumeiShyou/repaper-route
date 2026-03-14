@@ -1,10 +1,25 @@
+import { CELL_HEIGHT_PX } from './constants';
+
 /**
  * Time utility functions for Board
  */
 
 export const timeToMinutes = (timeStr: string): number => {
-    if (!timeStr) return 0;
+    if (!timeStr || typeof timeStr !== 'string') return 360; // 06:00 Default
+    
+    // 「要確認」などの非数値が含まれる場合のガード
+    if (!timeStr.includes(':')) {
+        console.warn(`[timeUtils] Invalid time format: "${timeStr}". Falling back to 06:00.`);
+        return 360;
+    }
+
     const [h, m] = timeStr.split(':').map(Number);
+    
+    // 数値変換失敗時のガード (NaN 対策)
+    if (isNaN(h) || isNaN(m)) {
+        return 360;
+    }
+
     return h * 60 + m;
 };
 
@@ -15,7 +30,7 @@ export const minutesToTime = (totalMinutes: number): string => {
 };
 
 export const calculateTimeFromY = (y: number): number => {
-    const CELL_HEIGHT_PX = 32; // 2rem = 32px
+    // 定数 CELL_HEIGHT_PX を使用 (SSOT)
     const quarters = Math.round(y / CELL_HEIGHT_PX);
     return quarters * 15;
 };
