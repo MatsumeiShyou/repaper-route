@@ -67,6 +67,23 @@ function verifyClosureStandard() {
     Log.success('Standardization OK.');
 }
 
+function verifyUIQuality() {
+    Log.info('Executing UI/UX Quality Check (Sentinel 5.3)...');
+    const status = runCommand('git status --porcelain', true);
+    // UI/UX related changes (Route A) detection
+    if (status.match(/\.(css|tsx|ts|jsx|html|json)$/)) {
+        try {
+            runCommand('node .agent/scripts/check_ui_quality.js');
+            Log.success('UI/UX Quality Verified.');
+        } catch (e) {
+            Log.error('UI/UX QUALITY VIOLATION: Please refer to guidelines III/VII.');
+            process.exit(1);
+        }
+    } else {
+        Log.info('No UI/UX changes detected. Skipping quality check.');
+    }
+}
+
 function main() {
     process.on('exit', () => { if (!completionFlag) incrementRetryCount('Aborted'); });
 
@@ -76,6 +93,7 @@ function main() {
     verifyConstitutionalIntegrity();
     verifyLegislativeInterlock();
     verifyClosureStandard();
+    verifyUIQuality();
 
     if (REFLECT_FLAG) {
         Log.info('Reflecting changes...');

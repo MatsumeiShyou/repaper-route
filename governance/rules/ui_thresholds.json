@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "guidelines_ref": "PWAにおける高品質なアプリケーション構築とユーザビリティチェックリスト総集編Ⅲ.md",
+  "thresholds": {
+    "VII-5-3": {
+      "key": "min_tap_target_size",
+      "value": 44,
+      "unit": "px",
+      "description": "タップ/クリック可能なエリア（padding含む）の最小サイズ"
+    },
+    "II-2": {
+      "key": "required_next_image",
+      "value": true,
+      "description": "画像表示における next/image コンポーネントの使用義務"
+    },
+    "III-2": {
+      "key": "offline_fallback_enabled",
+      "value": true,
+      "description": "ネットワークエラー時のカスタムオフラインページ表示"
+    },
+    "V-1": {
+      "key": "semantic_elements_enforced",
+      "value": true,
+      "description": "header, nav, main 等のセマンティックタグの使用義務"
+    },
+    "VII-8-8": {
+      "key": "min_contrast_ratio",
+      "value": 4.5,
+      "description": "テキストと背景の最小コントラスト比（WCAG AA）"
+    }
+  },
+  "enforcement": {
+    "T1": "warn",
+    "T2": "warn",
+    "T3": "error"
+  }
+}

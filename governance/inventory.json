@@ -229,14 +229,14 @@
             }
         },
         {
-            "id": "SCR-UTIL-VLA",
-            "path": ".agent/scripts/verify_logic_alignment.js",
-            "link_to_agents_md": "§N",
-            "purpose": "Logic-data alignment verification between scripts and governance JSON",
+            "id": "SCR-UTIL-UIQ",
+            "path": ".agent/scripts/check_ui_quality.js",
+            "link_to_agents_md": "§E Route A",
+            "purpose": "PWA & Usability Guideline validation (Guideline v3)",
             "risk_score": 3,
-            "fix_required": "node .agent/scripts/verify_logic_alignment.js",
+            "fix_required": "node .agent/scripts/check_ui_quality.js",
             "logic_data_mapping": {
-                "ALIGNMENT_SOURCE": "governance/inventory.json"
+                "THRESHOLD_RULES": "governance/rules/ui_thresholds.json"
             }
         }
     ],

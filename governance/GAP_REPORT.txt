@@ -1,0 +1,27 @@
+﻿--- UI Quality Validation (Guideline v3) ---
+[33m[WARN] [VII-5-3] src\index.css: Potential small tap target: width: 10px (Minimum 44px recommended for PWA/Usability v3)[0m
+[33m[WARN] [VII-5-3] src\index.css: Potential small tap target: height: 10px (Minimum 44px recommended for PWA/Usability v3)[0m
+[33m[WARN] [II-2] src\components\Sidebar.tsx: Native <img> tag found without next/image. Use <Image> for automatic optimization.[0m
+[31m[ERROR] [I-2] public/: PWA Manifest (manifest.json) not found in public directory. Required for app-like experience.[0m
+[33m[WARN] [III-2] src/: Stale-while-revalidate (SWR) or caching patterns not detected. Recommended for offline resilience.[0m
+node : 
+発生場所 行:1 文字:1
++ node .agent/scripts
+/check_ui_quality.js 
+2>&1 | Out-File -File
+Path gov ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (:String   
+ ) [], RemoteExce    
+ption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+[FAILED] Critical UI/
+UX violations detecte
+d.
