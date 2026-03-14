@@ -44,7 +44,7 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
             });
 
             // 物理保存用のシリアライズ
-            const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName);
+            const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName as string);
 
             const { error: err } = await (supabase as any)
                 .rpc('rpc_execute_master_update', {
@@ -72,7 +72,7 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
                 }
             });
 
-            const serialized = serializeMasterData(updatableData, schema.fields, schema.rpcTableName);
+            const serialized = serializeMasterData(updatableData, schema.fields, schema.rpcTableName as string);
 
             const { error: err } = await (supabase as any)
                 .rpc('rpc_execute_master_update', {

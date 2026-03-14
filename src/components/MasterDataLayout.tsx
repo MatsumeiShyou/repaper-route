@@ -17,7 +17,7 @@ import {
 import { supabase } from '../lib/supabase/client';
 import useMasterCRUD from '../hooks/useMasterCRUD';
 import { Modal } from './Modal';
-import { MasterSchema, MasterColumn, MASTER_SCHEMAS, MasterField } from '../config/masterSchema';
+import { MasterSchema, MasterColumn, MASTER_SCHEMAS } from '../config/masterSchema';
 import { serializeMasterData, normalizeDays } from '../utils/serialization';
 
 interface MasterDataLayoutProps {
@@ -120,7 +120,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
             try {
                 setIsDeepFetching(true);
                 const { data: detail, error: fetchErr } = await supabase
-                    .from(schema.rpcTableName)
+                    .from(schema.rpcTableName as string)
                     .select('*')
                     .eq(schema.primaryKey, item[schema.primaryKey])
                     .single();
@@ -148,7 +148,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
     const handleSave = async (formData: Record<string, any>) => {
         try {
             setIsSaving(true);
-            const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName);
+            const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName as string);
             if (editingItem) {
                 await updateItem(String(editingItem[schema.primaryKey]), serialized);
             } else {

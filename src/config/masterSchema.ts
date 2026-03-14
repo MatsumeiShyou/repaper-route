@@ -278,7 +278,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         ],
         fields: [
             { name: 'id', label: 'UUID', type: 'text', updatable: false, className: 'hidden' },
-            { name: 'location_id', label: '管理番号', type: 'text', updatable: false, placeholder: '例: 28' },
+            { name: 'location_id', label: '管理番号', type: 'text', updatable: true, placeholder: '例: 28' },
             { name: 'display_name', label: '拠点名（表示用）', type: 'text', required: true, placeholder: '例: ○○スーパー(AM)' },
             { name: 'furigana', label: 'ﾌﾘｶﾞﾅ（半角ｶﾅ）', type: 'text', placeholder: '例: ﾏﾙﾏﾙｽｰﾊﾟｰ' },
             { name: 'area', label: '地域', type: 'text', placeholder: '例: 中央区, 六本木' },
@@ -330,7 +330,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
             { name: 'target_item_category', label: '主要回収品目', type: 'tags', className: 'col-span-2', placeholder: '品目を選択...' },
             { name: 'site_contact_phone', label: '現場直通電話', type: 'tel' },
             {
-                name: 'internal_note',
+                name: 'note',
                 label: '備考',
                 type: 'text',
                 className: 'col-span-2',
