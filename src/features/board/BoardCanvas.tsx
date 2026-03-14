@@ -115,7 +115,6 @@ export default function BoardCanvas() {
 
     const handleAddManualJob = (job: BoardJob, reason: string) => {
         if (!editMode) return;
-        console.log("[Board] Manually injecting job:", job.title, "Reason:", reason);
         const jobWithReason: BoardJob = { ...job, creation_reason: reason };
         setJobs(prev => [...prev, jobWithReason]);
         recordHistory();

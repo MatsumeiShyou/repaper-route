@@ -71,17 +71,17 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                         {/* 100 Point Spec: Drop Target Shadow (Destination VIS) */}
                         {dropPreview && dropPreview.driverId === driver.id && (
                             <div
-                                className={`absolute w - [94 %] left - [3 %] rounded - md border - 2 border - dashed pointer - events - none z - 10 transition - all duration - 150
+                                className={`absolute w-[94%] left-[3%] rounded-md border-2 border-dashed pointer-events-none z-10 transition-all duration-150
                                     ${dropPreview.isPending ? 'opacity-30 bg-gray-400 border-gray-400' :
                                         (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-500/10 border-red-400' : 'bg-emerald-500/10 border-emerald-400'
                                     }
 `}
                                 style={{
-                                    top: `${((timeToMinutes(dropPreview.startTime) - 360) / 15) * SLOT_HEIGHT_PX} px`,
-                                    height: `${(dropPreview.duration / 15) * SLOT_HEIGHT_PX} px`,
+                                    top: `${((timeToMinutes(dropPreview.startTime) - 360) / 15) * SLOT_HEIGHT_PX}px`,
+                                    height: `${(dropPreview.duration / 15) * SLOT_HEIGHT_PX}px`,
                                 }}
                             >
-                                <div className={`text - [10px] font - black px - 1.5 py - 0.5 rounded - sm m - 1 inline - block
+                                <div className={`text-[10px] font-black px-1.5 py-0.5 rounded-sm m-1 inline-block
                                     ${dropPreview.isPending ? 'bg-gray-200 text-gray-500' :
                                         (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
                                     }
@@ -96,6 +96,8 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                             const startMin = timeToMinutes(jobTime);
                             const topPx = ((startMin - 360) / 15) * SLOT_HEIGHT_PX;
                             const heightPx = (job.duration / 15) * SLOT_HEIGHT_PX;
+                            
+
                             const isSelected = selectedJobId === job.id;
                             const colorTheme = jobColorMap[job.id] || { bg: 'bg-gray-100', border: 'border-gray-300', text: 'text-gray-700' };
 
@@ -129,14 +131,14 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                 <div
                                     key={job.id}
                                     data-job-id={job.id}
-                                    className={`absolute w - [94 %] left - [3 %] rounded - md border text - xs font - bold leading - tight shadow - sm overflow - hidden pointer - events - auto transition - [filter, transform] duration - 75 flex flex - col justify - center
+                                    className={`absolute w-[94%] left-[3%] rounded-md border text-xs font-bold leading-tight shadow-sm overflow-hidden pointer-events-auto transition-[filter,transform] duration-75 flex flex-col justify-center
                                         ${bgClass} 
                                         ${borderClass} ${hasError ? '' : colorTheme.text}
                                         ${isDragging ? 'opacity-40 shadow-none ring-0' : 'hover:brightness-95'}
 `}
                                     style={{
-                                        top: `${topPx} px`,
-                                        height: `${heightPx} px`,
+                                        top: `${topPx}px`,
+                                        height: `${heightPx}px`,
                                         zIndex: zIndex,
                                     }}
                                     onClick={(e) => {
