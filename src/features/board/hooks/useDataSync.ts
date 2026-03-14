@@ -26,18 +26,27 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
     const fetchData = useCallback(async () => {
         if (!dateKey) return;
         
+        console.log(`[useDataSync] fetchData triggered for ${dateKey}. Current cache state:`, !!cache[dateKey]);
+
         // 0. Load from IndexedDB first if not in memory (Offline Recovery / Instant Load)
         if (!cache[dateKey]) {
             const localData = await boardStore.get(dateKey);
             if (localData) {
+                console.log(`[useDataSync] Cache hit from IDB for ${dateKey}`);
                 setData(localData);
                 cache[dateKey] = localData;
                 setIsLoading(false);
             }
         }
 
-        setIsLoading(true);
+        // Only show loading if we don't have data at all (prevent flicker on SWR background refresh)
+        // If we have data from cache/IDB, we fetch from remote in background WITHOUT showing loader.
+        if (!cache[dateKey]) {
+            setIsLoading(true);
+        }
+
         try {
+            console.log(`[useDataSync] Fetching remote data for ${dateKey}...`);
             const fetchRoutePromise = supabase.from('routes').select('*').eq('date', dateKey).maybeSingle();
             const fetchUnassignedJobsPromise = supabase.from('jobs').select('*').is('driver_id', null);
 
@@ -81,12 +90,13 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
             cache[dateKey] = newState;
             setData(newState);
             setError(null);
+            console.log(`[useDataSync] Sync complete for ${dateKey}`);
 
             // 1. Persist to IndexedDB
             boardStore.save(dateKey, newState);
 
         } catch (err: any) {
-            console.error("Fetch Data Error:", err);
+            console.error("[useDataSync] Fetch Data Error:", err);
             setError(err);
         } finally {
             setIsLoading(false);
@@ -94,6 +104,7 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
     }, [dateKey, mapSupabaseToBoardJob, getDefaultDrivers]);
 
     useEffect(() => {
+        console.log(`[useDataSync] Effect triggered due to dateKey change: ${dateKey}`);
         fetchData();
         
         // Subscription for real-time updates
@@ -104,6 +115,7 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
                 table: 'routes', 
                 filter: `date=eq.${dateKey}` 
             }, (payload) => {
+                console.log(`[useDataSync] Real-time update received for ${dateKey}`);
                 const newData = payload.new as any;
                 if (newData) {
                     const newState: BoardState = {
@@ -124,7 +136,7 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [dateKey]);
+    }, [dateKey, fetchData]);
 
     const mutate = useCallback((newData: BoardState) => {
         cache[dateKey] = newData;

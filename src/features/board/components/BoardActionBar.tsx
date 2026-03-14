@@ -48,9 +48,9 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
 
     return (
         <div className="h-14 flex justify-between items-center px-4 bg-white border-b border-gray-200 shadow-sm z-30">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-shrink-0">
                 {/* Mode Display Badge (Finite State Machine rendering) */}
-                <div className={`px-3 py-1.5 rounded-md border text-sm font-bold flex items-center gap-2 
+                <div className={`px-3 py-1.5 rounded-md border text-sm font-bold flex items-center gap-2 flex-shrink-0
                     ${boardMode === 'VIEW_PAST'
                         ? 'bg-slate-100 border-slate-300 text-slate-500'
                         : boardMode === 'CONFIRM'
@@ -79,12 +79,14 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                     )}
                 </div>
 
-                <DateDisplay
-                    selectedDate={selectedDate}
-                    onDateChange={(date) => setSelectedDate(date)}
-                />
+                <div className="flex-shrink-0">
+                    <DateDisplay
+                        selectedDate={selectedDate}
+                        onDateChange={(date) => setSelectedDate(date)}
+                    />
+                </div>
 
-                <div className="w-5 flex justify-center">
+                <div className="w-5 flex justify-center flex-shrink-0">
                     {isSyncing && (
                         <Database size={16} className="text-amber-500 animate-pulse" />
                     )}
