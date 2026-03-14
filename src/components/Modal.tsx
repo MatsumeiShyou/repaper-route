@@ -13,42 +13,83 @@ interface ModalProps {
  * Premium Modal Component (TypeScript Version)
  */
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer }) => {
+    const modalRef = React.useRef<HTMLDivElement>(null);
+
     useEffect(() => {
-        const handleEsc = (e: KeyboardEvent) => {
+        const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
+            
+            if (e.key === 'Tab' && modalRef.current) {
+                const focusableElements = modalRef.current.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                const firstElement = focusableElements[0] as HTMLElement;
+                const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+                if (e.shiftKey) { // Shift + Tab
+                    if (document.activeElement === firstElement) {
+                        lastElement.focus();
+                        e.preventDefault();
+                    }
+                } else { // Tab
+                    if (document.activeElement === lastElement) {
+                        firstElement.focus();
+                        e.preventDefault();
+                    }
+                }
+            }
         };
+
         if (isOpen) {
-            document.addEventListener('keydown', handleEsc);
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            document.addEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = 'hidden';
+            // Auto-focus the first element or the close button
+            setTimeout(() => {
+                const closeBtn = modalRef.current?.querySelector('button');
+                (closeBtn as HTMLElement)?.focus();
+            }, 50);
         }
         return () => {
-            document.removeEventListener('keydown', handleEsc);
+            document.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = 'unset';
         };
     }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
+    const titleId = `modal-title-${title.replace(/\s+/g, '-').toLowerCase()}`;
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+        >
             {/* Backdrop with Blur */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
+                aria-hidden="true"
             />
 
             {/* Modal Content */}
-            <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-2rem)] flex flex-col transform transition-all animate-in fade-in zoom-in-95 duration-200">
+            <div 
+                ref={modalRef}
+                className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-2rem)] flex flex-col transform transition-all animate-in fade-in zoom-in-95 duration-200 focus:outline-none"
+                tabIndex={-1}
+            >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 shrink-0">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    <h3 id={titleId} className="text-xl font-bold text-gray-900 dark:text-white">
                         {title}
                     </h3>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors h-11 w-11 flex items-center justify-center"
+                        aria-label="閉じる"
                     >
-                        <X size={20} />
+                        <X size={24} />
                     </button>
                 </div>
 

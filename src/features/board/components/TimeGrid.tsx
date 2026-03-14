@@ -69,7 +69,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                                 onDoubleClick={() => onCellDoubleClick(driver.id, time)}
 
                                 style={{
-                                    height: '32px',
+                                    height: '44px',
                                     borderBottom: '1px solid #f1f5f9',
                                     backgroundColor: isSelected ? '#eff6ff' : 'transparent',
                                     cursor: 'pointer',

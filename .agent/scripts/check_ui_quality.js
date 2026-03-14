@@ -8,13 +8,21 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import readline from 'readline';
+import { logBypassToDebt } from './lib/bypass_logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const THRESHOLDS_PATH = path.join(__dirname, '../../governance/rules/ui_thresholds.json');
 
-function main() {
+function isBypassed(filePath, ruleId) {
+  const content = fs.readFileSync(filePath, 'utf8');
+  const bypassPattern = new RegExp(`//\\s*gov-bypass\\s*\\[${ruleId}\\]`, 'i');
+  return bypassPattern.test(content);
+}
+
+async function main() {
   console.log('--- UI Quality Validation (Guideline v3) ---');
   
   if (!fs.existsSync(THRESHOLDS_PATH)) {
@@ -38,11 +46,12 @@ function main() {
       matches.forEach(m => {
         const val = parseInt(m.match(/\d+/)[0]);
         if (val < minTapSize) {
+          const level = isBypassed(file, 'VII-5-3') ? 'warn' : config.enforcement.T2;
           results.push({
             id: 'VII-5-3',
             file,
-            level: config.enforcement.T2,
-            message: `Potential small tap target: ${m} (Minimum ${minTapSize}px recommended for PWA/Usability v3)`
+            level,
+            message: `Potential small tap target: ${m} (Minimum ${minTapSize}px recommended for PWA/Usability v3)${level === 'warn' ? ' [BYPASSED]' : ''}`
           });
         }
       });
@@ -54,11 +63,12 @@ function main() {
   tsxFiles.forEach(file => {
     const content = fs.readFileSync(file, 'utf8');
     if (content.includes('<img') && !content.includes('next/image')) {
+       const level = isBypassed(file, 'II-2') ? 'warn' : config.enforcement.T2;
        results.push({
         id: 'II-2',
         file,
-        level: config.enforcement.T2,
-        message: 'Native <img> tag found without next/image. Use <Image> for automatic optimization.'
+        level,
+        message: `Native <img> tag found without next/image. Use <Image> for automatic optimization.${level === 'warn' ? ' [BYPASSED]' : ''}`
       });
     }
   });
@@ -95,6 +105,61 @@ function main() {
     console.log(`${color}[${r.level.toUpperCase()}] [${r.id}] ${r.file}: ${r.message}\x1b[0m`);
   });
 
+  await handleViolations(results, config);
+}
+
+async function handleViolations(results, config) {
+  const errors = results.filter(r => r.level === 'error');
+  const interactive = process.argv.includes('--interactive');
+
+  if (errors.length > 0 && interactive) {
+    console.log('\n--- Interactive Violation Resolution ---');
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    for (const error of errors) {
+      console.log(`\nViolation: [${error.id}] in ${error.file}`);
+      console.log(`Message: ${error.message}`);
+      
+      const reasons = [
+        "Prototyping/Speed prioritization (Temporary)",
+        "Technical constraint / Third-party limitation",
+        "Legacy code compatibility",
+        "Intentional design deviation (Business requirement)"
+      ];
+
+      console.log('Suggested Reasons:');
+      reasons.forEach((r, i) => console.log(`${i + 1}. ${r}`));
+      
+      const answer = await new Promise(resolve => rl.question('\nSelect a reason number or enter custom reason (or "q" to fail): ', resolve));
+      
+      if (answer.toLowerCase() === 'q') {
+        process.exit(1);
+      }
+
+      let finalReason = answer;
+      const idx = parseInt(answer) - 1;
+      if (!isNaN(idx) && reasons[idx]) {
+        finalReason = reasons[idx];
+      }
+
+      // sg2-4: Automatic comment insertion
+      insertBypassComment(error.file, error.id, finalReason);
+
+      // Log to DEBT.md
+      logBypassToDebt(error.id, error.file, finalReason);
+      
+      // Update result level to warn (simulated bypass for this session)
+      error.level = 'warn';
+      error.message += ` [AUTO-BYPASSED: ${finalReason}]`;
+      
+      console.log(`\x1b[32mResolution recorded and comment inserted.\x1b[0m`);
+    }
+    rl.close();
+  }
+
   const hasErrors = results.some(r => r.level === 'error');
   const hasWarnings = results.some(r => r.level === 'warn');
 
@@ -108,6 +173,17 @@ function main() {
     console.log('\n[PASSED] UI/UX compliance verified.');
     process.exit(0);
   }
+}
+
+function insertBypassComment(file, id, reason) {
+  if (!fs.existsSync(file)) return;
+  const content = fs.readFileSync(file, 'utf8');
+  const expirationDate = new Date();
+  expirationDate.setDate(expirationDate.getDate() + 30);
+  const expStr = expirationDate.toISOString().split('T')[0];
+  
+  const comment = `\n// gov-bypass [${id}] [EXPIRY:${expStr}] ${reason}\n`;
+  fs.writeFileSync(file, comment + content, 'utf8');
 }
 
 function getFiles(dir, filter, fileList = []) {
@@ -124,4 +200,11 @@ function getFiles(dir, filter, fileList = []) {
   return fileList;
 }
 
-main();
+(async () => {
+  try {
+    await main();
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+})();

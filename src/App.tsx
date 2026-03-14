@@ -64,7 +64,7 @@ function AppContent() {
     if (currentUser.role !== 'admin') {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-6 text-center">
-                <h1 className="text-2xl font-black text-white mb-2">アクセス拒否</h1>
+                <h2 className="text-2xl font-black text-white mb-2">アクセス拒否</h2>
                 <p className="text-slate-400 text-sm mb-8">管理者専用ポータルです。</p>
                 <button onClick={logout} className="bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold">ログアウト</button>
             </div>

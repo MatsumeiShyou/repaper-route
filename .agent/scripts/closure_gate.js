@@ -84,6 +84,30 @@ function verifyUIQuality() {
     }
 }
 
+function checkExpiredDebt() {
+    Log.info('Checking Expired Technical Debt (Sentinel 5.4)...');
+    const debtFile = join(process.cwd(), 'DEBT_AND_FUTURE.md');
+    if (!existsSync(debtFile)) return;
+
+    const content = readFileSync(debtFile, 'utf8');
+    const today = new Date().toISOString().split('T')[0];
+    const expiredPattern = /#expiry:\s*([\d-]+)/g;
+    let match;
+    const expiredItems = [];
+
+    while ((match = expiredPattern.exec(content)) !== null) {
+        if (match[1] < today) {
+            expiredItems.push(match[1]);
+        }
+    }
+
+    if (expiredItems.length > 0) {
+        Log.error(`EXPIRED DEBT DETECTED (${expiredItems.length} items). Please settle your debt before NEW closure.`);
+        process.exit(1);
+    }
+    Log.success('No expired debt.');
+}
+
 function main() {
     process.on('exit', () => { if (!completionFlag) incrementRetryCount('Aborted'); });
 
@@ -94,6 +118,7 @@ function main() {
     verifyLegislativeInterlock();
     verifyClosureStandard();
     verifyUIQuality();
+    checkExpiredDebt();
 
     if (REFLECT_FLAG) {
         Log.info('Reflecting changes...');

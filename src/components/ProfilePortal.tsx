@@ -19,7 +19,7 @@ export const ProfilePortal: React.FC = () => {
             <div className="w-full max-w-md">
                 <div className="bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-800">
                     <div className="p-8 text-center bg-slate-950 border-b border-white/5">
-                        <h1 className="text-3xl font-black tracking-tighter mb-1">RePaper Route</h1>
+                        <h2 className="text-3xl font-black tracking-tighter mb-1">RePaper Route</h2>
                         <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">TS Sanctuary Portal Access</p>
                     </div>
 

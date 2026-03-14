@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase/client';
 import { TemplateManager } from '../logic/core/TemplateManager';
 
 import {
-    RefreshCcw, AlertTriangle
+    AlertTriangle
 } from 'lucide-react';
 import { TemplateExpander } from '../logic/core/TemplateExpander';
 import { useBoardData } from './hooks/useBoardData';
@@ -13,6 +13,7 @@ import { useMasterData } from './hooks/useMasterData';
 import { TIME_SLOTS } from '../board/logic/constants';
 
 import { DriverHeader } from './components/DriverHeader';
+import { BoardSkeleton } from './components/BoardSkeleton';
 
 import { TimeGrid } from './components/TimeGrid';
 import { JobLayer } from './components/JobLayer';
@@ -203,14 +204,7 @@ export default function BoardCanvas() {
     };
 
     if (isAuthLoading || !isDataLoaded || masterLoading) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center bg-slate-900 gap-4">
-                <RefreshCcw className="animate-spin text-blue-500" size={48} />
-                <p className="text-slate-400 font-mono text-xs uppercase tracking-widest animate-pulse">
-                    {isAuthLoading ? '認証中...' : '情報を読み込み中...'}
-                </p>
-            </div>
-        );
+        return <BoardSkeleton />;
     }
 
 

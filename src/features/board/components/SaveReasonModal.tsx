@@ -57,11 +57,12 @@ export const SaveReasonModal: React.FC<SaveReasonModalProps> = ({ isOpen, onClos
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-bold text-gray-700 flex justify-between">
+                        <label htmlFor="reasonCode" className="text-sm font-bold text-gray-700 flex justify-between">
                             理由カテゴリ（必須）
                             <span className="text-xs text-red-500 bg-red-50 px-1.5 rounded border border-red-100">必須</span>
                         </label>
                         <select
+                            id="reasonCode"
                             value={selectedCode}
                             onChange={(e) => setSelectedCode(e.target.value)}
                             className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-full bg-white cursor-pointer"
@@ -76,7 +77,7 @@ export const SaveReasonModal: React.FC<SaveReasonModalProps> = ({ isOpen, onClos
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-sm font-bold text-gray-700 flex justify-between">
+                        <label htmlFor="reasonText" className="text-sm font-bold text-gray-700 flex justify-between">
                             詳細テキスト（具体的な状況等）
                             {isTextRequired ? (
                                 <span className="text-xs text-red-500 bg-red-50 px-1.5 rounded border border-red-100">入力必須</span>
@@ -85,6 +86,7 @@ export const SaveReasonModal: React.FC<SaveReasonModalProps> = ({ isOpen, onClos
                             )}
                         </label>
                         <textarea
+                            id="reasonText"
                             value={reasonText}
                             onChange={(e) => setReasonText(e.target.value)}
                             placeholder={isTextRequired ? "この理由カテゴリでは詳細の入力が必須です" : "補足事項があれば入力してください"}

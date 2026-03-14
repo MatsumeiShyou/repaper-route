@@ -106,7 +106,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                     <button
                         onClick={() => handleConfirmAll()}
                         disabled={isSyncing}
-                        className={`px-3 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
+                        className={`px-3 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
                             ${isSyncing ? 'bg-slate-100 text-slate-400' : 'bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-sm'}
                         `}
                         title="全ての計画案件を確定済みにします"
@@ -119,7 +119,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                 {hasEditRights && (
                     <button
                         onClick={() => setIsSaveTemplateModalOpen(true)}
-                        className="px-3 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 shadow-sm"
+                        className="px-3 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 shadow-sm"
                         title="現在の状態をテンプレートとして登録"
                     >
                         <Save size={16} />
@@ -131,7 +131,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                     <button
                         onClick={handleApplyTemplate}
                         disabled={isExpanding}
-                        className={`px-3 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
+                        className={`px-3 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
                             ${isExpanding ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 shadow-sm'}
                         `}
                         title="テンプレートを展開"
@@ -161,7 +161,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                             setIsSaveModalOpen(true);
                         }}
                         disabled={isSyncing}
-                        className={`px-4 h-9 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
+                        className={`px-4 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
                             ${isSyncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
                         `}
                     >
@@ -175,10 +175,12 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
 
                 <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className={`relative w-9 h-9 rounded-lg transition-all flex items-center justify-center
+                    className={`relative w-11 h-11 rounded-lg transition-all flex items-center justify-center
                         ${isSidebarOpen ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}
                     `}
                     title={isSidebarOpen ? 'リストを閉じる' : '未配車リスト'}
+                    aria-expanded={isSidebarOpen}
+                    aria-controls="pending-job-sidebar"
                 >
                     <Clipboard size={18} />
                     <span className={`absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white shadow-md transition-all duration-300

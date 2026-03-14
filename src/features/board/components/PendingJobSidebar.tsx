@@ -38,7 +38,7 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
     });
 
     return (
-        <div className="w-80 bg-gray-50 border-l border-gray-200 shadow-xl flex flex-col z-50">
+        <div id="pending-job-sidebar" className="w-80 bg-gray-50 border-l border-gray-200 shadow-xl flex flex-col z-50">
             {/* Header */}
             <div className="p-4 bg-white border-b border-gray-200">
                 <div className="flex justify-between items-center mb-3">
@@ -51,19 +51,23 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
                             <button
                                 onClick={onLoadPeriodicJobs}
                                 disabled={isSyncing}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all shadow-sm
+                                className={`flex items-center gap-1.5 px-3 h-11 rounded-md text-[11px] font-bold transition-all shadow-sm
                                     ${isSyncing
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                         : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100 active:scale-95'
                                     }`}
                                 title="マスタ設定から本日の定期案件を読み込みます"
                             >
-                                <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
+                                <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
                                 <span>定期読込</span>
                             </button>
                         )}
-                        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors text-slate-400">
-                            <X size={20} />
+                        <button 
+                            onClick={onClose} 
+                            className="w-11 h-11 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors text-slate-400"
+                            aria-label="閉じる"
+                        >
+                            <X size={24} />
                         </button>
                     </div>
                 </div>
@@ -74,7 +78,7 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
                         <button
                             key={f}
                             onClick={() => setPendingFilter(f)}
-                            className={`flex-1 py-1 text-xs font-bold rounded-md transition-all ${pendingFilter === f ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`flex-1 h-11 text-xs font-bold rounded-md transition-all ${pendingFilter === f ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             {f}
                         </button>

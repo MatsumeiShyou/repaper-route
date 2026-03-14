@@ -195,20 +195,28 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
                         <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">簡易マスタ登録</p>
                         <div className="grid grid-cols-2 gap-2">
-                            <input
-                                type="text"
-                                value={newPointName}
-                                onChange={(e) => setNewPointName(e.target.value)}
-                                placeholder="名称（必須）"
-                                className="border rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
-                            <input
-                                type="text"
-                                value={newPointFurigana}
-                                onChange={(e) => setNewPointFurigana(e.target.value)}
-                                placeholder="フリガナ"
-                                className="border rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="newPointName" className="text-[10px] font-bold text-blue-700">名称</label>
+                                <input
+                                    id="newPointName"
+                                    type="text"
+                                    value={newPointName}
+                                    onChange={(e) => setNewPointName(e.target.value)}
+                                    placeholder="名称（必須）"
+                                    className="border rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label htmlFor="newPointFurigana" className="text-[10px] font-bold text-blue-700">フリガナ</label>
+                                <input
+                                    id="newPointFurigana"
+                                    type="text"
+                                    value={newPointFurigana}
+                                    onChange={(e) => setNewPointFurigana(e.target.value)}
+                                    placeholder="フリガナ"
+                                    className="border rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
                         </div>
                         {registerError && (
                             <p className="text-[10px] text-red-600">{registerError}</p>
@@ -268,7 +276,7 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
 
                 <div className="space-y-2">
                     <div className="flex items-center justify-between mb-1">
-                        <label className="text-sm font-medium text-gray-700">追加の理由 <span className="text-red-500">*</span></label>
+                        <label htmlFor="jobReason" className="text-sm font-medium text-gray-700">追加の理由 <span className="text-red-500">*</span></label>
                         <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                             {[
                                 { id: 'list', label: 'リスト' },
@@ -292,6 +300,7 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
 
                     {reasonMode === 'list' ? (
                         <select
+                            id="jobReason"
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white h-11"
@@ -303,6 +312,7 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                         </select>
                     ) : (
                         <textarea
+                            id="jobReason"
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             placeholder={reasonMode === 'save' ? "この理由をリストに保存して追加します" : "今回の追加理由を入力してください"}

@@ -1,73 +1,29 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase/client';
 import { useMasterData } from './useMasterData';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { isPastDayJST } from '../utils/dateUtils';
+import { useDataSync } from './useDataSync';
 import {
     BoardJob, BoardDriver, BoardSplit, BoardHistory, AppUser, ExceptionReasonMaster
 } from '../../../types';
 
+// --- Types ---
+export interface BoardState {
+    drivers: BoardDriver[];
+    jobs: BoardJob[];
+    pendingJobs: BoardJob[];
+    splits: BoardSplit[];
+}
+
 export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     const currentUserId = user?.id;
 
-    const { drivers: masterDrivers, isLoading: masterLoading } = useMasterData();
+    const { drivers: masterDrivers } = useMasterData();
     const { showNotification } = useNotification();
 
-    // --- State ---
-    const [drivers, setDrivers] = useState<BoardDriver[]>([]);
-    const [jobs, setJobs] = useState<BoardJob[]>([]);
-    const [pendingJobs, setPendingJobs] = useState<BoardJob[]>([]);
-    const [splits, setSplits] = useState<BoardSplit[]>([]);
-
-    // Supabase / Persistence State
-    const [isDataLoaded, setIsDataLoaded] = useState(false);
-    const [isOffline, setIsOffline] = useState(false);
-    const [isSyncing, setIsSyncing] = useState(false);
-
-    // Lock & Permission State
-    const [lockState, setLockState] = useState<{ userId: string | null, dateKey: string | null }>({ userId: null, dateKey: null });
-    const [canEditBoard, setCanEditBoard] = useState(false);
-
-    // Exception Model State (Phase 12)
-    const [exceptionReasons, setExceptionReasons] = useState<ExceptionReasonMaster[]>([]);
-    const [confirmedSnapshot, setConfirmedSnapshot] = useState<any>(null);
-    const isPastDate = useMemo(() => isPastDayJST(new Date(currentDateKey)), [currentDateKey]);
-
-    const isTargetDateLockedByMe = useMemo(() => {
-        return lockState.userId === currentUserId && lockState.dateKey === currentDateKey;
-    }, [lockState, currentUserId, currentDateKey]);
-
-    const editMode = useMemo(() => {
-        return isTargetDateLockedByMe && !isPastDate && canEditBoard;
-    }, [isTargetDateLockedByMe, isPastDate, canEditBoard]);
-
-    const boardMode = useMemo(() => {
-        if (isPastDate) return 'VIEW_PAST' as const;
-        if (jobs.some(j => j.status === 'confirmed')) return 'CONFIRM' as const;
-        if (!editMode) return 'VIEW_LOCKED' as const;
-        return 'EDIT' as const;
-    }, [isPastDate, jobs, editMode]);
-
-    const lockedBy = lockState.userId;
-
-
-    // History State
-    const [history, setHistory] = useState<BoardHistory>({ past: [], future: [] });
-
     // ----------------------------------------
-    // 1. Logic Helpers
-    // ----------------------------------------
-    const recordHistory = useCallback(() => {
-        setHistory(prev => ({
-            past: [...prev.past, { jobs, pendingJobs, splits, drivers }],
-            future: []
-        }));
-    }, [jobs, pendingJobs, splits, drivers]);
-
-
-
-    // ----------------------------------------
-    // 2. Data Mapping (Adapters)
+    // 1. Logic Helpers (Adapters)
     // ----------------------------------------
     const mapSupabaseToBoardJob = useCallback((j: any): BoardJob => ({
         id: j.id,
@@ -95,153 +51,112 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     })), []);
 
     // ----------------------------------------
-    // 3. Initialization & Data Loading
+    // 2. Data Synchronization (Phase 3-2: SWR Layer)
     // ----------------------------------------
-    const prevDateRef = useRef<string | null>(null);
-    const isFirstLoadRef = useRef(true);
+    const { data: remoteData, isLoading: isSyncing, error: syncError, mutate: mutateCache } = useDataSync(
+        currentDateKey, 
+        mapSupabaseToBoardJob, 
+        getDefaultDrivers
+    );
 
+    // ----------------------------------------
+    // 3. Unified Local State (SSOT)
+    // ----------------------------------------
+    const [state, setState] = useState<BoardState>({
+        drivers: [],
+        jobs: [],
+        pendingJobs: [],
+        splits: []
+    });
+
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
+    const [history, setHistory] = useState<BoardHistory>({ past: [], future: [] });
+
+    // Sync remote data to local state if no unsaved changes (history is empty)
     useEffect(() => {
-        let ignore = false;
-        const initializeData = async () => {
-            if (!currentDateKey || masterLoading) return;
+        if (remoteData && history.past.length === 0) {
+            setState(remoteData);
+            setIsDataLoaded(true);
+        }
+    }, [remoteData, history.past.length]);
 
-            const isDateChanged = prevDateRef.current !== currentDateKey;
-            prevDateRef.current = currentDateKey;
+    // Handle sync errors
+    useEffect(() => {
+        if (syncError) {
+            showNotification("データ同期中にエラーが発生しました", "error");
+        }
+    }, [syncError, showNotification]);
 
-            // --- Robust Sync Start ---
-            setIsSyncing(true);
+    // Supabase / Persistence State
+    const [isOffline, setIsOffline] = useState(false);
 
-            if (isFirstLoadRef.current) {
-                // First-time load: show loading screen
-                setIsDataLoaded(false);
-                setDrivers([]);
-            } else if (isDateChanged) {
-                // Soft Reset: keep headers, clear data to avoid flicker
-                setJobs([]);
-                setPendingJobs([]);
-                setDrivers(getDefaultDrivers());
-                setSplits([]);
+    // Lock & Permission State
+    const [lockState, setLockState] = useState<{ userId: string | null, dateKey: string | null }>({ userId: null, dateKey: null });
+    
+    // Permission derivation (F-SSOT)
+    const [profile, setProfile] = useState<{ can_edit_board: boolean, role: string } | null>(null);
+    const canEditBoard = useMemo(() => {
+        if (!user) return false;
+        if (user.role === 'admin') return true;
+        return !!profile?.can_edit_board;
+    }, [user, profile]);
 
-                // 【重要】日付変更時は一旦 Loaded を false にし、useEffect による
-                // 古い isPastDate での requestEditLock 暴走を防ぐ
-                setIsDataLoaded(false);
-            }
+    // Fetch Profile once
+    useEffect(() => {
+        if (currentUserId) {
+            supabase.from('profiles').select('*').eq('id', currentUserId).maybeSingle()
+                .then(({ data }) => { if (data) setProfile(data as any); });
+        }
+    }, [currentUserId]);
 
-            setIsOffline(false);
-            try {
-                // 1. Fetch Board Data & Permissions in Parallel
-                const fetchRoutePromise = supabase
-                    .from('routes')
-                    .select('*')
-                    .eq('date', currentDateKey)
-                    .maybeSingle();
+    // Exception Model State
+    const [exceptionReasons, setExceptionReasons] = useState<ExceptionReasonMaster[]>([]);
+    const [confirmedSnapshot, setConfirmedSnapshot] = useState<any>(null);
+    
+    // Fetch Master Metadata (Exception Reasons)
+    useEffect(() => {
+        supabase.from('exception_reason_masters').select('*').eq('is_active', true).order('created_at', { ascending: true })
+            .then(({ data }) => { if (data) setExceptionReasons(data); });
+        
+        // Fetch Confirmed Snapshot for the route
+        if (currentDateKey) {
+            supabase.from('routes').select('confirmed_snapshot').eq('date', currentDateKey).maybeSingle()
+                .then(({ data }) => { if (data) setConfirmedSnapshot(data.confirmed_snapshot); });
+        }
+    }, [currentDateKey]);
 
-                const fetchUnassignedJobsPromise = supabase
-                    .from('jobs')
-                    .select('*')
-                    .is('driver_id', null);
+    // Derived States (Pure Derivation)
+    const isPastDate = useMemo(() => isPastDayJST(new Date(currentDateKey)), [currentDateKey]);
 
-                const fetchProfilePromise = currentUserId ? supabase
-                    .from('profiles')
-                    .select('can_edit_board, role')
-                    .eq('id', currentUserId)
-                    .maybeSingle() : Promise.resolve({ data: null, error: null });
+    const isTargetDateLockedByMe = useMemo(() => {
+        return lockState.userId === currentUserId && lockState.dateKey === currentDateKey;
+    }, [lockState, currentUserId, currentDateKey]);
 
-                const fetchExceptionReasonsPromise = supabase
-                    .from('exception_reason_masters')
-                    .select('*')
-                    .eq('is_active', true)
-                    .order('created_at', { ascending: true });
+    const editMode = useMemo(() => {
+        return isTargetDateLockedByMe && !isPastDate && canEditBoard;
+    }, [isTargetDateLockedByMe, isPastDate, canEditBoard]);
 
-                const [routeRes, jobsRes, profileRes, exceptionReasonsRes] = await Promise.all([
-                    fetchRoutePromise,
-                    fetchUnassignedJobsPromise,
-                    fetchProfilePromise,
-                    fetchExceptionReasonsPromise
-                ]) as [any, any, any, any];
+    const boardMode = useMemo(() => {
+        if (isPastDate) return 'VIEW_PAST' as const;
+        if (state.jobs.some(j => j.status === 'confirmed')) return 'CONFIRM' as const;
+        if (!editMode) return 'VIEW_LOCKED' as const;
+        return 'EDIT' as const;
+    }, [isPastDate, state.jobs, editMode]);
 
-                if (ignore) return;
-
-                if (routeRes.error || jobsRes.error || profileRes.error || exceptionReasonsRes.error) {
-                    const err = routeRes.error || jobsRes.error || profileRes.error || exceptionReasonsRes.error;
-                    console.error('[Board] Initialization fetch failed:', err);
-                    // Throw to be caught by ErrorBoundary instead of silent whiteout
-                    throw new Error(`Data fetch failed: ${err.message || 'Unknown error'}`);
-                }
-
-                if (exceptionReasonsRes.data) setExceptionReasons(exceptionReasonsRes.data);
-
-                const data = routeRes.data;
-                const unassignedJobs = jobsRes.data;
-                const fallbackJobs = (unassignedJobs || []).map(mapSupabaseToBoardJob);
-
-                // getDefaultDrivers は外側の useCallback 版を使用
-
-                // ---------------------------------------------------------
-                // 3. Apply Fetched Data to State
-                // ---------------------------------------------------------
-                if (data) {
-                    setJobs((data.jobs || []) as BoardJob[]);
-                    if (data.drivers && Array.isArray(data.drivers) && data.drivers.length > 0) {
-                        setDrivers(data.drivers as BoardDriver[]);
-                    } else {
-                        setDrivers(getDefaultDrivers());
-                    }
-                    setSplits((data.splits || []) as BoardSplit[]);
-                    setConfirmedSnapshot(data.confirmed_snapshot); // Load snapshot
-
-                    // 【再発防止 / Single Source of Truth】
-                    // routes.pending のスナップショットと、最新のマスター jobs テーブルをマージ
-                    const latestUnassignedFromMaster = fallbackJobs;
-                    const savedPending = (data.pending || []) as BoardJob[];
-                    const masterUnassignedIds = new Set(latestUnassignedFromMaster.map((j: BoardJob) => j.id));
-
-                    const savedIds = new Set(savedPending.map((j: BoardJob) => j.id));
-                    const newUnseenJobs = latestUnassignedFromMaster.filter((j: BoardJob) => !savedIds.has(j.id));
-                    const stillUnassignedSavedPending = savedPending.filter((j: BoardJob) => masterUnassignedIds.has(j.id));
-
-                    setPendingJobs([...stillUnassignedSavedPending, ...newUnseenJobs]);
-                    setIsOffline(false);
-                } else {
-                    setJobs([]);
-                    setDrivers(getDefaultDrivers());
-                    setSplits([]);
-                    setPendingJobs(fallbackJobs);
-                    setIsOffline(false);
-                }
-
-                // 2. Handle User Permissions (using data fetched in parallel)
-                if (currentUserId && profileRes.data) {
-                    const userProfile = profileRes.data;
-                    const userContextRole = user?.role;
-                    const hasAdminRole = userProfile.role === 'admin' || userContextRole === 'admin';
-                    setCanEditBoard(!!(userProfile.can_edit_board || hasAdminRole));
-                } else if (user?.role === 'admin') {
-                    setCanEditBoard(true);
-                } else {
-                    setCanEditBoard(false);
-                }
-            } catch (err) {
-                if (ignore) return;
-                console.warn("Board load failed, using fallback UI", err);
-                setIsOffline(true);
-                // Ensure UI doesn't break even on sync failure
-                setDrivers(getDefaultDrivers());
-            } finally {
-                if (!ignore) {
-                    isFirstLoadRef.current = false;
-                    setIsDataLoaded(true);
-                    setIsSyncing(false);
-                }
-            }
-        };
-
-        initializeData();
-        return () => { ignore = true; };
-    }, [currentDateKey, currentUserId, masterLoading, mapSupabaseToBoardJob, getDefaultDrivers]);
+    const lockedBy = lockState.userId;
 
     // ----------------------------------------
-    // 3. Lock Management
+    // 4. History Management
+    // ----------------------------------------
+    const recordHistory = useCallback(() => {
+        setHistory(prev => ({
+            past: [...prev.past, { ...state }],
+            future: []
+        }));
+    }, [state]);
+
+    // ----------------------------------------
+    // 5. Lock Management
     // ----------------------------------------
     const requestEditLock = useCallback(async () => {
         if (!canEditBoard || isPastDate) {
@@ -260,10 +175,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                 .eq('date', currentDateKey)
                 .maybeSingle();
 
-            if (fetchError) {
-                console.error("[Board] Lock fetch error:", fetchError);
-                throw fetchError;
-            }
+            if (fetchError) throw fetchError;
 
             const isLockExpired = route?.last_activity_at &&
                 (Date.now() - new Date(route.last_activity_at as string).getTime()) > TIMEOUT_MS;
@@ -282,31 +194,23 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                 }
 
                 const { error: upsertError } = await supabase.from('routes').upsert(updateData, { onConflict: 'date' });
-
-                if (upsertError) {
-                    throw upsertError;
-                }
+                if (upsertError) throw upsertError;
 
                 setLockState({ userId: currentUserId || null, dateKey: currentDateKey });
                 showNotification("編集モードで開きました", "success");
             } else {
-                console.log("[Board] Locked by another user:", route.edit_locked_by);
                 setLockState({ userId: route.edit_locked_by, dateKey: currentDateKey });
                 showNotification(`${route.edit_locked_by}が編集中です`, "info");
             }
         } catch (e: any) {
-            // 【再発防止 / 統治】RLS制限や401が発生した場合でも、管理者はローカル編集を続行可能にする
-            const userContextRole = user?.role;
-            if (userContextRole === 'admin') {
-                setCanEditBoard(true);
+            if (user?.role === 'admin') {
                 setLockState({ userId: currentUserId || null, dateKey: currentDateKey });
                 showNotification("管理者モード（ローカル保存）で開きました", "success");
             } else {
-                const msg = e?.message?.includes('401') ? "認証エラーが発生しました。再ログインを推奨します。" : "同期中にエラーが発生しました。";
-                showNotification(msg, "error");
+                showNotification("同期中にエラーが発生しました。", "error");
             }
         }
-    }, [currentUserId, currentDateKey, canEditBoard, showNotification, user?.role]);
+    }, [currentUserId, currentDateKey, canEditBoard, isPastDate, showNotification, user?.role, user]);
 
     const releaseEditLock = useCallback(async () => {
         if (!editMode) return;
@@ -324,7 +228,6 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         }
     }, [editMode, currentDateKey, currentUserId, showNotification]);
 
-    // Auto-Heartbeat
     useEffect(() => {
         if (!editMode) return;
         const interval = setInterval(async () => {
@@ -335,42 +238,29 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
         return () => clearInterval(interval);
     }, [editMode, currentDateKey, currentUserId]);
 
-    // Initial Lock Request (Reset per Date)
     useEffect(() => {
-        if (isDataLoaded && !isPastDate) {
-            requestEditLock();
-        }
+        if (isDataLoaded && !isPastDate) requestEditLock();
     }, [isDataLoaded, currentDateKey, requestEditLock, isPastDate]);
 
-    // Cleanup when DateKey changes (Zombie Lock Prevention)
     useEffect(() => {
-        return () => {
-            if (editMode) {
-                releaseEditLock();
-            }
-        };
+        return () => { if (editMode) releaseEditLock(); };
     }, [currentDateKey, editMode, releaseEditLock]);
 
     // ----------------------------------------
-    // 4. Persistence & Real-time
+    // 6. Persistence Operations
     // ----------------------------------------
     const handleSave = async (reason = 'Manual Save') => {
-        setIsSyncing(true);
-        try {
-            if (pendingJobs.length === 0 && jobs.length === 0) {
-                showNotification("⚠️ データが空です。保存を中止します。", "error");
-                setIsSyncing(false);
-                return;
-            }
+        if (state.pendingJobs.length === 0 && state.jobs.length === 0) {
+            showNotification("⚠️ データが空です。保存を中止します。", "error");
+            return;
+        }
 
-            // Execute SDR RPC
+        try {
             const { error } = await supabase.rpc('rpc_execute_board_update', {
                 p_date: currentDateKey,
                 p_new_state: {
-                    jobs,
-                    drivers,
-                    splits,
-                    pending: pendingJobs,
+                    ...state,
+                    pending: state.pendingJobs,
                     edit_locked_by: currentUserId,
                     edit_locked_at: new Date().toISOString()
                 },
@@ -379,45 +269,38 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
             } as any);
 
             if (error) throw error;
-
             setIsOffline(false);
             showNotification("保存しました (SDR記録完了)", "success");
+            
+            // Update cache after successful save
+            mutateCache(state);
+            setHistory({ past: [], future: [] }); // Clear history after save
         } catch (e) {
             console.error("Save error:", e);
             setIsOffline(true);
             showNotification("保存失敗", "error");
-        } finally {
-            setIsSyncing(false);
         }
     };
 
-    // Phase 5: Confirm All Jobs (Planned -> Confirmed)
     const handleConfirmAll = async (reason = 'Bulk Confirmation') => {
         if (!editMode) return;
-
-        const plannedJobs = jobs.filter(j => j.status === 'planned');
+        const plannedJobs = state.jobs.filter(j => j.status === 'planned');
         if (plannedJobs.length === 0) {
             showNotification("確定待ちの案件はありません", "info");
             return;
         }
 
-        if (!window.confirm(`${plannedJobs.length}件の案件を確定しますか？確定後は通常の編集が制限されます。`)) return;
+        if (!window.confirm(`${plannedJobs.length}件の案件を確定しますか？`)) return;
 
-        setIsSyncing(true);
         try {
-            const confirmedJobs = jobs.map(j => ({
-                ...j,
-                status: 'confirmed' as const
-            }));
+            const confirmedJobs = state.jobs.map(j => ({ ...j, status: 'confirmed' as const }));
+            const newState = { ...state, jobs: confirmedJobs };
 
-            // Execute SDR RPC for bulk confirmation
             const { error } = await supabase.rpc('rpc_execute_board_update', {
                 p_date: currentDateKey,
                 p_new_state: {
-                    jobs: confirmedJobs,
-                    drivers,
-                    splits,
-                    pending: pendingJobs,
+                    ...newState,
+                    pending: newState.pendingJobs,
                     edit_locked_by: currentUserId,
                     edit_locked_at: new Date().toISOString()
                 },
@@ -426,66 +309,44 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
             } as any);
 
             if (error) throw error;
-
-            setJobs(confirmedJobs);
+            setState(newState);
+            mutateCache(newState);
             showNotification(`${plannedJobs.length}件を確定しました`, "success");
-            recordHistory();
+            setHistory({ past: [], future: [] });
         } catch (e) {
-            console.error("Confirm all error:", e);
             showNotification("一括確定に失敗しました", "error");
-        } finally {
-            setIsSyncing(false);
         }
     };
 
-    // Phase 12: Handle Post-Confirmation Exception Logging
     const handleExceptionChange = async (
         jobId: string,
         exceptionType: 'MOVE' | 'REASSIGN' | 'SWAP' | 'CANCEL' | 'ADD',
-        proposedState: any, // The new job object, mapped to SupabaseJob structure, or BoardJob if keeping logic local
+        proposedState: any,
         reasonMasterId?: string,
         reasonFreeText?: string,
         promoteRequested?: boolean
     ) => {
-        setIsSyncing(true);
         try {
-            const targetJob = jobs.find(j => j.id === jobId);
+            const targetJob = state.jobs.find(j => j.id === jobId);
             if (!targetJob) throw new Error("Job not found");
 
-            const beforeState = { ...targetJob };
+            const updatedJobs = state.jobs.map(j => j.id === jobId ? { ...j, ...proposedState } : j);
+            const newState = { ...state, jobs: updatedJobs };
 
-            const boardException = {
-                route_date: currentDateKey,
-                job_id: jobId,
-                exception_type: exceptionType,
-                before_state: beforeState,
-                after_state: proposedState,
-                reason_master_id: reasonMasterId,
-                reason_free_text: reasonFreeText,
-                promote_requested: promoteRequested,
-                actor_id: currentUserId
-            };
-
-            // 1. Log the Exception
-            const { error: exceptionError } = await supabase
-                .from('board_exceptions')
-                .insert([boardException]);
+            const { error: exceptionError } = await supabase.from('board_exceptions').insert([{
+                route_date: currentDateKey, job_id: jobId, exception_type: exceptionType,
+                before_state: { ...targetJob }, after_state: proposedState,
+                reason_master_id: reasonMasterId, reason_free_text: reasonFreeText,
+                promote_requested: promoteRequested, actor_id: currentUserId
+            }]);
 
             if (exceptionError) throw exceptionError;
 
-            // 2. Optimistic UI update for the single job directly (since it bypasses typical edit rules)
-            setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...proposedState } : j));
-            recordHistory();
-
-            // 3. Persist actual state to handle real-time sync across clients (we trigger an RPC to keep SDR coherent)
-            const updatedJobs = jobs.map(j => j.id === jobId ? { ...j, ...proposedState } : j);
             await supabase.rpc('rpc_execute_board_update', {
                 p_date: currentDateKey,
                 p_new_state: {
-                    jobs: updatedJobs,
-                    drivers,
-                    splits,
-                    pending: pendingJobs,
+                    ...newState,
+                    pending: newState.pendingJobs,
                     edit_locked_by: currentUserId,
                     edit_locked_at: new Date().toISOString()
                 },
@@ -493,143 +354,81 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                 p_reason: reasonFreeText || reasonMasterId || 'Exception Change'
             } as any);
 
+            setState(newState);
+            mutateCache(newState);
+            setHistory({ past: [], future: [] });
             showNotification(`例外変更を記録しました`, "success");
         } catch (e) {
-            console.error("Exception handling error:", e);
             showNotification(`例外記録に失敗しました`, "error");
-        } finally {
-            setIsSyncing(false);
         }
     };
 
-    // Real-time Subscription
-    useEffect(() => {
-        const channel = supabase.channel('board_changes')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'routes', filter: `date=eq.${currentDateKey}` }, (payload) => {
-                const newData = payload.new as any;
-                if (newData.edit_locked_by && newData.edit_locked_by !== currentUserId) {
-                    setLockState({ userId: newData.edit_locked_by, dateKey: currentDateKey });
-                    showNotification(`${newData.edit_locked_by}が編集中です`, "info");
-                }
-                if (!newData.edit_locked_by && !editMode && lockState.userId) {
-                    setLockState({ userId: null, dateKey: currentDateKey });
-                    showNotification("編集可能になりました", "success");
-                }
-                if (newData.updated_at && !editMode) {
-                    if (newData.jobs) setJobs(newData.jobs);
-                    if (newData.drivers && Array.isArray(newData.drivers) && newData.drivers.length > 0) {
-                        setDrivers(newData.drivers);
-                    } else if (newData.drivers === null || (Array.isArray(newData.drivers) && newData.drivers.length === 0)) {
-                        // Keep current drivers if real-time update sends empty to avoid header flicker
-                        // unless it's a deliberate clear (not handled here for stability)
-                    }
-                    if (newData.splits) setSplits(newData.splits);
-                    if (newData.pending) setPendingJobs(newData.pending);
-                }
-            })
-            .subscribe();
-
-        return () => { supabase.removeChannel(channel); };
-    }, [currentDateKey, currentUserId, editMode, lockState.userId, showNotification]);
-
     const undo = useCallback(() => {
-        if (!editMode) return; // Prevent hallucinated state changes in view-only mode
+        if (!editMode) return;
         setHistory(prev => {
             if (prev.past.length === 0) return prev;
             const previous = prev.past[prev.past.length - 1];
-            const newPast = prev.past.slice(0, -1);
-            const newFuture = [{ jobs, pendingJobs, splits, drivers }, ...prev.future];
-
-            setJobs(previous.jobs);
-            setPendingJobs(previous.pendingJobs);
-            setSplits(previous.splits);
-            setDrivers(previous.drivers);
-
-            return { past: newPast, future: newFuture };
+            setState(previous as BoardState);
+            return { past: prev.past.slice(0, -1), future: [state, ...prev.future] };
         });
-    }, [jobs, pendingJobs, splits, drivers]);
+    }, [editMode, state]);
 
     const redo = useCallback(() => {
-        if (!editMode) return; // Prevent hallucinated state changes in view-only mode
+        if (!editMode) return;
         setHistory(prev => {
             if (prev.future.length === 0) return prev;
             const next = prev.future[0];
-            const newFuture = prev.future.slice(1);
-            const newPast = [...prev.past, { jobs, pendingJobs, splits, drivers }];
-
-            setJobs(next.jobs);
-            setPendingJobs(next.pendingJobs);
-            setSplits(next.splits);
-            setDrivers(next.drivers);
-
-            return { past: newPast, future: newFuture };
+            setState(next as BoardState);
+            return { past: [...prev.past, state], future: prev.future.slice(1) };
         });
-    }, [jobs, pendingJobs, splits, drivers]);
+    }, [editMode, state]);
 
     const addColumn = useCallback(() => {
         if (!editMode) return;
-        setDrivers(prev => {
-            const newCourseName = String.fromCharCode(65 + prev.length);
+        setState(prev => {
+            const newCourseName = String.fromCharCode(65 + prev.drivers.length);
             const newColumn: BoardDriver = {
                 id: `course_${newCourseName}_${Date.now()}`,
                 name: `${newCourseName}コース`,
-                driverName: '未割当',
-                currentVehicle: '未定',
-                course: newCourseName,
+                driverName: '未割当', currentVehicle: '未定', course: newCourseName,
                 color: 'bg-gray-50 border-gray-200'
             };
-            return [...prev, newColumn];
+            return { ...prev, drivers: [...prev.drivers, newColumn] };
         });
         recordHistory();
     }, [editMode, recordHistory]);
 
     const deleteColumn = useCallback((columnId: string) => {
         if (!editMode) return;
-        if (jobs.some(j => j.driverId === columnId)) {
+        if (state.jobs.some(j => j.driverId === columnId)) {
             showNotification('案件が残っているコースは削除できません', 'error');
             return;
         }
-        setDrivers(prev => prev.filter(d => d.id !== columnId));
+        setState(prev => ({ ...prev, drivers: prev.drivers.filter(d => d.id !== columnId) }));
         recordHistory();
-    }, [editMode, jobs, recordHistory, showNotification]);
+    }, [editMode, state.jobs, recordHistory, showNotification]);
 
-    // Phase 4: Import Periodic Jobs from Master
     const importPeriodicJobs = useCallback(async () => {
         if (!editMode || !currentDateKey) return;
-
-        setIsSyncing(true);
         try {
             const { PeriodicJobImporter } = await import('../../../lib/PeriodicJobImporter');
-            const targetDate = new Date(currentDateKey);
-            const masterPoints = await PeriodicJobImporter.fetchPointsByDate(targetDate);
-
+            const masterPoints = await PeriodicJobImporter.fetchPointsByDate(new Date(currentDateKey));
             if (masterPoints.length === 0) {
                 showNotification("本日（マスタ設定）の定期案件はありません", "info");
                 return;
             }
 
-            // Map master points to BoardJob objects
             const newJobs: BoardJob[] = masterPoints.map(p => ({
                 id: `periodic_${p.location_id}_${currentDateKey.replace(/-/g, '')}`,
-                title: p.name,
-                bucket: p.visit_slot === 'AM' ? 'AM' : p.visit_slot === 'PM' ? 'PM' : 'AM', // Default logic
-                duration: (p as any).duration_minutes || 60, // Use duration_minutes from Master if exists
-                area: p.area || p.display_name || '',
-                requiredVehicle: p.restricted_vehicle_id ? '要車両' : undefined,
-                note: p.note || undefined,
-                isSpot: p.is_spot_only || false,
-                timeConstraint: p.time_constraint_type !== 'NONE' ? '要確認' : undefined,
-                taskType: p.special_type === 'NONE' ? 'collection' : 'special',
-                status: 'planned' as const,
-                location_id: p.location_id // Correct field name from index.ts
+                title: p.name, bucket: p.visit_slot === 'AM' ? 'AM' : 'PM',
+                duration: (p as any).duration_minutes || 60, area: p.area || p.display_name || '',
+                requiredVehicle: p.restricted_vehicle_id ? '要車両' : undefined, note: p.note || undefined,
+                isSpot: p.is_spot_only || false, timeConstraint: p.time_constraint_type !== 'NONE' ? '要確認' : undefined,
+                taskType: p.special_type === 'NONE' ? 'collection' : 'special', status: 'planned' as const,
+                location_id: p.location_id
             }));
 
-            // Duplicate Prevention: Check if already exists in jobs or pendingJobs
-            const existingLocationIds = new Set([
-                ...jobs.map(j => j.location_id),
-                ...pendingJobs.map(j => j.location_id)
-            ].filter(Boolean));
-
+            const existingLocationIds = new Set([...state.jobs.map(j => j.location_id), ...state.pendingJobs.map(j => j.location_id)].filter(Boolean));
             const finalNewJobs = newJobs.filter(nj => !existingLocationIds.has(nj.location_id));
 
             if (finalNewJobs.length === 0) {
@@ -637,56 +436,40 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                 return;
             }
 
-            setPendingJobs(prev => [...prev, ...finalNewJobs]);
+            setState(prev => ({ ...prev, pendingJobs: [...prev.pendingJobs, ...finalNewJobs] }));
             showNotification(`${finalNewJobs.length}件の定期案件を読み込みました`, "success");
             recordHistory();
-
         } catch (e) {
-            console.error("[Board] Import periodic jobs failed:", e);
-            showNotification("マスタからの読み込みに失敗しました", "error");
-        } finally {
-            setIsSyncing(false);
+            showNotification("読み込みに失敗しました", "error");
         }
-    }, [editMode, currentDateKey, jobs, pendingJobs, showNotification, recordHistory]);
+    }, [editMode, currentDateKey, state.jobs, state.pendingJobs, showNotification, recordHistory]);
 
-    // Phase 6.2: Register current state as a template
     const handleRegisterTemplate = useCallback(async (name: string, dayOfWeek: number, nthWeek: number | null) => {
-        setIsSyncing(true);
         try {
             const { error } = await supabase.from('board_templates').insert({
-                name,
-                day_of_week: dayOfWeek,
-                nth_week: nthWeek,
-                jobs_json: jobs as any,
-                drivers_json: drivers as any,
-                splits_json: splits as any,
-                is_active: true
+                name, day_of_week: dayOfWeek, nth_week: nthWeek,
+                jobs_json: state.jobs as any, drivers_json: state.drivers as any, splits_json: state.splits as any, is_active: true
             });
-
             if (error) throw error;
             showNotification(`テンプレート「${name}」を登録しました`, "success");
         } catch (e) {
-            console.error("Template registration error:", e);
-            showNotification("テンプレートの登録に失敗しました", "error");
+            showNotification("登録に失敗しました", "error");
             throw e;
-        } finally {
-            setIsSyncing(false);
         }
-    }, [jobs, drivers, splits, showNotification]);
+    }, [state.jobs, state.drivers, state.splits, showNotification]);
 
     return {
         masterDrivers,
-        drivers, setDrivers,
-        jobs, setJobs,
-        pendingJobs, setPendingJobs,
-        splits, setSplits,
+        drivers: state.drivers, setDrivers: (d: BoardDriver[] | ((prev: BoardDriver[]) => BoardDriver[])) => setState(s => ({ ...s, drivers: typeof d === 'function' ? d(s.drivers) : d })),
+        jobs: state.jobs, setJobs: (j: BoardJob[] | ((prev: BoardJob[]) => BoardJob[])) => setState(s => ({ ...s, jobs: typeof j === 'function' ? j(s.jobs) : j })),
+        pendingJobs: state.pendingJobs, setPendingJobs: (pj: BoardJob[] | ((prev: BoardJob[]) => BoardJob[])) => setState(s => ({ ...s, pendingJobs: typeof pj === 'function' ? pj(s.pendingJobs) : pj })),
+        splits: state.splits, setSplits: (sp: BoardSplit[] | ((prev: BoardSplit[]) => BoardSplit[])) => setState(s => ({ ...s, splits: typeof sp === 'function' ? sp(s.splits) : sp })),
         isDataLoaded, isOffline, isSyncing,
         editMode, lockedBy, canEditBoard, isPastDate, boardMode,
         showNotification,
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
         handleExceptionChange, exceptionReasons, confirmedSnapshot,
-        handleRegisterTemplate,
-        importPeriodicJobs, // Export new function
+        handleRegisterTemplate, importPeriodicJobs,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn
     };

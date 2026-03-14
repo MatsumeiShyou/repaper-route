@@ -64,8 +64,9 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
 
                 <div className="space-y-6">
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-300">テンプレート名</label>
+                        <label htmlFor="tplName" className="mb-2 block text-sm font-medium text-slate-300">テンプレート名</label>
                         <input
+                            id="tplName"
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
@@ -77,8 +78,9 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-300">適用曜日</label>
+                            <label htmlFor="tplDay" className="mb-2 block text-sm font-medium text-slate-300">適用曜日</label>
                             <select
+                                id="tplDay"
                                 value={dayOfWeek}
                                 onChange={(e) => setDayOfWeek(parseInt(e.target.value))}
                                 className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2.5 text-white transition-all focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -89,8 +91,9 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
                             </select>
                         </div>
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-300">周期設定</label>
+                            <label htmlFor="tplCycle" className="mb-2 block text-sm font-medium text-slate-300">周期設定</label>
                             <select
+                                id="tplCycle"
                                 value={nthWeek === null ? 'null' : nthWeek}
                                 onChange={(e) => setNthWeek(e.target.value === 'null' ? null : parseInt(e.target.value))}
                                 className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2.5 text-white transition-all focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"

@@ -6,6 +6,26 @@
 ---
 
 ## 1. Active Technical Debt (現存する技術的負債)
+- [ ] **Bypass: VII-5-3 in src\index.css**
+#type: quality_bypass, #rule: VII-5-3, #expiry: 2026-04-13
+#registered: 2026-03-14
+  - **Reason**: 
+
+- [ ] **Bypass: VII-5-3 in src\index.css**
+#type: quality_bypass, #rule: VII-5-3, #expiry: 2026-04-13
+#registered: 2026-03-14
+  - **Reason**: Intentional design deviation (Business requirement)
+
+- [ ] **Bypass: VII-5-3 in src\dummy_test.css**
+#type: quality_bypass, #rule: VII-5-3, #expiry: 2026-04-13
+#registered: 2026-03-14
+  - **Reason**: Intentional design deviation (Business requirement)
+
+- [ ] **Bypass: VII-5-3 in src\dummy_test.css**
+#type: quality_bypass, #rule: VII-5-3, #expiry: 2026-04-13
+#registered: 2026-03-14
+  - **Reason**: Prototyping/Speed prioritization (Temporary)
+
 *早期の解決が望まれる、現在進行形でリスクとなっている項目。*
 
 - [ ] **WSL2/Docker: ローカルポート転送の無限ロード問題**

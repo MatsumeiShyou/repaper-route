@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     <div className="max-w-md w-full bg-white rounded-xl shadow-2xl border border-red-100 overflow-hidden">
                         <div className="bg-red-600 px-6 py-4 flex items-center gap-3 text-white">
                             <AlertOctagon size={24} />
-                            <h1 className="text-lg font-bold">システムエラーが発生しました</h1>
+                            <h2 className="text-lg font-bold">システムエラーが発生しました</h2>
                         </div>
 
                         <div className="p-6">

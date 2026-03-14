@@ -183,9 +183,9 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
             <header className="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+                        <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
                             {schema.title}
-                        </h1>
+                        </h2>
                         <p className="text-slate-500 text-sm mt-1">{schema.description}</p>
                     </div>
 
