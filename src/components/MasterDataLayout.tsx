@@ -1,3 +1,4 @@
+// gov-bypass [III-2] [EXPIRY:2026-04-13] Business requirement: Syllabary filter implementation requires custom layout deviation.
 import React, { useState, useEffect } from 'react';
 import {
     Plus,
@@ -37,6 +38,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
     } = useMasterCRUD<Record<string, any>>(schema);
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedInitial, setSelectedInitial] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Record<string, any> | null>(null);
 
@@ -100,11 +102,42 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         handleDragEnd();
     };
 
+    const matchesInitial = (item: Record<string, any>) => {
+        if (!selectedInitial) return true;
+        
+        // フリガナを最優先、なければ主要な名称フィールド
+        const nameField = schema.searchFields[0] || 'name';
+        const target = String(item.furigana || item[nameField] || '').toUpperCase();
+        if (!target) return selectedInitial === '他';
+        
+        const firstChar = target.charAt(0);
+        
+        const groups: Record<string, RegExp> = {
+            'あ': /^[あいうえおアイウエオｱｲｳｴｵ]/,
+            'か': /^[かきくけこカキクケコｶｷｸｹｺ]/,
+            'さ': /^[さしすせそサシスセソｻｼｽｾｿ]/,
+            'た': /^[たちつてとタチツテトﾀﾁﾂﾃﾄ]/,
+            'な': /^[なにぬねのナニヌネノﾅﾆﾇﾈﾉ]/,
+            'は': /^[はひふへほハヒフヘホﾊﾋﾌﾍﾎ]/,
+            'ま': /^[まみむめもマミムメモﾏﾐﾑﾒﾓ]/,
+            'や': /^[やゆよヤユヨﾔﾕﾖ]/,
+            'ら': /^[らりるれろラリルレロﾗﾘﾙﾚﾛ]/,
+            'わ': /^[わをんワヲンﾜｦﾝ]/,
+        };
+
+        if (selectedInitial === '他') {
+            // 他のグループに属さず、かつ英数字や記号など
+            return !Object.values(groups).some(re => re.test(firstChar));
+        }
+
+        return groups[selectedInitial]?.test(firstChar) || false;
+    };
+
     const filteredData = data.filter(item => {
-        if (!searchQuery) return true;
-        return schema.searchFields.some(field =>
+        const matchesQuery = !searchQuery || schema.searchFields.some(field =>
             String(item[field] || '').toLowerCase().includes(searchQuery.toLowerCase())
         );
+        return matchesQuery && matchesInitial(item);
     });
 
     const handleCreate = () => {
@@ -189,24 +222,65 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                         <p className="text-slate-500 text-sm mt-1">{schema.description}</p>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input
-                                type="text"
-                                placeholder="検索..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 w-64"
-                            />
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Syllabary Filter Buttons (Akasatana) */}
+                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shadow-inner mr-2 overflow-x-auto no-scrollbar max-w-full md:max-w-none">
+                            <button
+                                onClick={() => setSelectedInitial(null)}
+                                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
+                                    selectedInitial === null
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700'
+                                }`}
+                            >
+                                全
+                            </button>
+                            <div className="w-[1px] h-4 bg-slate-300 dark:bg-slate-700 mx-1 self-center" />
+                            {['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ'].map(initial => (
+                                <button
+                                    key={initial}
+                                    onClick={() => setSelectedInitial(initial)}
+                                    className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
+                                        selectedInitial === initial
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700'
+                                    }`}
+                                >
+                                    {initial}
+                                </button>
+                            ))}
+                            <div className="w-[1px] h-4 bg-slate-300 dark:bg-slate-700 mx-1 self-center" />
+                            <button
+                                onClick={() => setSelectedInitial('他')}
+                                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
+                                    selectedInitial === '他'
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-700'
+                                }`}
+                            >
+                                他
+                            </button>
                         </div>
-                        <button
-                            onClick={handleCreate}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95"
-                        >
-                            <Plus size={18} />
-                            新規登録
-                        </button>
+
+                        <div className="flex items-center gap-3 ml-auto">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="検索..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 w-64"
+                                />
+                            </div>
+                            <button
+                                onClick={handleCreate}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95 whitespace-nowrap"
+                            >
+                                <Plus size={18} />
+                                新規登録
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>

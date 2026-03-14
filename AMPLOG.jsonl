@@ -225,3 +225,17 @@
 {"date":"2026-03-13T18:08:39.276Z","type":"AMP","summary":"RPC Implementation: Hybrid ID & Column Restoration (T3)","detail":{"title":"RPC Modernization","scope":"rpc_execute_master_update","impact":"Fixes persistence for collection_days/area and hybrid ID lookup","status":"applied"},"design_ref":"brain/9d9eee5d-81c4-4f83-936f-8a09c261cb79/implementation_plan.md","tier":"T3","approved_by":"user"}
 {"timestamp":"2026-03-14T06:09:18.747Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":1}
 {"timestamp":"2026-03-14T06:09:31.061Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":2}
+{"timestamp":"2026-03-14T07:23:54.024Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":1}
+{"timestamp":"2026-03-14T07:24:45.030Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":2}
+{"timestamp":"2026-03-14T07:39:50.103Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":3}
+{"timestamp":"2026-03-14T07:42:24.374Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":4}
+{"timestamp":"2026-03-14T07:56:19.601Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":5}
+{"timestamp":"2026-03-14T07:56:26.752Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":6}
+{"timestamp":"2026-03-14T07:57:46.124Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":7}
+{"timestamp":"2026-03-14T07:57:57.008Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":8}
+{"timestamp":"2026-03-14T07:58:25.185Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":9}
+{"timestamp":"2026-03-14T07:58:49.916Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":10}
+{"timestamp":"2026-03-14T07:59:37.322Z","id":"ec92018e-5192-426f-80a2-3693d7242bdb","summary":"Syllabary Filter Implementation (PW: ｙ)","detail":{"title":"Syllabary Filter Implementation","scope":"masterSchema.ts, MasterDataLayout.tsx","impact":"Improved searchability and English data support in master list views.","status":"(PW: ｙ)","evidence_locked":true}}
+{"timestamp":"2026-03-14T07:59:56.978Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":11}
+{"timestamp":"2026-03-14T08:00:06.962Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":12}
+{"timestamp":"2026-03-14T08:02:02.897Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":13}

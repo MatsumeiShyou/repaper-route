@@ -66,8 +66,9 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         fields: [
             { name: 'contractor_id', label: '契約主体ID', type: 'text', requiredForCreate: true, updatable: false },
             { name: 'name', label: '契約主体名', type: 'text', required: true, updatable: true },
+            { name: 'furigana', label: 'ﾌﾘｶﾞﾅ', type: 'text', updatable: true, placeholder: '例: ﾏﾙﾏﾙ / ABC' },
             { name: 'payee_id', label: '支払元ID', type: 'text', updatable: true },
-            { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
+            { name: 'is_active', label: '有効状態', type: 'status', updatable: true }
         ]
     },
     drivers: {
@@ -86,6 +87,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         ],
         fields: [
             { name: 'driver_name', label: '氏名', type: 'text', required: true, updatable: true },
+            { name: 'furigana', label: 'ﾌﾘｶﾞﾅ', type: 'text', updatable: true, placeholder: '例: ﾃｽﾄﾀﾛｳ / TEST' },
             { name: 'route_name', label: '既定コース名', type: 'text', updatable: true, placeholder: '例: Aコース' },
             { name: 'vehicle_number', label: '担当車両', type: 'text', updatable: true, placeholder: '例: 品川100あ1234' },
             { name: 'display_color', label: '表示色 (Hex)', type: 'text', updatable: true, placeholder: '#FFFFFF' },
@@ -117,6 +119,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         ],
         fields: [
             { name: 'number', label: '車両番号', type: 'text', required: true, updatable: true },
+            { name: 'furigana', label: 'ﾌﾘｶﾞﾅ', type: 'text', updatable: true, placeholder: '例: ｼﾅｶﾞﾜ / ABC' },
             { name: 'callsign', label: '通称', type: 'text', updatable: true },
             { name: 'vehicle_type', label: '車種', type: 'text', required: true, updatable: true },
             { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
@@ -137,6 +140,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         ],
         fields: [
             { name: 'name', label: '品目名', type: 'text', required: true, updatable: true, placeholder: '例: 段ボール' },
+            { name: 'furigana', label: 'ﾌﾘｶﾞﾅ', type: 'text', updatable: true, placeholder: '例: ﾀﾞﾝﾎﾞｰﾙ / TEST' },
             { name: 'unit', label: '単位', type: 'text', required: true, updatable: true, placeholder: 'kg' },
             { name: 'display_order', label: '表示順', type: 'number', updatable: true },
             { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }

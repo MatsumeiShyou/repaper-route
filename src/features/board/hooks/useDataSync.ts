@@ -26,13 +26,13 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
     const fetchData = useCallback(async () => {
         if (!dateKey) return;
         
-        // 0. Load from IndexedDB first (Offline Recovery / Instant Load)
-        if (!data) {
+        // 0. Load from IndexedDB first if not in memory (Offline Recovery / Instant Load)
+        if (!cache[dateKey]) {
             const localData = await boardStore.get(dateKey);
             if (localData) {
                 setData(localData);
                 cache[dateKey] = localData;
-                setIsLoading(false); // We have something to show
+                setIsLoading(false);
             }
         }
 
@@ -91,7 +91,7 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
         } finally {
             setIsLoading(false);
         }
-    }, [dateKey, mapSupabaseToBoardJob, getDefaultDrivers, data]);
+    }, [dateKey, mapSupabaseToBoardJob, getDefaultDrivers]);
 
     useEffect(() => {
         fetchData();
@@ -124,7 +124,7 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [dateKey, fetchData, getDefaultDrivers]);
+    }, [dateKey]);
 
     const mutate = useCallback((newData: BoardState) => {
         cache[dateKey] = newData;

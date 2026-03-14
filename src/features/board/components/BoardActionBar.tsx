@@ -84,7 +84,11 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                     onDateChange={(date) => setSelectedDate(date)}
                 />
 
-                {isSyncing && <Database size={16} className="text-amber-500 animate-pulse" />}
+                <div className="w-5 flex justify-center">
+                    {isSyncing && (
+                        <Database size={16} className="text-amber-500 animate-pulse" />
+                    )}
+                </div>
             </div>
 
             <div className="flex items-center gap-2">
