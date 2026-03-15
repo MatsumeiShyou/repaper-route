@@ -77,3 +77,22 @@ export const formatFullDateWithNthDay = (date: Date): string => {
 
     return `${y}年 ${m}月 ${d}日 ${nthDay}`;
 };
+/**
+ * 配車盤表示用の時刻フォーマット変換
+ * @param timeSlot 'HH:mm' 形式の文字列 (例: '06:00', '15:30')
+ * @returns 表示用文字列 (例: '6:00', ':30')
+ */
+export const formatTimeForDisplay = (timeSlot: string): string => {
+    if (!timeSlot || !timeSlot.includes(':')) return timeSlot;
+
+    const [hourStr, minuteStr] = timeSlot.split(':');
+    const hour = parseInt(hourStr, 10);
+
+    // 正時 (:00) の場合は、一桁時間のゼロ埋めを解除して返す (例: '06:00' -> '6:00')
+    if (minuteStr === '00') {
+        return `${hour}:00`;
+    }
+
+    // 15/30/45 分の場合は、時を省略して ':MM' 形式で返す
+    return `:${minuteStr}`;
+};

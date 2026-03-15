@@ -1,6 +1,7 @@
 import React from 'react';
 import { BoardDriver, BoardJob, BoardSplit } from '../../../types';
 import { TIME_SLOTS, BOARD_CONSTANTS } from '../logic/constants';
+import { formatTimeForDisplay } from '../utils/dateUtils';
 
 const { Z_INDEX } = BOARD_CONSTANTS;
 
@@ -18,6 +19,7 @@ interface TimeGridProps {
     driverColRefs: React.MutableRefObject<Record<string, HTMLElement | null>>;
     isCellOccupied: (driverId: string, time: string) => boolean;
 }
+
 
 export const TimeGrid: React.FC<TimeGridProps> = ({
     drivers,
@@ -48,10 +50,11 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
             }}>
                 {TIME_SLOTS.map(time => (
                     <div key={time} style={{ height: '32px', width: '64px', minWidth: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
-                        {time.endsWith(':00') ? time : ''}
+                        {formatTimeForDisplay(time)}
                     </div>
                 ))}
             </div>
+
 
             {/* Columns */}
             {drivers.map(driver => (
