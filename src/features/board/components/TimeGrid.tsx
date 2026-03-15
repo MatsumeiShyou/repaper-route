@@ -64,7 +64,8 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 fontSize: '10px',
-                                color: '#64748b',
+                                color: isFullHour ? '#334155' : '#64748b',
+                                fontWeight: isFullHour ? 'bold' : 'normal',
                                 borderBottom: '1px solid #e2e8f0',
                                 whiteSpace: 'nowrap'
                             }}
