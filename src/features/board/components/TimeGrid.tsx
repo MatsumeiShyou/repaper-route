@@ -48,11 +48,29 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                 left: 0,
                 zIndex: Z_INDEX.PREVIEW
             }}>
-                {TIME_SLOTS.map(time => (
-                    <div key={time} style={{ height: '32px', width: '64px', minWidth: '64px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
-                        {formatTimeForDisplay(time)}
-                    </div>
-                ))}
+                {TIME_SLOTS.map(time => {
+                    const isFullHour = time.endsWith(':00');
+                    return (
+                        <div
+                            key={time}
+                            style={{
+                                height: '32px',
+                                width: '64px',
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'flex-start',
+                                paddingLeft: isFullHour ? '14px' : '22px',
+                                fontSize: '10px',
+                                color: '#64748b',
+                                borderBottom: '1px solid #e2e8f0',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            {formatTimeForDisplay(time)}
+                        </div>
+                    );
+                })}
             </div>
 
 

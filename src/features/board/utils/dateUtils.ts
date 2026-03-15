@@ -94,6 +94,6 @@ export const formatTimeForDisplay = (timeSlot: string): string => {
     }
 
     // 15/30/45 分の場合は、時を省略して ':MM' 形式で返す
-    // ユーザー要望により、正時とのズレを表現するため先頭に半角スペース2つを追加
-    return `  :${minuteStr}`;
+    // ※インデントは CSS (TimeGrid.tsx) で制御するため、ここではスペースを含めない
+    return `:${minuteStr}`;
 };
