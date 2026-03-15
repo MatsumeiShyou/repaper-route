@@ -1,7 +1,6 @@
 import React from 'react';
 import { BoardDriver, BoardJob, BoardSplit } from '../../../types';
 import { TIME_SLOTS, BOARD_CONSTANTS } from '../logic/constants';
-import { formatTimeForDisplay } from '../utils/dateUtils';
 
 const { Z_INDEX } = BOARD_CONSTANTS;
 
@@ -50,6 +49,10 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
             }}>
                 {TIME_SLOTS.map(time => {
                     const isFullHour = time.endsWith(':00');
+                    const [h, m] = time.split(':');
+                    const displayHour = isFullHour ? parseInt(h, 10).toString() : '';
+                    const displayMinute = `:${m}`;
+
                     return (
                         <div
                             key={time}
@@ -59,15 +62,19 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                                 flexShrink: 0,
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'flex-start',
-                                paddingLeft: isFullHour ? '14px' : '22px',
+                                justifyContent: 'center',
                                 fontSize: '10px',
                                 color: '#64748b',
                                 borderBottom: '1px solid #e2e8f0',
                                 whiteSpace: 'nowrap'
                             }}
                         >
-                            {formatTimeForDisplay(time)}
+                            <span style={{ width: '16px', textAlign: 'right' }}>
+                                {displayHour}
+                            </span>
+                            <span style={{ width: '22px', textAlign: 'left' }}>
+                                {displayMinute}
+                            </span>
                         </div>
                     );
                 })}
