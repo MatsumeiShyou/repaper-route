@@ -27,29 +27,6 @@ export const useBoardDragDrop = (
     onExceptionRequest?: (job: BoardJob, proposedState: any) => void // Phase 12: Exception Logging
 ) => {
 
-    const [draggingJobId, setDraggingJobId] = useState<string | null>(null);
-    const [draggingSplitId, setDraggingSplitId] = useState<string | null>(null);
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const [resizingState, setResizingState] = useState<any | null>(null);
-
-    // [F-SSOT] dropPreview は状態ではなく、マウス位置とドラッグ対象からの「純粋導出」
-    const dropPreview = useMemo(() => {
-        if (!draggingJobId) return null;
-
-        // 相対Y座標の計算（calculateDropTargetRef 内のロジックをここに集約または呼び出し）
-        let relativeY = mousePos.y;
-        if (gridContainerRef.current) {
-            const containerRect = gridContainerRef.current.getBoundingClientRect();
-            relativeY = mousePos.y - containerRect.top;
-        }
-
-        const currentY = relativeY - dragOffset.y;
-        return calculateDropTargetRef(mousePos.x, currentY, draggingJobId);
-    }, [draggingJobId, mousePos, dragOffset, jobs, splits, drivers]);
-
-    const dropSplitPreview = null; // 簡略化
-
     const calculateDropTargetRef = (pointerX: number, relativeY: number, targetJobId: string) => {
         const targetJob = jobs.find(j => j.id === targetJobId);
         if (!targetJob) return null;
@@ -98,6 +75,30 @@ export const useBoardDragDrop = (
             logicResult: collision.logicResult // 追加: Logic Base の詳細結果
         };
     };
+
+    const [draggingJobId, setDraggingJobId] = useState<string | null>(null);
+    const [draggingSplitId, setDraggingSplitId] = useState<string | null>(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [resizingState, setResizingState] = useState<any | null>(null);
+
+    // [F-SSOT] dropPreview は状態ではなく、マウス位置とドラッグ対象からの「純粋導出」
+    const dropPreview = useMemo(() => {
+        if (!draggingJobId) return null;
+
+        // 相対Y座標の計算（calculateDropTargetRef 内のロジックをここに集約または呼び出し）
+        let relativeY = mousePos.y;
+        if (gridContainerRef.current) {
+            const containerRect = gridContainerRef.current.getBoundingClientRect();
+            relativeY = mousePos.y - containerRect.top;
+        }
+
+        const currentY = relativeY - dragOffset.y;
+        return calculateDropTargetRef(mousePos.x, currentY, draggingJobId);
+    }, [draggingJobId, mousePos, dragOffset, jobs, splits, drivers]);
+
+    const dropSplitPreview = null; // 簡略化
+
 
     const handleMouseDownJob = (e: React.MouseEvent, job: BoardJob) => {
         if (e.button !== 0) return;
