@@ -63,17 +63,17 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '11px',
+                                fontSize: '12px',
                                 color: isFullHour ? '#334155' : '#64748b',
                                 fontWeight: isFullHour ? 'bold' : 'normal',
                                 borderBottom: '1px solid #e2e8f0',
                                 whiteSpace: 'nowrap'
                             }}
                         >
-                            <span style={{ width: '18px', textAlign: 'right' }}>
+                            <span style={{ width: '20px', textAlign: 'right' }}>
                                 {displayHour}
                             </span>
-                            <span style={{ width: '24px', textAlign: 'left' }}>
+                            <span style={{ width: '26px', textAlign: 'left' }}>
                                 {displayMinute}
                             </span>
                         </div>
