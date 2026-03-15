@@ -42,6 +42,7 @@ export default function BoardCanvas() {
     // 1. Data & Logic Hook
     const [selectedDate, setSelectedDate] = useState<Date>(getJSTNow());
     const currentDateKey = formatDateKey(selectedDate);
+    const [isInteracting, setIsInteracting] = useState(false);
 
     const {
         masterDrivers,
@@ -54,7 +55,7 @@ export default function BoardCanvas() {
         handleSave, handleConfirmAll, handleRegisterTemplate, recordHistory, undo, redo,
         importPeriodicJobs, assignPendingJob,
         addColumn, showNotification
-    } = useBoardData(currentUser, currentDateKey);
+    } = useBoardData(currentUser, currentDateKey, isInteracting);
 
     // 2. Drag & Drop Hook
     const driverColRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -67,11 +68,12 @@ export default function BoardCanvas() {
         handleResizeStart,
         handleBackgroundMouseMove, handleBackgroundMouseUp
     } = useBoardDragDrop(
-        jobs, drivers, splits,
+        jobs, pendingJobs, drivers, splits,
         driverColRefs,
         gridContainerRef,
-        setJobs, setSplits,
-        recordHistory
+        setJobs, setPendingJobs, setSplits,
+        recordHistory,
+        setIsInteracting
     );
 
     // 2.5. Board Validation (Logic Base 全域連動)

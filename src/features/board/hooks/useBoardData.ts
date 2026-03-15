@@ -16,7 +16,7 @@ export interface BoardState {
     splits: BoardSplit[];
 }
 
-export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
+export const useBoardData = (user: AppUser | null, currentDateKey: string, isInteracting: boolean = false) => {
     const currentUserId = user?.id;
 
     const { drivers: masterDrivers } = useMasterData();
@@ -72,13 +72,13 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [history, setHistory] = useState<BoardHistory>({ past: [], future: [] });
 
-    // Sync remote data to local state if no unsaved changes (history is empty)
+    // Sync remote data to local state if no unsaved changes (history is empty) and not interacting
     useEffect(() => {
-        if (remoteData && history.past.length === 0) {
+        if (remoteData && history.past.length === 0 && !isInteracting) {
             setState(remoteData);
             setIsDataLoaded(true);
         }
-    }, [remoteData, history.past.length]);
+    }, [remoteData, history.past.length, isInteracting]);
 
     // Handle sync errors
     useEffect(() => {
@@ -194,7 +194,12 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string) => {
                 }
 
                 const { error: upsertError } = await supabase.from('routes').upsert(updateData, { onConflict: 'date' });
-                if (upsertError) throw upsertError;
+                
+                // [GUARDRAIL] Ignore 409 Conflict in lock-refresh context
+                // This happens when multiple tabs/syncs try to refresh the lock simultaneously.
+                if (upsertError && (upsertError as any).code !== '409' && (upsertError as any).status !== 409) {
+                    throw upsertError;
+                }
 
                 setLockState({ userId: currentUserId || null, dateKey: currentDateKey });
                 showNotification("編集モードで開きました", "success");

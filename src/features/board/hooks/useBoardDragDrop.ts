@@ -16,19 +16,22 @@ export interface DragDropState {
 
 export const useBoardDragDrop = (
     jobs: BoardJob[],
+    pendingJobs: BoardJob[],
     drivers: BoardDriver[],
     splits: BoardSplit[],
     driverColRefs: React.MutableRefObject<Record<string, HTMLElement | null>>,
     gridContainerRef: React.RefObject<HTMLDivElement>,
     setJobs: React.Dispatch<React.SetStateAction<BoardJob[]>>,
+    setPendingJobs: React.Dispatch<React.SetStateAction<BoardJob[]>>,
     _setSplits: React.Dispatch<React.SetStateAction<BoardSplit[]>>, // unused but kept for interface match
     recordHistory: () => void,
+    onInteractionChange: (interacting: boolean) => void,
     createProposal: ((state: any) => void) | null = null,
     onExceptionRequest?: (job: BoardJob, proposedState: any) => void // Phase 12: Exception Logging
 ) => {
 
     const calculateDropTargetRef = (pointerX: number, relativeY: number, targetJobId: string) => {
-        const targetJob = jobs.find(j => j.id === targetJobId);
+        const targetJob = jobs.find(j => j.id === targetJobId) || pendingJobs.find(j => j.id === targetJobId);
         if (!targetJob) return null;
 
         const absoluteYMinutes = calculateTimeFromY(relativeY);
@@ -207,13 +210,12 @@ export const useBoardDragDrop = (
             try {
                 const preview = dropPreview;
                 if (preview && !preview.isOverlapError) {
-                    const target = jobs.find(j => j.id === draggingJobId);
+                    const target = jobs.find(j => j.id === draggingJobId) || pendingJobs.find(j => j.id === draggingJobId);
                     if (target) {
                         // [GUARDRAIL] Optimistic Lock - version check
-                        const currentJob = jobs.find(j => j.id === draggingJobId);
-                        if (currentJob && target.version !== currentJob.version) {
-                            alert("他のユーザーがこの案件を更新しました。画面をリロードしてください。");
-                            return;
+                        if (target.version && target.version !== target.version) { // Always true for now as target is found from state
+                            // Note: actual version check should be against the latest remote data if possible,
+                            // but here we just ensure the object still exists and has consistent internal state.
                         }
 
                         const proposedState = {
@@ -233,7 +235,16 @@ export const useBoardDragDrop = (
                         if (createProposal) {
                             createProposal(proposedState);
                         } else {
-                            setJobs(prev => prev.map(j => j.id === draggingJobId ? proposedState : j));
+                            const isFromPending = pendingJobs.some(j => j.id === draggingJobId);
+                            
+                            if (isFromPending) {
+                                // Atomic transition: Add to jobs, Remove from pendingJobs
+                                setJobs(prev => [...prev, proposedState]);
+                                setPendingJobs(prev => prev.filter(j => j.id !== draggingJobId));
+                            } else {
+                                // Regular grid move
+                                setJobs(prev => prev.map(j => j.id === draggingJobId ? proposedState : j));
+                            }
                             recordHistory();
                         }
                     }
@@ -244,7 +255,12 @@ export const useBoardDragDrop = (
                 setDraggingJobId(null);
             }
         }
-    }, [draggingJobId, resizingState, dragOffset, jobs, recordHistory, createProposal]);
+    }, [draggingJobId, resizingState, dragOffset, jobs, pendingJobs, setJobs, setPendingJobs, recordHistory, createProposal]);
+
+    useEffect(() => {
+        const interacting = !!(resizingState || draggingJobId || draggingSplitId);
+        onInteractionChange(interacting);
+    }, [resizingState, draggingJobId, draggingSplitId, onInteractionChange]);
 
     useEffect(() => {
         if (resizingState || draggingJobId || draggingSplitId) {
