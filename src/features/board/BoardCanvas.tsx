@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { supabase } from '../../lib/supabase/client';
 import { TemplateManager } from '../logic/core/TemplateManager';
 
@@ -78,6 +78,23 @@ export default function BoardCanvas() {
 
     // 2.5. Board Validation (Logic Base 全域連動)
     const validation = useBoardValidation(jobs, drivers, splits);
+
+    // 2.6. Derived State: Validated Jobs (Enriching with soft/hard validation results)
+    const validatedJobs = useMemo(() => {
+        const overlapIds = new Set(validation.overlapViolations.map(v => v.jobId).concat(validation.overlapViolations.map(v => v.conflictJobId)));
+        const slotViolationsMap = new Map(validation.slotViolations.map(v => [v.jobId, v.message]));
+
+        return jobs.map(job => {
+            const slotMsg = slotViolationsMap.get(job.id);
+            return {
+                ...job,
+                hasError: overlapIds.has(job.id),
+                hasWarning: !!slotMsg,
+                warningMessage: slotMsg
+            };
+        });
+    }, [jobs, validation]);
+
     // 3. UI State
     const [selectedCell, setSelectedCell] = useState<{ driverId: string, time: string } | null>(null);
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -276,7 +293,7 @@ export default function BoardCanvas() {
                     <div className="relative" ref={gridContainerRef}>
                         <TimeGrid
                             drivers={drivers}
-                            jobs={jobs}
+                            jobs={validatedJobs}
                             splits={splits}
                             selectedCell={selectedCell}
                             dropPreview={dropPreview}
@@ -302,7 +319,7 @@ export default function BoardCanvas() {
                             isCellOccupied={() => false}
                         />
                         <JobLayer
-                            jobs={jobs}
+                            jobs={validatedJobs}
                             splits={splits}
                             drivers={drivers}
                             draggingJobId={draggingJobId}
@@ -390,7 +407,7 @@ export default function BoardCanvas() {
 
             {auditJobId && (
                 <AuditTrailPanel
-                    job={jobs.find(j => j.id === auditJobId) || pendingJobs.find(j => j.id === auditJobId)!}
+                    job={validatedJobs.find(j => j.id === auditJobId) || pendingJobs.find(j => j.id === auditJobId)!}
                     onClose={() => setAuditJobId(null)}
                     history={[
                         {

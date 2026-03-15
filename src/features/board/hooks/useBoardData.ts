@@ -35,6 +35,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         note: j.special_notes || j.note || undefined,
         isSpot: j.bucket_type === 'スポット',
         timeConstraint: j.start_time || undefined,
+        visitSlot: j.visit_slot || undefined,
         taskType: j.bucket_type === '特殊' ? 'special' : 'collection',
         status: (j.status as 'planned' | 'confirmed') || 'planned',
         is_admin_forced: j.is_admin_forced || false,
@@ -436,6 +437,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
             const newJobs: BoardJob[] = masterPoints.map(p => ({
                 id: `periodic_${p.location_id}_${currentDateKey.replace(/-/g, '')}`,
                 title: p.name, bucket: p.visit_slot === 'AM' ? 'AM' : 'PM',
+                visitSlot: p.visit_slot || undefined,
                 duration: (p as any).duration_minutes || 60, area: p.area || p.display_name || '',
                 requiredVehicle: p.restricted_vehicle_id ? '要車両' : undefined, note: p.note || undefined,
                 isSpot: p.is_spot_only || false, timeConstraint: p.time_constraint_type !== 'NONE' ? '要確認' : undefined,

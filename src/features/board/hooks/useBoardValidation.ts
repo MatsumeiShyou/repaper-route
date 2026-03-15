@@ -2,6 +2,11 @@ import { useMemo } from 'react';
 import { BoardJob, BoardDriver, BoardSplit } from '../../../types';
 import { timeToMinutes } from '../logic/timeUtils';
 
+export interface SlotViolation {
+    jobId: string;
+    message: string;
+}
+
 /**
  * 配車盤全体のバリデーション結果
  */
@@ -10,11 +15,18 @@ export interface BoardValidationResult {
     isValid: boolean;
     /** 時間重複の違反リスト */
     overlapViolations: OverlapViolation[];
+    /** 時間枠の違反リスト */
+    slotViolations: SlotViolation[];
     /** 確定済み案件の変更が検出されたか */
     hasConfirmedChanges: boolean;
     /** 制約違反のサマリー */
     summary: string;
 }
+
+const SLOT_LIMITS: Record<string, { min: number; max: number; label: string }> = {
+    'AM': { min: 0, max: 720, label: '午前' },
+    'PM': { min: 720, max: 1440, label: '午後' },
+};
 
 export interface OverlapViolation {
     jobId: string;
@@ -42,9 +54,27 @@ export const useBoardValidation = (
 
     const result = useMemo(() => {
         const overlapViolations: OverlapViolation[] = [];
+        const slotViolations: SlotViolation[] = [];
 
         // ─────────────────────────────────────────────────
-        // 1. ドライバー列ごとに時間重複を検出
+        // 1. 各ジョブの時間枠（AM/PM等）制約のチェック
+        // ─────────────────────────────────────────────────
+        for (const job of jobs) {
+            if (!job.visitSlot || !SLOT_LIMITS[job.visitSlot]) continue;
+
+            const limits = SLOT_LIMITS[job.visitSlot];
+            const startMin = timeToMinutes(job.startTime || job.timeConstraint || '06:00');
+
+            if (startMin < limits.min || startMin >= limits.max) {
+                slotViolations.push({
+                    jobId: job.id,
+                    message: `時間枠外の配置: 「${job.title}」は${limits.label}指定です`
+                });
+            }
+        }
+
+        // ─────────────────────────────────────────────────
+        // 2. ドライバー列ごとに時間重複を検出
         //    O(N²) だが、1列あたりのジョブ数は最大でも20程度のため問題なし
         // ─────────────────────────────────────────────────
         const driverIds = [...new Set(drivers.map(d => d.id))];
@@ -86,12 +116,19 @@ export const useBoardValidation = (
         // 現フェーズでは「confirmed 案件が含まれる保存」を「上書き」と定義。
         // ※ 本来は DB の最新値と比較する logic が望ましい
 
-        const isValid = overlapViolations.length === 0;
-        const summary = isValid
+        const isValid = overlapViolations.length === 0 && slotViolations.length === 0;
+        let summary = isValid
             ? `全${jobs.length}件の案件が正常です`
-            : `${overlapViolations.length}件の時間重複を検出しました`;
+            : '';
 
-        return { isValid, overlapViolations, summary, hasConfirmedChanges };
+        if (!isValid) {
+            const parts = [];
+            if (overlapViolations.length > 0) parts.push(`${overlapViolations.length}件の時間重複`);
+            if (slotViolations.length > 0) parts.push(`${slotViolations.length}件の時間枠違反`);
+            summary = `${parts.join('、')}を検出しました`;
+        }
+
+        return { isValid, overlapViolations, slotViolations, summary, hasConfirmedChanges };
     }, [jobs, drivers]);
 
     return result;

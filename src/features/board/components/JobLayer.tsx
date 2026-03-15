@@ -116,9 +116,9 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                             } else if (isConfirmed && !isDragging) {
                                 borderClass = 'border-amber-400 border-2 border-dashed shadow-[0_0_8px_rgba(251,191,36,0.3)]';
                             } else if (hasWarning) {
-                                borderClass = 'border-yellow-400 border-2';
+                                borderClass = 'border-rose-500 border-2 shadow-[0_0_10px_rgba(244,63,94,0.4)] animate-pulse-subtle';
                             } else if (hasError) {
-                                borderClass = 'border-red-500 border-2';
+                                borderClass = 'border-red-600 border-2 ring-1 ring-red-400';
                             } else if (isLocked) {
                                 borderClass = 'border-gray-400';
                             }
@@ -141,6 +141,7 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                         height: `${heightPx}px`,
                                         zIndex: zIndex,
                                     }}
+                                    title={(job as any).warningMessage}
                                     onClick={(e) => {
                                         if (isLocked) { e.stopPropagation(); return; }
                                         onJobClick(job.id, e);
@@ -192,8 +193,16 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                                         <AlertTriangle size={10} className="text-amber-500" />
                                                     </span>
                                                 )}
-                                                {hasWarning && <AlertTriangle size={10} className="text-yellow-600" />}
-                                                {hasError && <Ban size={10} className="text-red-600" />}
+                                                {hasWarning && (
+                                                    <span title={(job as any).warningMessage}>
+                                                        <AlertTriangle size={10} className="text-rose-600" />
+                                                    </span>
+                                                )}
+                                                {hasError && (
+                                                    <span title="時間重複エラー">
+                                                        <Ban size={10} className="text-red-600" />
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         {job.duration > 15 && (

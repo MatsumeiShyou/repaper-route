@@ -47,6 +47,8 @@ export interface BoardJob {
     taskType: 'collection' | 'special';
     driverId?: string;
     startTime?: string; // Legacy/Internal compatibility for rendering
+    visitSlot?: string;    // Soft Validation: Slot constraint (AM, PM, etc.)
+    warningMessage?: string; // Soft Validation: Detailed reason for warning
     item_category?: string; // Dominant item category
     location_id?: string; // Traceability: Reference to master_collection_points
     address?: string;     // Traceability: Static snapshot of address at time of creation
