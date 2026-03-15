@@ -66,7 +66,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                                 fontSize: '12px',
                                 color: isFullHour ? '#334155' : '#64748b',
                                 fontWeight: isFullHour ? 'bold' : 'normal',
-                                borderBottom: '1px solid #e2e8f0',
+                                borderBottom: time.endsWith(':45') ? '1.5px solid #f59e0b' : '1.5px solid #e2e8f0',
                                 whiteSpace: 'nowrap'
                             }}
                         >
@@ -99,7 +99,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
 
                                 style={{
                                     height: `${BOARD_CONSTANTS.SLOT_HEIGHT_PX}px`,
-                                    borderBottom: '1px solid #f1f5f9',
+                                    borderBottom: time.endsWith(':45') ? '1.5px solid #f59e0b' : '1.5px solid #f1f5f9',
                                     backgroundColor: isSelected ? '#eff6ff' : 'transparent',
                                     cursor: 'pointer',
                                     transition: 'all 0.1s ease-out'
