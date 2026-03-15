@@ -1,5 +1,5 @@
 // gov-bypass [III-2] [EXPIRY:2026-04-13] Business requirement: Syllabary filter implementation requires custom layout deviation.
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Plus,
     Search,
@@ -20,6 +20,7 @@ import useMasterCRUD from '../hooks/useMasterCRUD';
 import { Modal } from './Modal';
 import { MasterSchema, MasterColumn, MASTER_SCHEMAS } from '../config/masterSchema';
 import { serializeMasterData, normalizeDays } from '../utils/serialization';
+import { SortConfig, universalSort } from '../utils/sortUtils';
 
 interface MasterDataLayoutProps {
     schema: MasterSchema;
@@ -47,6 +48,9 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
     const [orderedColumns, setOrderedColumns] = useState<MasterColumn[]>(schema.columns);
     const [draggedColIndex, setDraggedColIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+    // ソート状態管理 (F-SSOT)
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: null });
 
     // localStorage から並び順を復元
     useEffect(() => {
@@ -102,6 +106,16 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         handleDragEnd();
     };
 
+    const handleSort = (key: string) => {
+        setSortConfig(prev => {
+            if (prev.key === key) {
+                if (prev.direction === 'asc') return { key, direction: 'desc' };
+                return { key: '', direction: null };
+            }
+            return { key, direction: 'asc' };
+        });
+    };
+
     const matchesInitial = (item: Record<string, any>) => {
         if (!selectedInitial) return true;
         
@@ -139,6 +153,13 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         );
         return matchesQuery && matchesInitial(item);
     });
+
+    const sortedData = useMemo(() => {
+        if (!sortConfig.key || !sortConfig.direction) return filteredData;
+        return [...filteredData].sort((a, b) =>
+            universalSort(a, b, sortConfig.key, sortConfig.direction as 'asc' | 'desc')
+        );
+    }, [filteredData, sortConfig]);
 
     const handleCreate = () => {
         setEditingItem(null);
@@ -304,25 +325,74 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                                             onDragOver={(e) => handleDragOver(e, idx)}
                                             onDragEnd={handleDragEnd}
                                             onDrop={(e) => handleDrop(e, idx)}
-                                            className={`px-6 py-4 border-b border-slate-200 dark:border-slate-800 cursor-move transition-all
+                                            className={`px-6 py-4 border-b border-slate-200 dark:border-slate-800 cursor-move transition-all group/h
                                                 ${col.className?.includes('sticky') ? 'sticky left-0 bg-slate-50 dark:bg-slate-800 z-30' : ''}
                                                 ${dragOverIndex === idx ? 'border-l-4 border-l-blue-500 bg-blue-50/50' : ''}
                                                 ${draggedColIndex === idx ? 'opacity-30' : ''}
                                             `}
                                         >
-                                            <div className="flex items-center gap-2">
-                                                {col.label}
-                                                <div className="opacity-0 group-hover:opacity-100 text-slate-300">⋮⋮</div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div 
+                                                    className={`flex items-center gap-1.5 cursor-pointer hover:text-blue-600 transition-colors select-none ${sortConfig.key === (col.sortKey || col.key) ? 'text-blue-600' : ''}`}
+                                                    onClick={() => {
+                                                        if (col.sortable) {
+                                                            handleSort(col.sortKey || col.key);
+                                                        }
+                                                    }}
+                                                >
+                                                    <span className="whitespace-nowrap">{col.label}</span>
+                                                    {col.sortable && !col.sortOptions && (
+                                                        <span className={`text-[10px] transition-all ${sortConfig.key === (col.sortKey || col.key) ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 group-hover/h:opacity-40 group-hover/h:translate-y-0'}`}>
+                                                            {sortConfig.key === (col.sortKey || col.key) 
+                                                                ? (sortConfig.direction === 'asc' ? '▲' : '▼') 
+                                                                : '▲'}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* 複合カラム用の微細トリガー */}
+                                                {col.sortOptions && (
+                                                    <div className="flex gap-1.5 animate-in fade-in slide-in-from-right-2">
+                                                        {col.sortOptions.map(opt => {
+                                                            const isActive = sortConfig.key === opt.key;
+                                                            return (
+                                                                <button
+                                                                    key={opt.key}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleSort(opt.key);
+                                                                    }}
+                                                                    className={`relative w-6 h-6 flex items-center justify-center rounded-lg text-[10px] font-black transition-all active:scale-90 ${
+                                                                        isActive 
+                                                                            ? 'bg-blue-600 text-white shadow-[0_2px_8px_rgba(37,99,235,0.4)] ring-2 ring-blue-500/20' 
+                                                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 hover:shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-600'
+                                                                    }`}
+                                                                    title={`${opt.label}でソート`}
+                                                                >
+                                                                    {opt.label}
+                                                                    {isActive && (
+                                                                        <span className="absolute -top-1 -right-0.5 text-[8px] animate-bounce">
+                                                                            {sortConfig.direction === 'asc' ? '▲' : '▼'}
+                                                                        </span>
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                <div className="opacity-0 group-hover/h:opacity-100 text-slate-300 ml-1">⋮⋮</div>
                                             </div>
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {filteredData.map(item => (
+                                {sortedData.map((item, rowIdx) => (
                                     <tr
                                         key={item[schema.primaryKey]}
-                                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
+                                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer animate-in fade-in slide-in-from-bottom-1"
+                                        style={{ animationDelay: `${Math.min(rowIdx * 30, 300)}ms` }}
                                         onClick={() => handleEdit(item)}
                                     >
                                         {orderedColumns.map(col => (

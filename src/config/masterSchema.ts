@@ -16,6 +16,9 @@ export interface MasterColumn {
     thirdLabelKey?: string;
     className?: string;
     styleRules?: Record<string, string>;
+    sortable?: boolean;
+    sortKey?: string;
+    sortOptions?: { key: string; label: string }[];
 }
 
 export interface MasterField {
@@ -59,9 +62,9 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         primaryKey: 'contractor_id',
         searchFields: ['name'],
         columns: [
-            { key: 'name', label: '契約主体名', type: 'text', className: 'font-bold' },
-            { key: 'payee_id', label: '支払元ID', type: 'text', className: 'text-xs text-slate-500 font-mono' },
-            { key: 'is_active', label: '有効状態', type: 'status' }
+            { key: 'name', label: '契約主体名', type: 'text', className: 'font-bold', sortable: true, sortKey: 'furigana' },
+            { key: 'payee_id', label: '支払元ID', type: 'text', className: 'text-xs text-slate-500 font-mono', sortable: true },
+            { key: 'is_active', label: '有効状態', type: 'status', sortable: true }
         ],
         fields: [
             { name: 'contractor_id', label: '契約主体ID', type: 'text', requiredForCreate: true, updatable: false },
@@ -79,11 +82,11 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         primaryKey: 'id',
         searchFields: ['driver_name'],
         columns: [
-            { key: 'driver_name', subLabelKey: 'route_name', label: '氏名 / コース', type: 'text', className: 'font-bold' },
-            { key: 'vehicle_number', label: '担当車両', type: 'badge' },
-            { key: 'display_color', label: '表示色', type: 'text', className: 'text-xs font-mono uppercase' },
-            { key: 'display_order', label: '表示順', type: 'number' },
-            { key: 'is_active', label: '有効状態', type: 'status' }
+            { key: 'driver_name', subLabelKey: 'route_name', label: '氏名 / コース', type: 'text', className: 'font-bold', sortable: true, sortKey: 'furigana' },
+            { key: 'vehicle_number', label: '担当車両', type: 'badge', sortable: true },
+            { key: 'display_color', label: '表示色', type: 'text', className: 'text-xs font-mono uppercase', sortable: true },
+            { key: 'display_order', label: '表示順', type: 'number', sortable: true },
+            { key: 'is_active', label: '有効状態', type: 'status', sortable: true }
         ],
         fields: [
             { name: 'driver_name', label: '氏名', type: 'text', required: true, updatable: true },
@@ -103,19 +106,20 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         primaryKey: 'id',
         searchFields: ['number', 'callsign', 'vehicle_type'],
         columns: [
-            { key: 'number', subLabelKey: 'callsign', label: '車両番号 / 通称', type: 'multi-row', className: 'font-bold text-blue-600' },
+            { key: 'number', subLabelKey: 'callsign', label: '車両番号 / 通称', type: 'multi-row', className: 'font-bold text-blue-600', sortable: true, sortKey: 'furigana' },
             {
                 key: 'vehicle_type',
                 label: '車種',
                 type: 'badge',
+                sortable: true,
                 styleRules: {
                     default: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
                     '4t': 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
                     '待機': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                 }
             },
-            { key: 'callsign', label: '通称', type: 'text', className: 'text-xs text-slate-500' },
-            { key: 'is_active', label: '有効状態', type: 'status' }
+            { key: 'callsign', label: '通称', type: 'text', className: 'text-xs text-slate-500', sortable: true },
+            { key: 'is_active', label: '有効状態', type: 'status', sortable: true }
         ],
         fields: [
             { name: 'number', label: '車両番号', type: 'text', required: true, updatable: true },
@@ -133,10 +137,10 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         primaryKey: 'id',
         searchFields: ['name', 'unit'],
         columns: [
-            { key: 'name', label: '品目名', type: 'text', className: 'font-bold' },
-            { key: 'unit', label: '単位', type: 'badge' },
-            { key: 'display_order', label: '表示順', type: 'number' },
-            { key: 'is_active', label: '有効状態', type: 'status' }
+            { key: 'name', label: '品目名', type: 'text', className: 'font-bold', sortable: true, sortKey: 'furigana' },
+            { key: 'unit', label: '単位', type: 'badge', sortable: true },
+            { key: 'display_order', label: '表示順', type: 'number', sortable: true },
+            { key: 'is_active', label: '有効状態', type: 'status', sortable: true }
         ],
         fields: [
             { name: 'name', label: '品目名', type: 'text', required: true, updatable: true, placeholder: '例: 段ボール' },
@@ -158,6 +162,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 key: 'location_id',
                 label: 'No.',
                 type: 'text',
+                sortable: true,
                 className: 'text-xs text-slate-400 font-mono w-12'
             },
             {
@@ -166,12 +171,18 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 thirdLabelKey: 'address',
                 label: '拠点/フリガナ/住所',
                 type: 'multi-row',
+                sortable: true,
+                sortOptions: [
+                    { key: 'furigana', label: 'あ' },
+                    { key: 'address', label: '住' }
+                ],
                 className: 'font-bold sticky left-0 bg-white dark:bg-slate-900 z-10 min-w-[280px] shadow-[4px_0_12px_-4px_rgba(0,0,0,0.1)]'
             },
             {
                 key: 'area', // 地域を独立カラムに変更
                 label: '地域',
                 type: 'text',
+                sortable: true,
                 className: 'text-xs text-slate-500'
             },
             {
@@ -183,6 +194,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 key: 'visit_slot',
                 label: '便区分',
                 type: 'badge',
+                sortable: true,
                 styleRules: {
                     default: 'bg-slate-100 text-slate-800',
                     'AM': 'bg-blue-100 text-blue-800 border border-blue-200',
@@ -194,6 +206,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 key: 'vehicle_restriction_type',
                 label: '車両制限',
                 type: 'badge',
+                sortable: true,
                 styleRules: {
                     default: 'bg-slate-50 text-slate-400',
                     'FIXED': 'bg-red-600 text-white font-black px-3 py-1 animate-pulse',
@@ -204,24 +217,28 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 key: 'contractor_name',
                 label: '仕入先',
                 type: 'text',
+                sortable: true,
                 className: 'text-xs text-slate-600'
             },
             {
                 key: 'company_phone',
                 label: '会社電話番号',
                 type: 'text',
+                sortable: true,
                 className: 'text-xs font-mono'
             },
             {
                 key: 'manager_phone',
                 label: '担当者電話番号',
                 type: 'text',
+                sortable: true,
                 className: 'text-xs font-mono'
             },
             {
                 key: 'special_type',
                 label: '特殊案件フラグ',
                 type: 'badge',
+                sortable: true,
                 styleRules: {
                     default: 'bg-slate-100 text-slate-600',
                     'SITE_WORK': 'bg-amber-100 text-amber-800 border border-amber-200',
@@ -243,12 +260,14 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 key: 'weighing_site_id',
                 label: '計量所',
                 type: 'text',
+                sortable: true,
                 className: 'text-[10px] text-emerald-600 font-mono'
             },
             {
                 key: 'time_constraint_type',
                 label: '時間制約',
                 type: 'badge',
+                sortable: true,
                 styleRules: {
                     default: 'bg-slate-100 text-slate-600',
                     'NONE': 'bg-slate-50 text-slate-400',
@@ -260,6 +279,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 key: 'is_spot_only',
                 label: '種別',
                 type: 'badge',
+                sortable: true,
                 styleRules: {
                     default: 'bg-slate-50 text-slate-400',
                     'true': 'bg-amber-100 text-amber-900 border-2 border-amber-500 font-black shadow-sm',
@@ -270,6 +290,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 key: 'site_contact_phone',
                 label: '現場直通電話',
                 type: 'text',
+                sortable: true,
                 className: 'text-xs font-mono'
             },
             {
@@ -278,7 +299,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 type: 'text',
                 className: 'text-xs text-slate-500 truncate max-w-[150px]'
             },
-            { key: 'is_active', label: '有効状態', type: 'status' }
+            { key: 'is_active', label: '有効状態', type: 'status', sortable: true }
         ],
         fields: [
             { name: 'id', label: 'UUID', type: 'text', updatable: false, className: 'hidden' },
