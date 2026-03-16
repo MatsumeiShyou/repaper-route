@@ -70,9 +70,9 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
                 area: p.area || p.display_name || '',
                 requiredVehicle: p.restricted_vehicle_id ? '要車両' : undefined, 
                 note: p.note || undefined,
-                isSpot: p.is_spot_only || false, 
-                timeConstraint: p.time_constraint_type !== 'NONE' ? '要確認' : undefined,
-                taskType: p.special_type === 'NONE' ? 'collection' : 'special', 
+                isSpot: p.is_spot || p.is_spot_only || false,
+                timeConstraint: (p.time_constraint_type && p.time_constraint_type !== 'NONE') ? '要確認' : undefined,
+                taskType: (p.special_type && p.special_type !== 'NONE') ? 'special' : 'collection',
                 status: 'planned' as const,
                 location_id: p.location_id
             }));

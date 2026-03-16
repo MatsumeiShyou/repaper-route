@@ -14,9 +14,6 @@ export const PeriodicJobImporter = {
      * @returns 該当するマスタ案件の配列
      */
     fetchPointsByDate: async (date: Date): Promise<MasterPoint[]> => {
-        // [修正] 実データ構造 {mon: true, ...} に合わせて英略称を使用
-
-        // JSONB のクエリ構文エラー回避のため、一旦有効な案件を全取得してクライアント側でフィルタリング
         const { data, error } = await supabase
             .from('master_collection_points')
             .select('*')
@@ -28,18 +25,43 @@ export const PeriodicJobImporter = {
             throw error;
         }
 
-        // collection_days が {mon: true, tue: false, ...} という構造であることを考慮してフィルタリング
         const dayMap: Record<number, string> = {
             0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat'
         };
-        const dayKey = dayMap[date.getDay()];
+        const dayIdx = date.getDay();
+        const dayKey = dayMap[dayIdx]; // e.g., 'mon'
+        
+        // Import TemplateManager for Nth week logic consistency
+        const { TemplateManager } = await import('../features/logic/core/TemplateManager');
+        const nth = TemplateManager.getNthWeek(date);
 
         return (data || []).filter(p => {
+            // 1. Day of Week Check (Handle both Object and Array structures)
             const collectionDays = p.collection_days as any;
-            if (collectionDays && typeof collectionDays === 'object') {
-                return !!collectionDays[dayKey];
+            let isDayMatch = false;
+
+            if (Array.isArray(collectionDays)) {
+                // Handle Array case: ["Mon", "Tue"] or ["mon", "tue"]
+                isDayMatch = collectionDays.some(d => 
+                    typeof d === 'string' && d.toLowerCase().startsWith(dayKey)
+                );
+            } else if (collectionDays && typeof collectionDays === 'object') {
+                // Handle Object case: { mon: true, tue: false }
+                isDayMatch = !!collectionDays[dayKey];
             }
-            return false;
+
+            if (!isDayMatch) return false;
+
+            // 2. Recurrence Pattern Check (Nth week)
+            // e.g., p.recurrence_pattern might specify "3" for 3rd week
+            if (p.recurrence_pattern) {
+                const patternNth = parseInt(p.recurrence_pattern, 10);
+                if (!isNaN(patternNth) && patternNth !== nth) {
+                    return false;
+                }
+            }
+
+            return true;
         });
     }
 };
