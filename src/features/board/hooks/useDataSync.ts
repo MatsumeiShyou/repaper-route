@@ -42,16 +42,40 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
         }
 
         try {
+            const { PeriodicJobImporter } = await import('../../../lib/PeriodicJobImporter');
+            
             const fetchRoutePromise = supabase.from('routes').select('*').eq('date', dateKey).maybeSingle();
             const fetchUnassignedJobsPromise = supabase.from('jobs').select('*').is('driver_id', null);
+            const fetchPeriodicPromise = PeriodicJobImporter.fetchPointsByDate(new Date(dateKey));
 
-            const [routeRes, jobsRes] = await Promise.all([fetchRoutePromise, fetchUnassignedJobsPromise]);
+            const [routeRes, jobsRes, masterPoints] = await Promise.all([
+                fetchRoutePromise, 
+                fetchUnassignedJobsPromise,
+                fetchPeriodicPromise
+            ]);
 
             if (routeRes.error) throw routeRes.error;
             if (jobsRes.error) throw jobsRes.error;
 
             const routeData = routeRes.data;
             const fallbackJobs = (jobsRes.data || []).map(mapSupabaseToBoardJob);
+
+            // Map Periodic Master Points to BoardJobs
+            const autoImportedJobs: BoardJob[] = masterPoints.map(p => ({
+                id: `periodic_${p.location_id}_${dateKey.replace(/-/g, '')}`,
+                title: p.name, 
+                bucket: p.visit_slot === 'AM' ? 'AM' : 'PM',
+                visitSlot: p.visit_slot || undefined,
+                duration: (p as any).duration_minutes || 60, 
+                area: p.area || p.display_name || '',
+                requiredVehicle: p.restricted_vehicle_id ? '要車両' : undefined, 
+                note: p.note || undefined,
+                isSpot: p.is_spot_only || false, 
+                timeConstraint: p.time_constraint_type !== 'NONE' ? '要確認' : undefined,
+                taskType: p.special_type === 'NONE' ? 'collection' : 'special', 
+                status: 'planned' as const,
+                location_id: p.location_id
+            }));
 
             let newState: BoardState;
 
@@ -61,6 +85,18 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
                     : getDefaultDrivers();
 
                 const savedPending = (routeData.pending_jobs || []) as unknown as BoardJob[];
+                const savedJobs = (routeData.jobs || []) as unknown as BoardJob[];
+
+                // --- Auto-Merge Logic ---
+                // Identify already present locations to avoid duplicates
+                const existingLocationIds = new Set([
+                    ...savedJobs.map(j => j.location_id),
+                    ...savedPending.map(j => j.location_id),
+                    ...fallbackJobs.map(j => j.location_id) // Add jobs from 'jobs' table (unassigned)
+                ].filter(Boolean));
+
+                const filteredAutoJobs = autoImportedJobs.filter(j => !existingLocationIds.has(j.location_id));
+
                 const masterUnassignedIds = new Set(fallbackJobs.map((j: BoardJob) => j.id));
                 const savedIds = new Set(savedPending.map((j: BoardJob) => j.id));
                 
@@ -68,17 +104,21 @@ export const useDataSync = (dateKey: string, mapSupabaseToBoardJob: (j: any) => 
                 const stillUnassignedSavedPending = savedPending.filter((j: BoardJob) => masterUnassignedIds.has(j.id));
 
                 newState = {
-                    jobs: (routeData.jobs || []) as unknown as BoardJob[],
+                    jobs: savedJobs,
                     drivers: loadedDrivers,
                     splits: (routeData.splits || []) as unknown as BoardSplit[],
-                    pendingJobs: [...stillUnassignedSavedPending, ...newUnseenJobs]
+                    pendingJobs: [...stillUnassignedSavedPending, ...newUnseenJobs, ...filteredAutoJobs]
                 };
             } else {
+                // For new routes, merge fallbackJobs (from 'jobs' table) and autoImportedJobs
+                const existingLocationIds = new Set(fallbackJobs.map(j => j.location_id).filter(Boolean));
+                const filteredAutoJobs = autoImportedJobs.filter(j => !existingLocationIds.has(j.location_id));
+
                 newState = {
                     jobs: [],
                     drivers: getDefaultDrivers(),
                     splits: [],
-                    pendingJobs: fallbackJobs
+                    pendingJobs: [...fallbackJobs, ...filteredAutoJobs]
                 };
             }
 

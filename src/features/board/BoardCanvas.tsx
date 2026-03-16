@@ -53,7 +53,7 @@ export default function BoardCanvas() {
         isDataLoaded, isSyncing,
         editMode, canEditBoard, boardMode,
         handleSave, handleConfirmAll, handleRegisterTemplate, recordHistory, undo, redo,
-        importPeriodicJobs, assignPendingJob,
+        assignPendingJob,
         addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey, isInteracting);
 
@@ -351,10 +351,7 @@ export default function BoardCanvas() {
                         selectedCell={selectedCell}
                         selectedJobId={selectedJobId}
                         onAddJob={handleAssignPendingJob}
-                        onLoadPeriodicJobs={importPeriodicJobs}
                         onClose={() => setIsSidebarOpen(false)}
-                        isSyncing={isSyncing}
-                        editMode={editMode}
                     />
                 </div>
             </div>

@@ -424,43 +424,6 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         recordHistory();
     }, [editMode, recordHistory]);
 
-    const importPeriodicJobs = useCallback(async () => {
-        if (!editMode || !currentDateKey) return;
-        try {
-            const { PeriodicJobImporter } = await import('../../../lib/PeriodicJobImporter');
-            const masterPoints = await PeriodicJobImporter.fetchPointsByDate(new Date(currentDateKey));
-            if (masterPoints.length === 0) {
-                showNotification("本日（マスタ設定）の定期案件はありません", "info");
-                return;
-            }
-
-            const newJobs: BoardJob[] = masterPoints.map(p => ({
-                id: `periodic_${p.location_id}_${currentDateKey.replace(/-/g, '')}`,
-                title: p.name, bucket: p.visit_slot === 'AM' ? 'AM' : 'PM',
-                visitSlot: p.visit_slot || undefined,
-                duration: (p as any).duration_minutes || 60, area: p.area || p.display_name || '',
-                requiredVehicle: p.restricted_vehicle_id ? '要車両' : undefined, note: p.note || undefined,
-                isSpot: p.is_spot_only || false, timeConstraint: p.time_constraint_type !== 'NONE' ? '要確認' : undefined,
-                taskType: p.special_type === 'NONE' ? 'collection' : 'special', status: 'planned' as const,
-                location_id: p.location_id
-            }));
-
-            const existingLocationIds = new Set([...state.jobs.map(j => j.location_id), ...state.pendingJobs.map(j => j.location_id)].filter(Boolean));
-            const finalNewJobs = newJobs.filter(nj => !existingLocationIds.has(nj.location_id));
-
-            if (finalNewJobs.length === 0) {
-                showNotification("すべての定期案件は既に読み込み済みです", "info");
-                return;
-            }
-
-            setState(prev => ({ ...prev, pendingJobs: [...prev.pendingJobs, ...finalNewJobs] }));
-            showNotification(`${finalNewJobs.length}件の定期案件を読み込みました`, "success");
-            recordHistory();
-        } catch (e) {
-            showNotification("読み込みに失敗しました", "error");
-        }
-    }, [editMode, currentDateKey, state.jobs, state.pendingJobs, showNotification, recordHistory]);
-
     const handleRegisterTemplate = useCallback(async (name: string, dayOfWeek: number, nthWeek: number | null) => {
         try {
             const { error } = await supabase.from('board_templates').insert({
@@ -486,7 +449,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         showNotification,
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
         handleExceptionChange, exceptionReasons, confirmedSnapshot,
-        handleRegisterTemplate, importPeriodicJobs, assignPendingJob,
+        handleRegisterTemplate, assignPendingJob,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn
     };
