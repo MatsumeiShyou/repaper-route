@@ -25,22 +25,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     // ----------------------------------------
     // 1. Logic Helpers (Adapters)
     // ----------------------------------------
-    const mapSupabaseToBoardJob = useCallback((j: any): BoardJob => ({
-        id: j.id,
-        title: j.job_title,
-        bucket: j.bucket_type || '',
-        duration: j.duration_minutes || 0,
-        area: j.area || j.customer_name || '',
-        requiredVehicle: j.required_vehicle || undefined,
-        note: j.special_notes || j.note || undefined,
-        isSpot: j.bucket_type === 'スポット',
-        timeConstraint: j.start_time || undefined,
-        visitSlot: j.visit_slot || undefined,
-        taskType: j.bucket_type === '特殊' ? 'special' : 'collection',
-        status: (j.status as 'planned' | 'confirmed') || 'planned',
-        is_admin_forced: j.is_admin_forced || false,
-        is_skipped: j.is_skipped || false
-    }), []);
+    // mapSupabaseToBoardJob was removed and replaced by JobAdapter.mapToBoardJob
 
     const getDefaultDrivers = useCallback(() => ['A', 'B', 'C', 'D', 'E'].map(courseName => ({
         id: `course_${courseName}`,
@@ -56,7 +41,6 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     // ----------------------------------------
     const { data: remoteData, isLoading: isSyncing, error: syncError, mutate: mutateCache } = useDataSync(
         currentDateKey, 
-        mapSupabaseToBoardJob, 
         getDefaultDrivers
     );
 

@@ -42,15 +42,27 @@ describe('useBoardDragDrop Manual Job Offset Calculation (SADA)', () => {
             bucket: 'スポット'
         } as any;
 
+        // Mock additional arguments for useBoardDragDrop
+        const mockCalculateLayoutAndTiming = vi.fn();
+        const mockGetDriversFromCache = vi.fn().mockReturnValue([]);
+        const mockIncrementPendingVersion = vi.fn();
+        const mockIsLayoutUpdating = { current: false };
+        const mockCurrentContainerWidth = { current: 1000 };
+
         const { result } = renderHook(() => useBoardDragDrop(
             [mockJob],
             [{ id: 'driver-1', name: 'Test Driver', currentVehicle: 'Test Car' } as any],
             [],
             driverColRefs as any,
             gridContainerRef as any,
-            setJobs,
-            setSplits,
-            recordHistory
+            setJobs as any,
+            setSplits as any,
+            recordHistory as any,
+            mockCalculateLayoutAndTiming as any,
+            mockGetDriversFromCache as any,
+            mockIncrementPendingVersion as any,
+            mockIsLayoutUpdating as any,
+            mockCurrentContainerWidth as any
         ));
 
         // カード自体の表示位置 (絶対座標) 

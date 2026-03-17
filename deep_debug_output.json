@@ -1,0 +1,24 @@
+[
+  {
+    "id": "a4ec1bd0-0e37-4067-9ee0-fb8982bf117e",
+    "name": "testaaa",
+    "flags": {
+      "is_spot": false,
+      "is_spot_only": true,
+      "time_constraint_type": "NONE",
+      "special_type": "NONE"
+    },
+    "collection_days": {
+      "fri": false,
+      "hol": false,
+      "mon": false,
+      "oth": false,
+      "sat": false,
+      "sun": false,
+      "thu": false,
+      "tue": false,
+      "wed": false
+    },
+    "type": "object"
+  }
+]
