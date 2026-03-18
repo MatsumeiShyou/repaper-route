@@ -486,7 +486,7 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
 
         return (
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
-                {badgeValue || '-'}
+                {col.optionLabels?.[badgeValue] || badgeValue || '-'}
             </span>
         );
     }
@@ -626,7 +626,7 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
 
     return (
         <span className="text-slate-600 dark:text-slate-400">
-            {value || '-'}
+            {col.optionLabels?.[String(value)] || value || '-'}
         </span>
     );
 }
@@ -732,7 +732,9 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
                             >
                                 <option value="">選択してください</option>
                                 {field.options?.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
+                                    <option key={opt} value={opt}>
+                                        {field.optionLabels?.[opt] || opt}
+                                    </option>
                                 ))}
                             </select>
                         ) : field.type === 'days' ? (

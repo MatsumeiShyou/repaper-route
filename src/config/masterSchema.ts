@@ -19,6 +19,7 @@ export interface MasterColumn {
     sortable?: boolean;
     sortKey?: string;
     sortOptions?: { key: string; label: string }[];
+    optionLabels?: Record<string, string>; // [Localization] 表示用の日本語ラベルマッピング
 }
 
 export interface MasterField {
@@ -30,6 +31,7 @@ export interface MasterField {
     updatable?: boolean;        // 更新可能か（false の場合は更新時に送信しない/無効化）
     placeholder?: string;
     options?: string[];
+    optionLabels?: Record<string, string>; // [Localization] セレクトボックス等の表示用ラベル
     className?: string;
     lookup?: {
         schemaKey: string; // MASTER_SCHEMAS のキー
@@ -200,6 +202,11 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     'AM': 'bg-blue-100 text-blue-800 border border-blue-200',
                     'PM': 'bg-orange-100 text-orange-800 border border-orange-200',
                     'FREE': 'bg-emerald-100 text-emerald-800'
+                },
+                optionLabels: {
+                    'FREE': 'フリー便',
+                    'AM': 'AM便',
+                    'PM': 'PM便'
                 }
             },
             {
@@ -211,6 +218,11 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     default: 'bg-slate-50 text-slate-400',
                     'FIXED': 'bg-red-600 text-white font-black px-3 py-1 animate-pulse',
                     'FIXED_UNTIL_RETURN': 'bg-purple-600 text-white font-black px-3 py-1'
+                },
+                optionLabels: {
+                    'NONE': 'なし',
+                    'FIXED': '車両固定',
+                    'FIXED_UNTIL_RETURN': '車両固定（帰着まで）'
                 }
             },
             {
@@ -243,6 +255,12 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     default: 'bg-slate-100 text-slate-600',
                     'SITE_WORK': 'bg-amber-100 text-amber-800 border border-amber-200',
                     'MAINTENANCE': 'bg-blue-100 text-blue-800 border border-blue-200'
+                },
+                optionLabels: {
+                    'NONE': 'なし',
+                    'SITE_WORK': '現場作業',
+                    'MAINTENANCE': 'メンテナンス',
+                    'OTHER': 'その他'
                 }
             },
             {
@@ -273,6 +291,11 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     'NONE': 'bg-slate-50 text-slate-400',
                     'RANGE': 'bg-blue-50 text-blue-600 border border-blue-100',
                     'FIXED': 'bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold'
+                },
+                optionLabels: {
+                    'NONE': 'なし',
+                    'RANGE': '時間枠指定',
+                    'FIXED': '時間固定'
                 }
             },
             {
@@ -325,13 +348,24 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 name: 'visit_slot',
                 label: '便区分',
                 type: 'select',
-                options: ['FREE', 'AM', 'PM']
+                options: ['FREE', 'AM', 'PM'],
+                optionLabels: {
+                    'FREE': 'フリー便',
+                    'AM': 'AM便',
+                    'PM': 'PM便'
+                }
             },
             {
                 name: 'special_type',
                 label: '特殊案件フラグ',
                 type: 'select',
-                options: ['NONE', 'SITE_WORK', 'MAINTENANCE', 'OTHER']
+                options: ['NONE', 'SITE_WORK', 'MAINTENANCE', 'OTHER'],
+                optionLabels: {
+                    'NONE': 'なし',
+                    'SITE_WORK': '現場作業',
+                    'MAINTENANCE': 'メンテナンス',
+                    'OTHER': 'その他'
+                }
             },
             { name: 'recurrence_pattern', label: '回収契機 (曜以外)', type: 'text', placeholder: '例: 第1月曜日' },
             {
@@ -339,6 +373,11 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 label: '車両制限',
                 type: 'select',
                 options: ['NONE', 'FIXED', 'FIXED_UNTIL_RETURN'],
+                optionLabels: {
+                    'NONE': 'なし',
+                    'FIXED': '車両固定',
+                    'FIXED_UNTIL_RETURN': '車両固定（帰着まで）'
+                },
                 className: 'col-span-1'
             },
             {
@@ -366,6 +405,11 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 label: '時間制約',
                 type: 'select',
                 options: ['NONE', 'RANGE', 'FIXED'],
+                optionLabels: {
+                    'NONE': 'なし',
+                    'RANGE': '時間枠指定',
+                    'FIXED': '時間固定'
+                },
                 className: 'col-span-1',
                 required: true
             },
