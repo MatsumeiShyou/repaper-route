@@ -59,32 +59,37 @@ export const useDataSync = (
             }
 
             // [Phase 3-2: Merge strategy - DB is still primary source of truth for now]
-            const [routesRes, jobsRes, masterPoints] = await Promise.all([
+            const [routesRes, masterPoints] = await Promise.all([
                 supabase.from('routes').select('*').eq('date', date).maybeSingle(),
-                supabase.from('jobs').select('*').eq('assigned_date', date),
                 PeriodicJobImporter.fetchPointsByDate(new Date(date))
             ]);
 
             if (routesRes.error) throw routesRes.error;
-            if (jobsRes.error) throw jobsRes.error;
 
-            const fallbackJobs = (jobsRes.data || []).map((j: any) => JobAdapter.mapToBoardJob(j));
+            const fallbackJobs: BoardJob[] = []; // assigned_date does not exist in jobs table
 
             // Map Periodic Master Points to BoardJobs
-            const autoImportedJobs: BoardJob[] = masterPoints.map((p: MasterPoint) => {
-                const rawPeriodic = {
-                    ...p,
-                    job_title: p.name,
-                    bucket_type: p.visit_slot === 'AM' ? 'AM' : 'PM',
-                    duration_minutes: (p as any).duration_minutes || 60,
-                    special_notes: p.note,
-                    start_time: (p.time_constraint_type && p.time_constraint_type !== 'NONE') ? '要確認' : undefined,
-                    task_type: (p.special_type && p.special_type !== 'NONE') ? 'special' : 'collection'
-                };
-                return JobAdapter.mapToBoardJob(rawPeriodic, { 
-                    idPrefix: `periodic_${dateKey.replace(/-/g, '')}`,
-                    defaultStatus: 'planned' 
-                });
+            const autoImportedJobs: BoardJob[] = [];
+            
+            masterPoints.forEach((p: MasterPoint) => {
+                try {
+                    const rawPeriodic = {
+                        ...p,
+                        job_title: p.name,
+                        bucket_type: p.visit_slot === 'AM' ? 'AM' : 'PM',
+                        duration_minutes: (p as any).duration_minutes || 60,
+                        special_notes: p.note,
+                        start_time: (p.time_constraint_type && p.time_constraint_type !== 'NONE') ? '要確認' : undefined,
+                        task_type: (p.special_type && p.special_type !== 'NONE') ? 'special' : 'collection'
+                    };
+                    const job = JobAdapter.mapToBoardJob(rawPeriodic, { 
+                        idPrefix: `periodic_${dateKey.replace(/-/g, '')}`,
+                        defaultStatus: 'planned' 
+                    });
+                    autoImportedJobs.push(job);
+                } catch (mapErr) {
+                    console.warn(`[useDataSync] 案件(ID: ${p.id})のマッピングに失敗しました。この案件をスキップします。`, mapErr);
+                }
             });
 
             const routeData = routesRes.data;

@@ -33,7 +33,7 @@ export class JobAdapter {
             id,
             title,
             bucket,
-            duration: j.duration || (j as any).duration_minutes || 60,
+            duration: j.duration ?? (j as any).duration_minutes ?? 60,
             area: j.area || j.display_name || j.customer_name || '',
             requiredVehicle,
             note,
@@ -43,8 +43,8 @@ export class JobAdapter {
             taskType: this.evaluateTaskType(j),
             status: j.status || options?.defaultStatus || 'planned',
             location_id: j.location_id || undefined,
-            is_admin_forced: j.is_admin_forced || false,
-            is_skipped: j.is_skipped || false
+            is_admin_forced: !!(j.is_admin_forced),
+            is_skipped: !!(j.is_skipped)
         };
     }
 

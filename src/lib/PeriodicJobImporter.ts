@@ -38,6 +38,8 @@ export const PeriodicJobImporter = {
         return (data || []).filter(p => {
             // 1. Day of Week Check (Handle both Object and Array structures)
             const collectionDays = p.collection_days as any;
+            if (!collectionDays) return false; // [Fix] collection_days が null の場合は除外
+
             let isDayMatch = false;
 
             if (Array.isArray(collectionDays)) {
@@ -45,7 +47,7 @@ export const PeriodicJobImporter = {
                 isDayMatch = collectionDays.some(d => 
                     typeof d === 'string' && d.toLowerCase().startsWith(dayKey)
                 );
-            } else if (collectionDays && typeof collectionDays === 'object') {
+            } else if (typeof collectionDays === 'object') {
                 // Handle Object case: { mon: true, tue: false }
                 isDayMatch = !!collectionDays[dayKey];
             }
@@ -53,9 +55,12 @@ export const PeriodicJobImporter = {
             if (!isDayMatch) return false;
 
             // 2. Recurrence Pattern Check (Nth week)
-            // e.g., p.recurrence_pattern might specify "3" for 3rd week
+            // e.g., p.recurrence_pattern might be "3" or "第3月曜日"
             if (p.recurrence_pattern) {
-                const patternNth = parseInt(p.recurrence_pattern, 10);
+                // [Fix] 数字以外の文字（"第" や "月曜日"）が含まれていても数値を抽出できるように修正
+                const match = p.recurrence_pattern.match(/\d+/);
+                const patternNth = match ? parseInt(match[0], 10) : NaN;
+                
                 if (!isNaN(patternNth) && patternNth !== nth) {
                     return false;
                 }
