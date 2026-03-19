@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BoardJob } from '../../../types';
 import { Database, Clock, AlertTriangle, X } from 'lucide-react';
 import { getPendingJobColor } from '../../core/config/theme';
@@ -31,8 +31,27 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
         return false;
     });
 
+    const sortedPendingJobs = useMemo(() => {
+        return [...filteredPendingJobs].sort((a, b) => {
+            // 1. Bucket (AM -> PM -> etc)
+            if (a.bucket !== b.bucket) {
+                if (a.bucket === 'AM') return -1;
+                if (b.bucket === 'AM') return 1;
+                if (a.bucket === 'PM') return -1;
+                if (b.bucket === 'PM') return 1;
+            }
+
+            // 2. Title (A-Z)
+            const titleCompare = a.title.localeCompare(b.title, 'ja');
+            if (titleCompare !== 0) return titleCompare;
+
+            // 3. ID (fallback for complete stability)
+            return a.id.localeCompare(b.id);
+        });
+    }, [filteredPendingJobs]);
+
     return (
-        <div id="pending-job-sidebar" className="w-80 bg-gray-50 border-l border-gray-200 shadow-xl flex flex-col z-50">
+        <div id="pending-job-sidebar" className="w-80 h-full bg-gray-50 border-l border-gray-200 shadow-xl flex flex-col z-50">
             {/* Header */}
             <div className="p-4 bg-white border-b border-gray-200">
                 <div className="flex justify-between items-center mb-3">
@@ -67,7 +86,7 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
 
             {/* List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {filteredPendingJobs.map(job => {
+                {sortedPendingJobs.map(job => {
                     const colorTheme = getPendingJobColor(job.bucket);
                     const isSelected = selectedCell && !selectedJobId;
 

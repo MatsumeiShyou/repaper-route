@@ -19,7 +19,7 @@ export interface BoardState {
 export const useBoardData = (user: AppUser | null, currentDateKey: string, isInteracting: boolean = false) => {
     const currentUserId = user?.id;
 
-    const { drivers: masterDrivers } = useMasterData();
+    const { drivers: masterDrivers, customers: masterPoints } = useMasterData();
     const { showNotification } = useNotification();
 
     // ----------------------------------------
@@ -398,11 +398,54 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         recordHistory();
     }, [editMode, state.jobs, recordHistory, showNotification]);
 
+    const unassignJob = useCallback((jobId: string) => {
+        if (!editMode) {
+            showNotification("編集権限がありません。「編集開始」ボタンを押し、ロックを取得してから操作してください。", "error");
+            return;
+        }
+
+        const targetJob = state.jobs.find(j => j.id === jobId);
+        if (!targetJob) {
+            console.error("[unassignJob] Job not found in state.jobs:", jobId);
+            showNotification("案件が見つかりません。画面を更新してください。", "error");
+            return;
+        }
+
+        if (targetJob.status === 'confirmed') {
+            showNotification("確定済みの案件は未配車リストに戻せません（例外操作が必要です）", "error");
+            return;
+        }
+
+        // [Self-Healing] Restore original timeConstraint if possible
+        let restoredTimeConstraint = targetJob.timeConstraint;
+        if (targetJob.location_id) {
+            const masterPoint = masterPoints.find(p => p.id === targetJob.location_id);
+            if (masterPoint) {
+                // Restore logic consistent with JobAdapter
+                restoredTimeConstraint = masterPoint.time_constraint || 
+                    ((masterPoint.time_constraint_type && masterPoint.time_constraint_type !== 'NONE') ? '要確認' : undefined);
+            }
+        }
+
+        setState(prev => ({
+            ...prev,
+            jobs: prev.jobs.filter(j => j.id !== jobId),
+            pendingJobs: [...prev.pendingJobs, { 
+                ...targetJob, 
+                driverId: undefined, 
+                startTime: undefined,
+                timeConstraint: restoredTimeConstraint
+            }]
+        }));
+        recordHistory();
+        showNotification("案件を未配車リストに戻しました", "success");
+    }, [editMode, state.jobs, masterPoints, recordHistory, showNotification]);
+
     const assignPendingJob = useCallback((job: BoardJob, driverId: string, time: string) => {
         if (!editMode) return;
         setState(prev => ({
             ...prev,
-            jobs: [...prev.jobs, { ...job, driverId, timeConstraint: time, startTime: time }],
+            jobs: [...prev.jobs, { ...job, driverId, startTime: time }],
             pendingJobs: prev.pendingJobs.filter(j => j.id !== job.id)
         }));
         recordHistory();
@@ -433,7 +476,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         showNotification,
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
         handleExceptionChange, exceptionReasons, confirmedSnapshot,
-        handleRegisterTemplate, assignPendingJob,
+        handleRegisterTemplate, assignPendingJob, unassignJob,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn
     };

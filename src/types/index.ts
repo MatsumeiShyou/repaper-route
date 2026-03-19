@@ -57,6 +57,8 @@ export interface BoardJob {
     status: 'planned' | 'confirmed';
     is_admin_forced?: boolean;
     is_skipped?: boolean;
+    actual_time?: string; // Phase 12+: Driver-reported time
+    weight_kg?: number;   // Phase 12+: Driver-reported weight
 }
 
 export interface BoardDriver {
@@ -134,6 +136,8 @@ export interface MasterCustomer {
     manager_phone?: string;
     special_type?: string;
     recurrence_pattern?: string;
+    time_constraint_type?: string;
+    time_constraint?: string;
 }
 
 export interface MasterItem {

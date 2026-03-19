@@ -27,6 +27,7 @@ import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
 import { SaveTemplateModal } from './components/SaveTemplateModal';
 import { BoardActionBar } from './components/BoardActionBar';
+import { JobDetailPanel } from './components/JobDetailPanel';
 import { getJSTNow, formatDateKey } from './utils/dateUtils';
 
 export default function BoardCanvas() {
@@ -53,7 +54,7 @@ export default function BoardCanvas() {
         isDataLoaded, isSyncing,
         editMode, canEditBoard, boardMode,
         handleSave, handleConfirmAll, handleRegisterTemplate, recordHistory, undo, redo,
-        assignPendingJob,
+        assignPendingJob, unassignJob, handleExceptionChange,
         addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey, isInteracting);
 
@@ -145,6 +146,24 @@ export default function BoardCanvas() {
         if (!editMode || !selectedCell) return;
         assignPendingJob(job, selectedCell.driverId, selectedCell.time);
         setSelectedCell(null);
+    };
+
+    const handleUnassignAndOpen = (id: string) => {
+        unassignJob(id);
+        setIsSidebarOpen(true);
+    };
+
+    const handleUpdateJob = (jobId: string, updates: Partial<BoardJob>) => {
+        if (!editMode) return;
+        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j));
+        recordHistory();
+        showNotification("案件情報を更新しました", "success");
+    };
+
+    const handleExceptionRequest = (jobId: string, _type: 'MOVE' | 'REASSIGN' | 'SWAP' | 'CANCEL') => {
+        // Use handleExceptionChange to trigger modal
+        console.log("Exception requested:", jobId, _type, handleExceptionChange);
+        setAuditJobId(jobId);
     };
 
     const handleApplyTemplate = async () => {
@@ -245,6 +264,12 @@ export default function BoardCanvas() {
                 setIsAddJobModalOpen(true);
             }
         }
+
+        // --- Task 3: Delete / Backspace handling ---
+        if (selectedJobId && (e.key === 'Delete' || (e.key === 'Backspace' && !isAddJobModalOpen && !isHeaderEditModalOpen))) {
+            unassignJob(selectedJobId);
+            setSelectedJobId(null);
+        }
     };
 
     return (
@@ -329,8 +354,14 @@ export default function BoardCanvas() {
                             onJobMouseDown={handleJobMouseDown}
                             onSplitMouseDown={handleSplitMouseDown}
                             onResizeStart={handleResizeStart}
-                            onJobClick={(id) => setSelectedJobId(id)}
-                            onAuditClick={(id: string) => setAuditJobId(id)}
+                            onJobClick={(id) => {
+                                setSelectedJobId(id);
+                                setIsSidebarOpen(false);
+                            }}
+                            onAuditClick={(id: string) => {
+                                setAuditJobId(id);
+                                setIsSidebarOpen(false);
+                            }}
                             selectedJobId={selectedJobId}
                             dropPreview={dropPreview}
                         />
@@ -353,6 +384,27 @@ export default function BoardCanvas() {
                         onAddJob={handleAssignPendingJob}
                         onClose={() => setIsSidebarOpen(false)}
                     />
+                </div>
+
+                <div
+                    className={`
+                        absolute top-0 right-0 h-full bg-white shadow-2xl z-[60] transform transition-transform duration-300 ease-in-out border-l border-gray-200
+                        ${selectedJobId ? 'translate-x-0' : 'translate-x-full'}
+                    `}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {selectedJobId && (
+                        <JobDetailPanel
+                            job={validatedJobs.find(j => j.id === selectedJobId) || jobs.find(j => j.id === selectedJobId)!}
+                            drivers={drivers}
+                            currentUser={currentUser}
+                            canEdit={editMode}
+                            onClose={() => setSelectedJobId(null)}
+                            onUpdate={handleUpdateJob}
+                            onUnassign={handleUnassignAndOpen}
+                            onExceptionRequest={handleExceptionRequest}
+                        />
+                    )}
                 </div>
             </div>
 
