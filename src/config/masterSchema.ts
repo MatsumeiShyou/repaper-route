@@ -62,7 +62,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         viewName: 'master_contractors',
         rpcTableName: 'master_contractors',
         primaryKey: 'contractor_id',
-        searchFields: ['name'],
+        searchFields: ['name', 'furigana'],
         columns: [
             { key: 'name', label: '契約主体名', type: 'text', className: 'font-bold', sortable: true, sortKey: 'furigana' },
             { key: 'payee_id', label: '支払元ID', type: 'text', className: 'text-xs text-slate-500 font-mono', sortable: true },
@@ -73,6 +73,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
             { name: 'name', label: '契約主体名', type: 'text', required: true, updatable: true },
             { name: 'furigana', label: 'ﾌﾘｶﾞﾅ', type: 'text', updatable: true, placeholder: '例: ﾏﾙﾏﾙ / ABC' },
             { name: 'payee_id', label: '支払元ID', type: 'text', updatable: true },
+            { name: 'note', label: '備考', type: 'text', updatable: true, placeholder: '特記事項...' },
             { name: 'is_active', label: '有効状態', type: 'status', updatable: true }
         ]
     },
@@ -82,7 +83,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         viewName: 'drivers',
         rpcTableName: 'drivers',
         primaryKey: 'id',
-        searchFields: ['driver_name'],
+        searchFields: ['driver_name', 'furigana'],
         columns: [
             { key: 'driver_name', subLabelKey: 'route_name', label: '氏名 / コース', type: 'text', className: 'font-bold', sortable: true, sortKey: 'furigana' },
             { key: 'vehicle_number', label: '担当車両', type: 'badge', sortable: true },
@@ -97,6 +98,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
             { name: 'vehicle_number', label: '担当車両', type: 'text', updatable: true, placeholder: '例: 品川100あ1234' },
             { name: 'display_color', label: '表示色 (Hex)', type: 'text', updatable: true, placeholder: '#FFFFFF' },
             { name: 'display_order', label: '表示順', type: 'number', updatable: true },
+            { name: 'note', label: '備考', type: 'text', updatable: true },
             { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     },
@@ -106,7 +108,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         viewName: 'vehicles',
         rpcTableName: 'master_vehicles',
         primaryKey: 'id',
-        searchFields: ['number', 'callsign', 'vehicle_type'],
+        searchFields: ['number', 'callsign', 'vehicle_type', 'furigana'],
         columns: [
             { key: 'number', subLabelKey: 'callsign', label: '車両番号 / 通称', type: 'multi-row', className: 'font-bold text-blue-600', sortable: true, sortKey: 'furigana' },
             {
@@ -128,6 +130,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
             { name: 'furigana', label: 'ﾌﾘｶﾞﾅ', type: 'text', updatable: true, placeholder: '例: ｼﾅｶﾞﾜ / ABC' },
             { name: 'callsign', label: '通称', type: 'text', updatable: true },
             { name: 'vehicle_type', label: '車種', type: 'text', required: true, updatable: true },
+            { name: 'note', label: '備考', type: 'text', updatable: true },
             { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     },
@@ -137,7 +140,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         viewName: 'master_items',
         rpcTableName: 'items',
         primaryKey: 'id',
-        searchFields: ['name', 'unit'],
+        searchFields: ['name', 'unit', 'furigana'],
         columns: [
             { key: 'name', label: '品目名', type: 'text', className: 'font-bold', sortable: true, sortKey: 'furigana' },
             { key: 'unit', label: '単位', type: 'badge', sortable: true },
@@ -149,6 +152,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
             { name: 'furigana', label: 'ﾌﾘｶﾞﾅ', type: 'text', updatable: true, placeholder: '例: ﾀﾞﾝﾎﾞｰﾙ / TEST' },
             { name: 'unit', label: '単位', type: 'text', required: true, updatable: true, placeholder: 'kg' },
             { name: 'display_order', label: '表示順', type: 'number', updatable: true },
+            { name: 'note', label: '備考', type: 'text', updatable: true },
             { name: 'is_active', label: '有効状態', type: 'switch', updatable: true }
         ]
     },
@@ -158,7 +162,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         viewName: 'view_master_points',
         rpcTableName: 'master_collection_points',
         primaryKey: 'id',
-        searchFields: ['display_name', 'address', 'contractor_name', 'default_route_code', 'area'],
+        searchFields: ['display_name', 'address', 'contractor_name', 'default_route_code', 'area', 'furigana'],
         columns: [
             {
                 key: 'location_id',
