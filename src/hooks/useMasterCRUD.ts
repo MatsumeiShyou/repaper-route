@@ -51,7 +51,10 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
                     p_table_name: schema.rpcTableName,
                     p_id: String(formData[schema.primaryKey as keyof T] || ''),
                     p_core_data: serialized,
-                    p_reason: `マスタ登録: ${window.navigator.userAgent}`
+                    p_ext_data: {},
+                    p_decision_type: 'MASTER_CREATE',
+                    p_reason: `マスタ登録: ${window.navigator.userAgent}`,
+                    p_user_id: (await supabase.auth.getUser()).data.user?.id
                 });
             if (err) throw err;
             invalidateMasterCache();
@@ -79,7 +82,10 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
                     p_table_name: schema.rpcTableName,
                     p_id: String(idValue),
                     p_core_data: serialized,
-                    p_reason: `マスタ更新: ${window.navigator.userAgent}`
+                    p_ext_data: {},
+                    p_decision_type: 'MASTER_UPDATE',
+                    p_reason: `マスタ更新: ${window.navigator.userAgent}`,
+                    p_user_id: (await supabase.auth.getUser()).data.user?.id
                 });
             if (err) throw err;
             invalidateMasterCache();
@@ -97,7 +103,10 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
                     p_table_name: schema.rpcTableName,
                     p_id: String(idValue),
                     p_core_data: { is_active: false },
-                    p_reason: `マスタ削除: ${window.navigator.userAgent}`
+                    p_ext_data: {},
+                    p_decision_type: 'MASTER_ARCHIVE',
+                    p_reason: `マスタ削除（アーカイブ）: ${window.navigator.userAgent}`,
+                    p_user_id: (await supabase.auth.getUser()).data.user?.id
                 });
             if (err) throw err;
             invalidateMasterCache();

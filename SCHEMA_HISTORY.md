@@ -327,3 +327,17 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 
 **�Q�l**: `20260228170000_fix_missing_anon_master_rls.sql`
 
+---
+
+## Phase 100: 構造監査とRPC正典化 (Structural Audit & RPC Unification)
+**日付**: 2026-03-21
+**目的**: スポットフラグ不具合を端緒とした RPC 多重定義（Overloading）の解消と全系同期の確立
+
+### 変更内容
+- **RPC 正典化 (Signature Unification)**: `rpc_execute_master_update` および `rpc_execute_board_update` の全オーバーロードを物理的に一斉削除（DROP）し、最新シグネチャ（7引数モデル）へ統一。
+- **フィールド同期 (Cross-Table Sync)**: `master_collection_points` のスポットフラグ同期（`is_spot` / `is_spot_only`）に加え、全マスタにおける `note` / `remarks` 等の二重定義フィールドの同期ロジックを DB レベルで実装。
+- **監査証跡の強化**: 呼び出し元（クライアントメタデータ）および操作ユーザー ID (`p_user_id`) の記録を徹底。
+
+**参考**: 
+- `20260321010000_cleanup_overloaded_rpc.sql`
+- `20260321020000_unify_all_rpc_signatures.sql`

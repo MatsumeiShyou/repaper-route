@@ -73,7 +73,8 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                             <div
                                 className={`absolute w-[94%] left-[3%] rounded-md border-2 border-dashed pointer-events-none z-10 transition-all duration-150
                                     ${dropPreview.isPending ? 'opacity-30 bg-gray-400 border-gray-400' :
-                                        (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-500/10 border-red-400' : 'bg-emerald-500/10 border-emerald-400'
+                                        (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-500/10 border-red-400' : 
+                                        dropPreview.isWarning ? 'bg-orange-500/10 border-orange-400' : 'bg-emerald-500/10 border-emerald-400'
                                     }
 `}
                                 style={{
@@ -83,10 +84,11 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                             >
                                 <div className={`text-[10px] font-black px-1.5 py-0.5 rounded-sm m-1 inline-block
                                     ${dropPreview.isPending ? 'bg-gray-200 text-gray-500' :
-                                        (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                                        (dropPreview.isOverlapError || dropPreview.isVehicleError) ? 'bg-red-100 text-red-800' : 
+                                        dropPreview.isWarning ? 'bg-orange-100 text-orange-800' : 'bg-emerald-100 text-emerald-800'
                                     }
 `}>
-                                    {dropPreview.startTime} {dropPreview.isPending ? '...' : (dropPreview.isOverlapError || dropPreview.isVehicleError) ? '×' : '➡'}
+                                    {dropPreview.startTime} {dropPreview.isPending ? '...' : (dropPreview.isOverlapError || dropPreview.isVehicleError) ? '×' : dropPreview.isWarning ? '⚠' : '➡'}
                                 </div>
                             </div>
                         )}

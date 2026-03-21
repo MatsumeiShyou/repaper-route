@@ -254,8 +254,11 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                     edit_locked_by: currentUserId,
                     edit_locked_at: new Date().toISOString()
                 },
+                p_ext_data: {},
                 p_decision_type: 'MANUAL_SAVE',
-                p_reason: reason
+                p_reason: reason,
+                p_user_id: currentUserId,
+                p_client_meta: { source: 'useBoardData' }
             } as any);
 
             if (error) throw error;
@@ -265,10 +268,11 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
             // Update cache after successful save
             mutateCache(state);
             setHistory({ past: [], future: [] }); // Clear history after save
-        } catch (e) {
-            console.error("Save error:", e);
+        } catch (err: any) {
+            console.error("Save error:", err);
             setIsOffline(true);
-            showNotification("保存失敗", "error");
+            const msg = `保存に失敗しました。\nコード: ${err?.code || 'Unknown'}\n詳細: ${err?.message || err?.details || ''}\nヒント: ${err?.hint || 'なし'}`;
+            showNotification(msg, "error");
         }
     };
 
@@ -294,8 +298,11 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                     edit_locked_by: currentUserId,
                     edit_locked_at: new Date().toISOString()
                 },
+                p_ext_data: {},
                 p_decision_type: 'BULK_CONFIRM',
-                p_reason: reason
+                p_reason: reason,
+                p_user_id: currentUserId,
+                p_client_meta: { source: 'useBoardData' }
             } as any);
 
             if (error) throw error;
@@ -303,8 +310,9 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
             mutateCache(newState);
             showNotification(`${plannedJobs.length}件を確定しました`, "success");
             setHistory({ past: [], future: [] });
-        } catch (e) {
-            showNotification("一括確定に失敗しました", "error");
+        } catch (err: any) {
+            const msg = `一括確定に失敗しました。\nコード: ${err?.code || 'Unknown'}\n詳細: ${err?.message || ''}`;
+            showNotification(msg, "error");
         }
     };
 
@@ -340,16 +348,20 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                     edit_locked_by: currentUserId,
                     edit_locked_at: new Date().toISOString()
                 },
+                p_ext_data: { exception_type: exceptionType, job_id: jobId },
                 p_decision_type: `EXCEPTION_${exceptionType}`,
-                p_reason: reasonFreeText || reasonMasterId || 'Exception Change'
+                p_reason: reasonFreeText || reasonMasterId || 'Exception Change',
+                p_user_id: currentUserId,
+                p_client_meta: { source: 'useBoardData' }
             } as any);
 
             setState(newState);
             mutateCache(newState);
             setHistory({ past: [], future: [] });
             showNotification(`例外変更を記録しました`, "success");
-        } catch (e) {
-            showNotification(`例外記録に失敗しました`, "error");
+        } catch (err: any) {
+            const msg = `例外記録に失敗しました。\nコード: ${err?.code || 'Unknown'}`;
+            showNotification(msg, "error");
         }
     };
 

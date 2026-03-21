@@ -174,7 +174,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
             try {
                 setIsDeepFetching(true);
                 const { data: detail, error: fetchErr } = await supabase
-                    .from(schema.rpcTableName as string)
+                    .from(schema.rpcTableName as any)
                     .select('*')
                     .eq(schema.primaryKey, item[schema.primaryKey])
                     .single();
@@ -209,16 +209,19 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                 await createItem(serialized);
             }
             setIsModalOpen(false);
-        } catch (err) {
-            console.error('Save failed:', err);
-            alert(`保存に失敗しました: ${err instanceof Error ? err.message : '不明なエラー'}`);
+        } catch (err: any) {
+            console.error('Master Save Error:', err);
+            // 診断強化: エラーオブジェクトの詳細を抽出
+            const errorMsg = err.message || '不明なエラー';
+            const diagnosticInfo = [err.code, err.hint, err.details].filter(Boolean).join(' | ');
+            alert(`保存に失敗しました: ${errorMsg}${diagnosticInfo ? `\n(診断情報: ${diagnosticInfo})` : ''}`);
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDelete = async (id: string | number) => {
-        if (window.confirm('このデータを削除（無効化）してもよろしいですか？')) {
+        if (window.confirm('このデータを無効化（アーカイブ）してもよろしいですか？\n※物理削除は行われません。')) {
             await deleteItem(id);
             setIsModalOpen(false);
         }

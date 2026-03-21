@@ -37,7 +37,7 @@ export const useBoardDragDrop = (
         const absoluteYMinutes = calculateTimeFromY(relativeY);
         let newStartMin = timeToMinutes('06:00') + absoluteYMinutes;
         newStartMin = Math.max(timeToMinutes('06:00'), Math.min(timeToMinutes('17:45'), newStartMin));
-        const newStartTime = minutesToTime(newStartMin);
+
 
         let newDriverId = targetJob.driverId;
         if (driverColRefs.current) {
@@ -69,13 +69,17 @@ export const useBoardDragDrop = (
             targetJob.requiredVehicle
         );
 
+        const finalStartMin = collision.adjustedStartMin !== undefined ? collision.adjustedStartMin : newStartMin;
+        const finalStartTime = minutesToTime(finalStartMin);
+
         return {
             driverId: newDriverId,
-            startTime: newStartTime,
+            startTime: finalStartTime,
             duration: collision.adjustedDuration,
             isVehicleError,
             isOverlapError: collision.isOverlapError,
-            logicResult: collision.logicResult // 追加: Logic Base の詳細結果
+            isWarning: collision.isWarning,
+            logicResult: collision.logicResult
         };
     };
 

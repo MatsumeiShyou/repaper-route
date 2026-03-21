@@ -240,14 +240,19 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({
                                         const newId = `spot-${Date.now()}`;
                                         const { error: rpcErr } = await (supabase as any).rpc('rpc_execute_master_update', {
                                             p_table_name: 'master_collection_points',
+                                            p_id: newId,
                                             p_core_data: {
                                                 location_id: newId,
                                                 name: newPointName.trim(),
                                                 display_name: newPointName.trim(),
                                                 furigana: newPointFurigana.trim() || null,
+                                                is_spot_only: true, // 配車盤からの登録は常にスポットのみ
                                                 is_active: true
                                             },
-                                            p_reason: '配車盤からの簡易マスタ登録（スポット案件対応）'
+                                            p_ext_data: {},
+                                            p_decision_type: 'MASTER_QUICK_REGISTER',
+                                            p_reason: '配車盤からの簡易マスタ登録（スポット案件対応）',
+                                            p_user_id: (await supabase.auth.getUser()).data.user?.id
                                         });
                                         if (rpcErr) throw rpcErr;
                                         invalidateMasterCache();

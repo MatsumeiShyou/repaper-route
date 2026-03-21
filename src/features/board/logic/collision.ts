@@ -32,17 +32,28 @@ export const calculateCollision = ({
     let isWarning = false;
     let adjustedDuration = proposedDuration;
 
-    const proposedEndMin = proposedStartMin + proposedDuration;
+    let currentStartMin = proposedStartMin;
 
     for (const job of otherJobs) {
         const jobStartMin = timeToMinutes(job.startTime || job.timeConstraint || '06:00');
         const jobEndMin = jobStartMin + job.duration;
 
-        if (proposedStartMin < jobEndMin && proposedEndMin > jobStartMin) {
-            if (proposedStartMin < jobEndMin && proposedStartMin >= jobStartMin) {
-                isOverlapError = true;
-            } else if (proposedEndMin > jobStartMin && proposedStartMin < jobStartMin) {
-                const allowedDuration = jobStartMin - proposedStartMin;
+        if (currentStartMin < jobEndMin && (currentStartMin + adjustedDuration) > jobStartMin) {
+            // Case 1: Dragging from BELOW (Existing job is above)
+            if (currentStartMin < jobEndMin && currentStartMin >= jobStartMin) {
+                const snapStartMin = jobEndMin;
+                const reduction = snapStartMin - currentStartMin;
+                if (adjustedDuration - reduction >= 15) {
+                    adjustedDuration -= reduction;
+                    currentStartMin = snapStartMin;
+                    isWarning = true;
+                } else {
+                    isOverlapError = true;
+                }
+            } 
+            // Case 2: Dragging from ABOVE (Existing job is below)
+            else if ((currentStartMin + adjustedDuration) > jobStartMin && currentStartMin < jobStartMin) {
+                const allowedDuration = jobStartMin - currentStartMin;
                 if (allowedDuration >= 15) {
                     adjustedDuration = allowedDuration;
                     isWarning = true;
@@ -97,6 +108,7 @@ export const calculateCollision = ({
         isOverlapError: isOverlapError || !constraintResult.isFeasible,
         isWarning: isWarning,
         adjustedDuration,
+        adjustedStartMin: isWarning ? currentStartMin : undefined,
         logicResult: constraintResult
     };
 };
