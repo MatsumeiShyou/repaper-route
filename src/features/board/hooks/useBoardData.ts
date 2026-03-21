@@ -101,7 +101,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     // Fetch Master Metadata (Exception Reasons)
     useEffect(() => {
         supabase.from('exception_reason_masters').select('*').eq('is_active', true).order('created_at', { ascending: true })
-            .then(({ data }) => { if (data) setExceptionReasons(data); });
+            .then(({ data }) => { if (data) setExceptionReasons(data as any); });
         
         // Fetch Confirmed Snapshot for the route
         if (currentDateKey) {
@@ -239,7 +239,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     // ----------------------------------------
     // 6. Persistence Operations
     // ----------------------------------------
-    const handleSave = async (reason = 'Manual Save') => {
+    const handleSave = async (reason = '一時保存') => {
         if (state.pendingJobs.length === 0 && state.jobs.length === 0) {
             showNotification("⚠️ データが空です。保存を中止します。", "error");
             return;
@@ -263,7 +263,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
 
             if (error) throw error;
             setIsOffline(false);
-            showNotification("保存しました (SDR記録完了)", "success");
+            showNotification("一時保存しました (SDR記録完了)", "success");
             
             // Update cache after successful save
             mutateCache(state);
@@ -276,7 +276,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         }
     };
 
-    const handleConfirmAll = async (reason = 'Bulk Confirmation') => {
+    const handleConfirmAll = async (reason = '一括確定') => {
         if (!editMode) return;
         const plannedJobs = state.jobs.filter(j => j.status === 'planned');
         if (plannedJobs.length === 0) {

@@ -96,7 +96,7 @@ export const useDataSync = (
 
             if (routeData) {
                 // Data Upgrade / Re-mapping Logic (Self-Healing)
-                const savedPending = Array.isArray(routeData?.pending_jobs) ? routeData.pending_jobs : [];
+                const savedPending = Array.isArray(routeData?.pending) ? routeData.pending : [];
                 const savedJobs = Array.isArray(routeData?.jobs) ? routeData.jobs : [];
 
                 const upgradedSavedPending = savedPending.map((j: any) => JobAdapter.mapToBoardJob(j));

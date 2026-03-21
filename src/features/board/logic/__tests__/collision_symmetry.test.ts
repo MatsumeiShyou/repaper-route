@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateCollision } from '../collision';
-import { BoardJob } from '../../../types';
+import { BoardJob } from '../../../../types';
 
 describe('calculateCollision symmetry check (Negative Proof)', () => {
     const existingJobs: BoardJob[] = [

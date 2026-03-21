@@ -115,10 +115,10 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                         className={`px-3 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
                             ${isSyncing ? 'bg-slate-100 text-slate-400' : 'bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-sm'}
                         `}
-                        title="全ての計画案件を確定済みにします"
+                        title="この内容で決定し、ロックします。後からの変更には例外操作が必要になります。"
                     >
                         <CheckCircle size={16} />
-                        シフト確定
+                        確定
                     </button>
                 )}
 
@@ -152,7 +152,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                         onClick={() => {
                             if (!validation.isValid) {
                                 const proceed = window.confirm(
-                                    `⚠️ ${validation.summary}\n\nこのまま保存しますか？`
+                                    `⚠️ ${validation.summary}\n\nこのまま一時保存しますか？`
                                 );
                                 if (!proceed) return;
                             }
@@ -167,12 +167,13 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                             setIsSaveModalOpen(true);
                         }}
                         disabled={isSyncing}
+                        title="現在の配置を下書きとして保存します。後から自由に動かすことができます。"
                         className={`px-4 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
                             ${isSyncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
                         `}
                     >
                         <Save size={16} />
-                        {isSyncing ? '保存中...' : '変更を保存'}
+                        {isSyncing ? '一時保存中...' : '一時保存'}
                         {!validation.isValid && (
                             <AlertTriangle size={14} className="text-amber-500 ml-1" />
                         )}
@@ -184,7 +185,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                     className={`relative w-11 h-11 rounded-lg transition-all flex items-center justify-center
                         ${isSidebarOpen ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}
                     `}
-                    title={isSidebarOpen ? 'リストを閉じる' : '未配車リスト'}
+                    title={isSidebarOpen ? 'リストを閉じる' : '未配車リスト（一時保存された内容を元に自動割付できます）'}
                     aria-expanded={isSidebarOpen}
                     aria-controls="pending-job-sidebar"
                 >
