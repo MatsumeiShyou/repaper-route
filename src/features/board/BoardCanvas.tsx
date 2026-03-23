@@ -4,6 +4,7 @@ import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
 import { useBoardValidation } from './hooks/useBoardValidation';
 import { useMasterData } from './hooks/useMasterData';
+import { useGhostTemplate } from './hooks/useGhostTemplate';
 import { TIME_SLOTS } from '../board/logic/constants';
 
 import { DriverHeader } from './components/DriverHeader';
@@ -51,6 +52,8 @@ export default function BoardCanvas() {
         assignPendingJob, unassignJob,
         addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey, isInteracting);
+
+    const { ghostJobs } = useGhostTemplate(currentDateKey, jobs.length === 0);
 
     // 2. Drag & Drop Hook
     const driverColRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -264,6 +267,7 @@ export default function BoardCanvas() {
                         />
                         <JobLayer
                             jobs={validatedJobs}
+                            ghostJobs={ghostJobs}
                             splits={splits}
                             drivers={drivers}
                             draggingJobId={draggingJobId}

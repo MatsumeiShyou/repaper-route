@@ -9,6 +9,7 @@ const { SLOT_HEIGHT_PX, Z_INDEX } = BOARD_CONSTANTS;
 
 interface JobLayerProps {
     jobs: BoardJob[];
+    ghostJobs?: BoardJob[]; // Phase 4: Ghost/Preview jobs
     splits: BoardSplit[];
     drivers: BoardDriver[];
     draggingJobId: string | null;
@@ -26,6 +27,7 @@ interface JobLayerProps {
 
 export const JobLayer: React.FC<JobLayerProps> = ({
     jobs,
+    ghostJobs = [],
     drivers,
     draggingJobId,
     selectedJobId,
@@ -92,6 +94,26 @@ export const JobLayer: React.FC<JobLayerProps> = ({
                                 </div>
                             </div>
                         )}
+                        {/* 100 Point Spec: Ghost/Preview Jobs (Phase 4) */}
+                        {ghostJobs.filter(gj => gj.driverId === driver.id).map(gj => {
+                            const startMin = timeToMinutes(gj.startTime || '06:00');
+                            const topPx = ((startMin - 360) / 15) * SLOT_HEIGHT_PX;
+                            const heightPx = (gj.duration / 15) * SLOT_HEIGHT_PX;
+                            return (
+                                <div
+                                    key={`ghost-${gj.id}`}
+                                    className="absolute w-[94%] left-[3%] rounded-md border border-dashed border-gray-400 bg-gray-100/30 text-gray-400 text-[10px] font-bold leading-tight shadow-none overflow-hidden pointer-events-none z-0 flex flex-col justify-center p-1"
+                                    style={{
+                                        top: `${topPx}px`,
+                                        height: `${heightPx}px`,
+                                    }}
+                                >
+                                    <div className="truncate opacity-50">{gj.title}</div>
+                                    <div className="text-[8px] opacity-40">{gj.startTime} ({gj.duration}m)</div>
+                                </div>
+                            );
+                        })}
+
                         {jobs.filter(job => job.driverId === driver.id).map(job => {
                             const isDragging = draggingJobId === job.id;
                             const jobTime = job.startTime || job.timeConstraint || '06:00';
