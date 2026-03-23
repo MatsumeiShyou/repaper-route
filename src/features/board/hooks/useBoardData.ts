@@ -4,6 +4,8 @@ import { useMasterData } from './useMasterData';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { isPastDayJST } from '../utils/dateUtils';
 import { useDataSync } from './useDataSync';
+import { JobAdapter } from '../logic/JobAdapter';
+import { TemplateExpander, SkeletonJob } from '../../logic/core/TemplateExpander';
 import {
     BoardJob, BoardDriver, BoardSplit, BoardHistory, AppUser, ExceptionReasonMaster
 } from '../../../types';
@@ -47,6 +49,8 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     // ----------------------------------------
     // 3. Unified Local State (SSOT)
     // ----------------------------------------
+    // --- State: UI Control ---
+    const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
     const [state, setState] = useState<BoardState>({
         drivers: [],
         jobs: [],
@@ -463,11 +467,26 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         recordHistory();
     }, [editMode, recordHistory]);
 
-    const handleRegisterTemplate = useCallback(async (name: string, dayOfWeek: number, nthWeek: number | null) => {
+    const handleRegisterTemplate = useCallback(async (name: string, dayOfWeek: number, nthWeek: number | null, absentCount: number = 0, description?: string) => {
         try {
+            // 骨格データのみを抽出（driver情報, startTime, status を除外）
+            const skeletonJobs = state.jobs.map(job => ({
+                id: job.id,
+                job_title: job.title,
+                duration_minutes: job.duration,
+                area: job.area ?? null,
+                required_vehicle: job.requiredVehicle ?? null,
+                visit_slot: job.visitSlot ?? null,
+                task_type: job.taskType ?? null,
+                customer_id: job.location_id ?? null,
+                customer_name: job.title ?? null,
+            }));
             const { error } = await supabase.from('board_templates').insert({
                 name, day_of_week: dayOfWeek, nth_week: nthWeek,
-                jobs_json: state.jobs as any, drivers_json: state.drivers as any, splits_json: state.splits as any, is_active: true
+                jobs_json: skeletonJobs as any,
+                absent_count: absentCount,
+                description: description ?? null,
+                is_active: true
             });
             if (error) throw error;
             showNotification(`テンプレート「${name}」を登録しました`, "success");
@@ -475,7 +494,57 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
             showNotification("登録に失敗しました", "error");
             throw e;
         }
-    }, [state.jobs, state.drivers, state.splits, showNotification]);
+    }, [state.jobs, showNotification]);
+
+    const handleApplyTemplate = useCallback(async (templateId: string) => {
+        setIsApplyingTemplate(true);
+        try {
+            const { data, error } = await supabase
+                .from('board_templates')
+                .select('*')
+                .eq('id', templateId)
+                .single();
+
+            if (error) throw error;
+            if (!data) throw new Error('Template not found');
+
+            const skeletonJobs = (data.jobs_json as any) as SkeletonJob[];
+            
+            // マスタバリデーション用IDセット作成
+            const validLocationIds = new Set(masterPoints.map(p => p.location_id));
+
+            // TemplateExpander が期待する Driver 形式に変換 (BoardDriver -> Database Driver 互換)
+            const availableDriversForExpander = state.drivers.map(d => ({
+                id: d.id,
+                driver_name: d.driverName,
+                vehicle_number: d.currentVehicle, // License Matcher が参照
+                display_order: (d as any).display_order ?? 999,
+                created_at: new Date().toISOString(), // Dummy for type
+            })) as any[];
+
+            // 展開
+            const result = TemplateExpander.expand(
+                skeletonJobs,
+                availableDriversForExpander,
+                validLocationIds
+            );
+
+            // 状態反映 (Result Job -> BoardJob 変換)
+            setState(prev => ({
+                ...prev,
+                jobs: result.assigned.map(j => JobAdapter.mapToBoardJob(j)),
+                pendingJobs: result.unassigned.map(j => JobAdapter.mapToBoardJob(j))
+            }));
+            recordHistory();
+            
+            showNotification(`テンプレート「${data.name}」を適用しました`, "success");
+        } catch (e) {
+            console.error('[useBoardData] Template apply failed:', e);
+            showNotification("テンプレートの適用に失敗しました", "error");
+        } finally {
+            setIsApplyingTemplate(false);
+        }
+    }, [state.drivers, masterPoints, showNotification, recordHistory]);
 
     return {
         masterDrivers,
@@ -483,12 +552,12 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         jobs: state.jobs, setJobs: (j: BoardJob[] | ((prev: BoardJob[]) => BoardJob[])) => setState(s => ({ ...s, jobs: typeof j === 'function' ? j(s.jobs) : j })),
         pendingJobs: state.pendingJobs, setPendingJobs: (pj: BoardJob[] | ((prev: BoardJob[]) => BoardJob[])) => setState(s => ({ ...s, pendingJobs: typeof pj === 'function' ? pj(s.pendingJobs) : pj })),
         splits: state.splits, setSplits: (sp: BoardSplit[] | ((prev: BoardSplit[]) => BoardSplit[])) => setState(s => ({ ...s, splits: typeof sp === 'function' ? sp(s.splits) : sp })),
-        isDataLoaded, isOffline, isSyncing,
+        isDataLoaded, isOffline, isSyncing, isExpanding: isApplyingTemplate,
         editMode, lockedBy, canEditBoard, isPastDate, boardMode,
         showNotification,
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
         handleExceptionChange, exceptionReasons, confirmedSnapshot,
-        handleRegisterTemplate, assignPendingJob, unassignJob,
+        handleRegisterTemplate, handleApplyTemplate, assignPendingJob, unassignJob,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn
     };

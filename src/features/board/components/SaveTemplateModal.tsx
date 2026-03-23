@@ -5,7 +5,7 @@ import { TemplateManager } from '../../logic/core/TemplateManager';
 interface SaveTemplateModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (name: string, dayOfWeek: number, nthWeek: number | null) => Promise<void>;
+    onSave: (name: string, dayOfWeek: number, nthWeek: number | null, absentCount: number, description?: string) => Promise<void>;
     currentDate: Date;
 }
 
@@ -18,6 +18,8 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
     const [name, setName] = useState(`テンプレート_${currentDate.toISOString().split('T')[0]}`);
     const [dayOfWeek, setDayOfWeek] = useState(TemplateManager.getDayOfWeek(currentDate));
     const [nthWeek, setNthWeek] = useState<number | null>(TemplateManager.getNthWeek(currentDate));
+    const [absentCount, setAbsentCount] = useState(0);
+    const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     if (!isOpen) return null;
@@ -36,7 +38,7 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
         if (!name.trim()) return;
         setIsSaving(true);
         try {
-            await onSave(name, dayOfWeek, nthWeek);
+            await onSave(name, dayOfWeek, nthWeek, absentCount, description);
             onClose();
         } catch (error) {
             console.error('Template save error:', error);
@@ -107,8 +109,35 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="tplAbsent" className="mb-2 block text-sm font-medium text-slate-300">欠員想定数</label>
+                            <input
+                                id="tplAbsent"
+                                type="number"
+                                min="0"
+                                max="10"
+                                value={absentCount}
+                                onChange={(e) => setAbsentCount(parseInt(e.target.value) || 0)}
+                                className="w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2.5 text-white transition-all focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="tplDesc" className="mb-2 block text-sm font-medium text-slate-300">備考・説明</label>
+                        <textarea
+                            id="tplDesc"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            rows={2}
+                            className="w-full rounded-lg border border-white/10 bg-slate-800/50 px-4 py-2 text-white placeholder-slate-500 transition-all focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            placeholder="例: お盆・年末年始用の特別ルート"
+                        />
+                    </div>
+
                     <p className="rounded-lg bg-emerald-500/10 p-3 text-xs leading-relaxed text-emerald-400/90 border border-emerald-500/20">
-                        提示されている配車盤の全案件、担当運転手、および休憩時間の配置が、指定された周期の「正典（テンプレート）」として保存されます。
+                        提示されている配車盤の各案件を「骨格データ（誰がどの車で行くかを含まない純粋な仕事内容）」としてテンプレート保存します。展開時は、当日の出勤メンバーに対して自動的に割り当てが行われます。
                     </p>
                 </div>
 

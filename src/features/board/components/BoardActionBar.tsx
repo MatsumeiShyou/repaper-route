@@ -14,7 +14,7 @@ interface BoardActionBarProps {
     redo: () => void;
     handleConfirmAll: () => void;
     setIsSaveTemplateModalOpen: (isOpen: boolean) => void;
-    handleApplyTemplate: () => void;
+    setIsTemplateDashboardOpen: (isOpen: boolean) => void;
     isExpanding: boolean;
     validation: {
         isValid: boolean;
@@ -36,7 +36,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
     redo,
     handleConfirmAll,
     setIsSaveTemplateModalOpen,
-    handleApplyTemplate,
+    setIsTemplateDashboardOpen,
     isExpanding,
     validation,
     setIsSaveModalOpen,
@@ -135,15 +135,15 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
 
                 {hasEditRights && (
                     <button
-                        onClick={handleApplyTemplate}
+                        onClick={() => setIsTemplateDashboardOpen(true)}
                         disabled={isExpanding}
                         className={`px-3 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
                             ${isExpanding ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 shadow-sm'}
                         `}
-                        title="テンプレートを展開"
+                        title="テンプレート管理ダッシュボードを開く"
                     >
                         {isExpanding ? <Loader2 size={16} className="animate-spin" /> : <Layers size={16} />}
-                        {isExpanding ? '展開中...' : 'tplから適用'}
+                        {isExpanding ? '展開中...' : 'テンプレート管理'}
                     </button>
                 )}
 

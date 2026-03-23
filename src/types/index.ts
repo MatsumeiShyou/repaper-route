@@ -59,6 +59,7 @@ export interface BoardJob {
     is_skipped?: boolean;
     actual_time?: string; // Phase 12+: Driver-reported time
     weight_kg?: number;   // Phase 12+: Driver-reported weight
+    isGhost?: boolean;    // Redesign: Historical/Template preview flag
 }
 
 export interface BoardDriver {

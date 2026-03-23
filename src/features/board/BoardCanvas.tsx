@@ -1,11 +1,5 @@
-import { useState, useRef, useMemo } from 'react';
-import { supabase } from '../../lib/supabase/client';
-import { TemplateManager } from '../logic/core/TemplateManager';
-
-import {
-    AlertTriangle
-} from 'lucide-react';
-import { TemplateExpander } from '../logic/core/TemplateExpander';
+import React, { useState, useMemo, useRef } from 'react';
+import { useAuth } from '../../contexts/AuthProvider';
 import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
 import { useBoardValidation } from './hooks/useBoardValidation';
@@ -14,11 +8,9 @@ import { TIME_SLOTS } from '../board/logic/constants';
 
 import { DriverHeader } from './components/DriverHeader';
 import { BoardSkeleton } from './components/BoardSkeleton';
-
 import { TimeGrid } from './components/TimeGrid';
 import { JobLayer } from './components/JobLayer';
 import { PendingJobSidebar } from './components/PendingJobSidebar';
-import { useAuth } from '../../contexts/AuthProvider';
 import { BoardJob, BoardDriver } from '../../types';
 
 import { AuditTrailPanel } from './components/AuditTrailPanel';
@@ -26,9 +18,11 @@ import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
 import { SaveTemplateModal } from './components/SaveTemplateModal';
+import { TemplateDashboard } from './components/TemplateDashboard';
 import { BoardActionBar } from './components/BoardActionBar';
 import { JobDetailPanel } from './components/JobDetailPanel';
 import { getJSTNow, formatDateKey } from './utils/dateUtils';
+import { AlertTriangle } from 'lucide-react';
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
@@ -42,19 +36,19 @@ export default function BoardCanvas() {
 
     // 1. Data & Logic Hook
     const [selectedDate, setSelectedDate] = useState<Date>(getJSTNow());
-    const currentDateKey = formatDateKey(selectedDate);
     const [isInteracting, setIsInteracting] = useState(false);
 
+    const currentDateKey = formatDateKey(selectedDate);
     const {
         masterDrivers,
         drivers, setDrivers,
         jobs, setJobs,
         pendingJobs, setPendingJobs,
         splits, setSplits,
-        isDataLoaded, isSyncing,
+        isDataLoaded, isSyncing, isExpanding,
         editMode, canEditBoard, boardMode,
-        handleSave, handleConfirmAll, handleRegisterTemplate, recordHistory, undo, redo,
-        assignPendingJob, unassignJob, handleExceptionChange,
+        handleSave, handleConfirmAll, handleRegisterTemplate, handleApplyTemplate, recordHistory, undo, redo,
+        assignPendingJob, unassignJob,
         addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey, isInteracting);
 
@@ -100,26 +94,21 @@ export default function BoardCanvas() {
     const [selectedCell, setSelectedCell] = useState<{ driverId: string, time: string } | null>(null);
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [pendingFilter, setPendingFilter] = useState('全て');
+    const [pendingFilter, setPendingFilter] = useState('すべて');
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
+    const [isTemplateDashboardOpen, setIsTemplateDashboardOpen] = useState(false);
     const [isHeaderEditModalOpen, setIsHeaderEditModalOpen] = useState(false);
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
     const [auditJobId, setAuditJobId] = useState<string | null>(null);
-    const [isExpanding, setIsExpanding] = useState(false);
-
-    // 3.5. Board Context (Auth & Interaction logic)
-
 
     const selectedDriverForEdit = headerEditTargetId
         ? drivers.find(d => d.id === headerEditTargetId) || null
         : null;
 
     // 4. Handlers
-    const handleMouseDown = () => {
-        // No longer relying on mousePos for drag-canceling click logic
-    };
+    const handleMouseDown = () => { };
 
     const handleSaveHeader = (updatedDriver: BoardDriver) => {
         setDrivers(prev => prev.map(d => d.id === headerEditTargetId ? updatedDriver : d));
@@ -160,71 +149,8 @@ export default function BoardCanvas() {
         showNotification("案件情報を更新しました", "success");
     };
 
-    const handleExceptionRequest = (jobId: string, _type: 'MOVE' | 'REASSIGN' | 'SWAP' | 'CANCEL') => {
-        // Use handleExceptionChange to trigger modal
-        console.log("Exception requested:", jobId, _type, handleExceptionChange);
+    const handleExceptionRequest = (jobId: string) => {
         setAuditJobId(jobId);
-    };
-
-    const handleApplyTemplate = async () => {
-        if (!editMode || isExpanding) return;
-
-        const confirmMsg = "当日の周期（第N曜日）に合わせたテンプレートを展開しますか？現日のリソース状況（出勤・車両）に合わせて自動配置および不整合案件の排避を行います。";
-        if (!window.confirm(confirmMsg)) return;
-
-        setIsExpanding(true);
-        try {
-            // 1. 全ての有効なテンプレートを取得
-            const { data: templates, error: fetchError } = await (supabase
-                .from('board_templates')
-                .select('*')
-                .eq('is_active', true) as any);
-
-            if (fetchError) throw fetchError;
-
-            // 2. 最適なテンプレートを選択 (nth_week 優先、なければ毎週)
-            const template = TemplateManager.findBestMatchingTemplate(templates || [], selectedDate);
-
-            if (!template) {
-                alert("該当するテンプレートが見つかりませんでした。");
-                return;
-            }
-
-            console.log(`[Template] Applying template: ${template.name}`);
-
-            // 3. スナップショットから Job[] 等を抽出
-            const templateJobs = (template.jobs_json || []) as any[];
-
-            // 4. Expander 実行
-            const result = TemplateExpander.expand(templateJobs as any, drivers as any, masterVehicles as any);
-
-            // 5. 結果の反映 (盤面の状態をテンプレート+リソース照合結果で上書き)
-            setJobs(result.assigned.map(j => ({
-                ...j,
-                status: 'planned' as const
-            })) as unknown as BoardJob[]);
-
-            if (result.unassigned.length > 0) {
-                setPendingJobs(prev => {
-                    const assignedIds = new Set(result.assigned.map(j => j.id));
-                    const stillPending = prev.filter(j => !assignedIds.has(j.id));
-                    return [...stillPending, ...result.unassigned] as BoardJob[];
-                });
-                showNotification(`${result.unassigned.length} 件の案件がリソース制約により未配車リストへ退避されました。`, "info");
-            }
-
-            // 運転手と中抜きの状態もテンプレートから復元（必要に応じて）
-            if (template.drivers_json) setDrivers(template.drivers_json as unknown as BoardDriver[]);
-            if (template.splits_json) setSplits(template.splits_json as any[]);
-
-            recordHistory();
-            showNotification(`テンプレート「${template.name}」を適用しました`, "success");
-        } catch (err) {
-            console.error("[Template] Expansion failed:", err);
-            showNotification("テンプレートの展開に失敗しました。", "error");
-        } finally {
-            setIsExpanding(false);
-        }
     };
 
     const openHeaderEdit = (driverId: string) => {
@@ -235,10 +161,6 @@ export default function BoardCanvas() {
     if (isAuthLoading || !isDataLoaded || masterLoading) {
         return <BoardSkeleton />;
     }
-
-
-
-
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (!editMode || isAddJobModalOpen) return;
@@ -265,7 +187,6 @@ export default function BoardCanvas() {
             }
         }
 
-        // --- Task 3: Delete / Backspace handling ---
         if (selectedJobId && (e.key === 'Delete' || (e.key === 'Backspace' && !isAddJobModalOpen && !isHeaderEditModalOpen))) {
             unassignJob(selectedJobId);
             setSelectedJobId(null);
@@ -287,7 +208,6 @@ export default function BoardCanvas() {
                 }
             }}
         >
-            {/* Action Bar (Isolated Component for UI Stability) */}
             <BoardActionBar
                 boardMode={boardMode}
                 selectedDate={selectedDate}
@@ -297,7 +217,7 @@ export default function BoardCanvas() {
                 redo={redo}
                 handleConfirmAll={handleConfirmAll}
                 setIsSaveTemplateModalOpen={setIsSaveTemplateModalOpen}
-                handleApplyTemplate={handleApplyTemplate}
+                setIsTemplateDashboardOpen={setIsTemplateDashboardOpen}
                 isExpanding={isExpanding}
                 validation={validation}
                 setIsSaveModalOpen={setIsSaveModalOpen}
@@ -327,7 +247,6 @@ export default function BoardCanvas() {
                             onCellClick={(driverId: string, time: string) => {
                                 if (editMode) {
                                     const isSame = selectedCell?.driverId === driverId && selectedCell?.time === time;
-
                                     if (isSame) {
                                         setIsAddJobModalOpen(true);
                                     } else {
@@ -372,7 +291,7 @@ export default function BoardCanvas() {
                     className={`
                         absolute top-0 right-0 h-full w-80 bg-white shadow-2xl z-40 transform transition-transform duration-300 ease-in-out border-l border-gray-200
                         ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
-`}
+                    `}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <PendingJobSidebar
@@ -395,7 +314,7 @@ export default function BoardCanvas() {
                 >
                     {selectedJobId && (
                         <JobDetailPanel
-                            job={validatedJobs.find(j => j.id === selectedJobId) || jobs.find(j => j.id === selectedJobId)!}
+                            job={validatedJobs.find(j => (j as any).id === selectedJobId) || jobs.find(j => (j as any).id === selectedJobId)!}
                             drivers={drivers}
                             currentUser={currentUser}
                             canEdit={editMode}
@@ -408,7 +327,6 @@ export default function BoardCanvas() {
                 </div>
             </div>
 
-            {/* フッター (最小情報のみ表示) */}
             <div className="h-7 px-4 bg-slate-100 border-t border-slate-200 text-[10px] font-bold flex items-center gap-4 text-slate-500">
                 <span className="flex items-center gap-2">
                     <div className={`w-1.5 h-1.5 rounded-full ${editMode ? 'bg-emerald-500' : 'bg-slate-400'} `} />
@@ -456,7 +374,7 @@ export default function BoardCanvas() {
 
             {auditJobId && (
                 <AuditTrailPanel
-                    job={validatedJobs.find(j => j.id === auditJobId) || pendingJobs.find(j => j.id === auditJobId)!}
+                    job={validatedJobs.find(j => (j as any).id === auditJobId) || pendingJobs.find(j => (j as any).id === auditJobId)!}
                     onClose={() => setAuditJobId(null)}
                     history={[
                         {
@@ -475,6 +393,12 @@ export default function BoardCanvas() {
                 onClose={() => setIsSaveTemplateModalOpen(false)}
                 onSave={handleRegisterTemplate}
                 currentDate={selectedDate}
+            />
+
+            <TemplateDashboard 
+                isOpen={isTemplateDashboardOpen}
+                onClose={() => setIsTemplateDashboardOpen(false)}
+                onApply={handleApplyTemplate}
             />
         </div>
     );

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       board_exceptions: {
@@ -66,39 +91,39 @@ export type Database = {
       }
       board_templates: {
         Row: {
+          absent_count: number
           created_at: string
           day_of_week: number
-          drivers_json: Json
+          description: string | null
           id: string
           is_active: boolean
           jobs_json: Json
           name: string
           nth_week: number | null
-          splits_json: Json
           updated_at: string
         }
         Insert: {
+          absent_count?: number
           created_at?: string
           day_of_week?: number
-          drivers_json?: Json
+          description?: string | null
           id?: string
           is_active?: boolean
           jobs_json?: Json
           name: string
           nth_week?: number | null
-          splits_json?: Json
           updated_at?: string
         }
         Update: {
+          absent_count?: number
           created_at?: string
           day_of_week?: number
-          drivers_json?: Json
+          description?: string | null
           id?: string
           is_active?: boolean
           jobs_json?: Json
           name?: string
           nth_week?: number | null
-          splits_json?: Json
           updated_at?: string
         }
         Relationships: []
@@ -1316,35 +1341,28 @@ export type Database = {
       rpc_debug_echo: { Args: { p_data: Json }; Returns: Json }
       rpc_execute_board_update: {
         Args: {
+          p_client_meta?: Json
           p_date: string
           p_decision_type?: string
+          p_ext_data?: Json
           p_new_state: Json
           p_reason?: string
+          p_user_id?: string
         }
         Returns: Json
       }
-      rpc_execute_master_update:
-        | {
-            Args: {
-              p_core_data?: Json
-              p_decision_type?: string
-              p_ext_data?: Json
-              p_id?: string
-              p_reason?: string
-              p_table_name: string
-              p_user_id?: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_core_data: Json
-              p_id: string
-              p_reason?: string
-              p_table_name: string
-            }
-            Returns: undefined
-          }
+      rpc_execute_master_update: {
+        Args: {
+          p_core_data?: Json
+          p_decision_type?: string
+          p_ext_data?: Json
+          p_id?: string
+          p_reason?: string
+          p_table_name: string
+          p_user_id?: string
+        }
+        Returns: undefined
+      }
       rpc_fetch_periodic_points_by_date: {
         Args: { p_target_date: string }
         Returns: {
@@ -1517,6 +1535,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
