@@ -122,7 +122,8 @@ export const useDataSync = (
                         : getDefaultDrivers(),
                     jobs: upgradedSavedJobs,
                     pendingJobs: mergedPendingJobs,
-                    splits: Array.isArray(routeData.splits) ? routeData.splits as unknown as BoardSplit[] : []
+                    splits: Array.isArray(routeData.splits) ? routeData.splits as unknown as BoardSplit[] : [],
+                    appliedTemplateId: (routeData as any).applied_template_id
                 };
 
                 setData(newState);

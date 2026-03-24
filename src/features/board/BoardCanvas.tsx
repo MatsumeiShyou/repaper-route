@@ -19,11 +19,13 @@ import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
 import { SaveTemplateModal } from './components/SaveTemplateModal';
+import { TemplateMergeModal } from './components/TemplateMergeModal';
 import { TemplateDashboard } from './components/TemplateDashboard';
 import { BoardActionBar } from './components/BoardActionBar';
 import { JobDetailPanel } from './components/JobDetailPanel';
 import { getJSTNow, formatDateKey } from './utils/dateUtils';
 import { AlertTriangle } from 'lucide-react';
+import { DiffItem } from '../logic/core/TemplateDiffCalculator';
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
@@ -49,6 +51,7 @@ export default function BoardCanvas() {
         isDataLoaded, isSyncing, isExpanding,
         editMode, canEditBoard, boardMode,
         handleSave, handleConfirmAll, handleRegisterTemplate, handleApplyTemplate, recordHistory, undo, redo,
+        handleUpdateAppliedTemplate, handleFinalizeTemplateUpdate, appliedTemplateId,
         assignPendingJob, unassignJob,
         addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey, isInteracting);
@@ -101,6 +104,8 @@ export default function BoardCanvas() {
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
     const [isTemplateDashboardOpen, setIsTemplateDashboardOpen] = useState(false);
+    const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+    const [mergeDiffData, setMergeDiffData] = useState<{ diffs: DiffItem[], templateName: string, templateId: string } | null>(null);
     const [isHeaderEditModalOpen, setIsHeaderEditModalOpen] = useState(false);
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
@@ -159,6 +164,19 @@ export default function BoardCanvas() {
     const openHeaderEdit = (driverId: string) => {
         setHeaderEditTargetId(driverId);
         setIsHeaderEditModalOpen(true);
+    };
+
+    const handleOpenMergeModal = async () => {
+        const result = await handleUpdateAppliedTemplate();
+        if (result) {
+            setMergeDiffData(result);
+            setIsMergeModalOpen(true);
+        }
+    };
+
+    const handleApplyMerge = async (templateId: string, newJobs: any[]) => {
+        await handleFinalizeTemplateUpdate(templateId, newJobs);
+        setIsMergeModalOpen(false);
     };
 
     if (isAuthLoading || !isDataLoaded || masterLoading) {
@@ -221,6 +239,8 @@ export default function BoardCanvas() {
                 handleConfirmAll={handleConfirmAll}
                 setIsSaveTemplateModalOpen={setIsSaveTemplateModalOpen}
                 setIsTemplateDashboardOpen={setIsTemplateDashboardOpen}
+                handleOpenMergeModal={handleOpenMergeModal}
+                appliedTemplateId={appliedTemplateId}
                 isExpanding={isExpanding}
                 validation={validation}
                 setIsSaveModalOpen={setIsSaveModalOpen}
@@ -404,6 +424,16 @@ export default function BoardCanvas() {
                 onClose={() => setIsTemplateDashboardOpen(false)}
                 onApply={handleApplyTemplate}
             />
+
+            {mergeDiffData && (
+                <TemplateMergeModal
+                    isOpen={isMergeModalOpen}
+                    onClose={() => setIsMergeModalOpen(false)}
+                    templateName={mergeDiffData.templateName}
+                    diffItems={mergeDiffData.diffs}
+                    onApply={(newJobs) => handleApplyMerge(mergeDiffData.templateId, newJobs)}
+                />
+            )}
         </div>
     );
 }

@@ -42,7 +42,7 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
             onClose();
         } catch (error) {
             console.error('Template save error:', error);
-            alert('テンプレートの保存に失敗しました。');
+            // 実際のUI通知は onSave (useBoardData) 側で行われるため、ここでは alert を出さない
         } finally {
             setIsSaving(false);
         }

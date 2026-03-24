@@ -338,6 +338,16 @@ De-mocking フェーズの一環として、ハードコードされたユーザ
 - **フィールド同期 (Cross-Table Sync)**: `master_collection_points` のスポットフラグ同期（`is_spot` / `is_spot_only`）に加え、全マスタにおける `note` / `remarks` 等の二重定義フィールドの同期ロジックを DB レベルで実装。
 - **監査証跡の強化**: 呼び出し元（クライアントメタデータ）および操作ユーザー ID (`p_user_id`) の記録を徹底。
 
-**参考**: 
-- `20260321010000_cleanup_overloaded_rpc.sql`
-- `20260321020000_unify_all_rpc_signatures.sql`
+---
+
+## Phase 101: テンプレート管理機能の拡張 (Template Management Expansion)
+**日付**: 2026-03-24
+**目的**: テンプレート保存時のカラム不足解消および運用キャパシティ（欠員数）の記録対応
+
+### 変更内容
+- **カラム追加**: `public.board_templates` テーブルへ以下の2カラムを追加
+  - `absent_count`: SMALLINT (欠員想定数)
+  - `description`: TEXT (説明・備考)
+- **制約**: `absent_count` に対する 0 以上の CHECK 制約を付与。
+
+**参考**: `20260324053000_add_missing_template_columns.sql`

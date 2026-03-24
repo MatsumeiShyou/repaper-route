@@ -16,6 +16,7 @@ export interface BoardState {
     jobs: BoardJob[];
     pendingJobs: BoardJob[];
     splits: BoardSplit[];
+    appliedTemplateId?: string | null;
 }
 
 export const useBoardData = (user: AppUser | null, currentDateKey: string, isInteracting: boolean = false) => {
@@ -51,6 +52,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     // ----------------------------------------
     // --- State: UI Control ---
     const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
+    const [appliedTemplateId, setAppliedTemplateId] = useState<string | null>(null);
     const [state, setState] = useState<BoardState>({
         drivers: [],
         jobs: [],
@@ -65,6 +67,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     useEffect(() => {
         if (remoteData && history.past.length === 0 && !isInteracting) {
             setState(remoteData);
+            setAppliedTemplateId(remoteData.appliedTemplateId || null);
             setIsDataLoaded(true);
         }
     }, [remoteData, history.past.length, isInteracting]);
@@ -255,10 +258,13 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                 p_new_state: {
                     ...state,
                     pending: state.pendingJobs,
+                    applied_template_id: appliedTemplateId,
                     edit_locked_by: currentUserId,
                     edit_locked_at: new Date().toISOString()
                 },
-                p_ext_data: {},
+                p_ext_data: {
+                    applied_template_id: appliedTemplateId
+                },
                 p_decision_type: 'MANUAL_SAVE',
                 p_reason: reason,
                 p_user_id: currentUserId,
@@ -469,6 +475,18 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
 
     const handleRegisterTemplate = useCallback(async (name: string, dayOfWeek: number, nthWeek: number | null, absentCount: number = 0, description?: string) => {
         try {
+            // バリデーション (100点統治: 防御的ロジック)
+            if (!name || name.trim() === '') {
+                showNotification("テンプレート名を入力してください", "error");
+                return;
+            }
+            if (absentCount < 0) {
+                showNotification("欠員想定数に負の値は設定できません", "error");
+                return;
+            }
+
+            console.info("[handleRegisterTemplate] Saving with parameters:", { name, dayOfWeek, nthWeek, absentCount, description });
+
             // 骨格データのみを抽出（driver情報, startTime, status を除外）
             const skeletonJobs = state.jobs.map(job => ({
                 id: job.id,
@@ -481,17 +499,33 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                 customer_id: job.location_id ?? null,
                 customer_name: job.title ?? null,
             }));
-            const { error } = await supabase.from('board_templates').insert({
+            const { data, error } = await supabase.from('board_templates').insert({
                 name, day_of_week: dayOfWeek, nth_week: nthWeek,
                 jobs_json: skeletonJobs as any,
                 absent_count: absentCount,
                 description: description ?? null,
                 is_active: true
-            });
+            }).select();
+
             if (error) throw error;
+            
+            // 【物理的証明】保存成功時に ID をログ出力
+            if (data && data.length > 0) {
+                console.log('[handleRegisterTemplate] Persistence success. ID:', data[0].id);
+            }
+
             showNotification(`テンプレート「${name}」を登録しました`, "success");
-        } catch (e) {
-            showNotification("登録に失敗しました", "error");
+        } catch (e: any) {
+            console.error("[handleRegisterTemplate] Registration failed:", e);
+            
+            let message = "登録に失敗しました";
+            if (e.code === '23505') {
+                message = `テンプレート名「${name}」は既に存在します。別の名前を指定してください。`;
+            } else if (e.message) {
+                message = `登録エラー: ${e.message}`;
+            }
+
+            showNotification(message, "error");
             throw e;
         }
     }, [state.jobs, showNotification]);
@@ -535,6 +569,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                 jobs: result.assigned.map(j => JobAdapter.mapToBoardJob(j)),
                 pendingJobs: result.unassigned.map(j => JobAdapter.mapToBoardJob(j))
             }));
+            setAppliedTemplateId(templateId);
             recordHistory();
             
             showNotification(`テンプレート「${data.name}」を適用しました`, "success");
@@ -545,6 +580,59 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
             setIsApplyingTemplate(false);
         }
     }, [state.drivers, masterPoints, showNotification, recordHistory]);
+
+    const handleUpdateAppliedTemplate = useCallback(async () => {
+        if (!appliedTemplateId) return null;
+        try {
+            const { data, error } = await supabase
+                .from('board_templates')
+                .select('*')
+                .eq('id', appliedTemplateId)
+                .single();
+            if (error) throw error;
+            
+            const originalSkeleton = (data.jobs_json as any[]) || [];
+            
+            // 現在の盤面の状態からスケルトン（Partial<BoardJob>）を生成
+            const currentSkeleton = state.jobs.map(job => ({
+                location_id: job.location_id,
+                visitSlot: job.visitSlot,
+                duration: job.duration,
+                requiredVehicle: job.requiredVehicle,
+                title: job.title,
+                taskType: job.taskType,
+                area: job.area
+            }));
+
+            const { TemplateDiffCalculator } = await import('../../logic/core/TemplateDiffCalculator');
+            const diffs = TemplateDiffCalculator.calculate(originalSkeleton, currentSkeleton);
+            
+            return {
+                diffs,
+                templateName: data.name,
+                templateId: data.id
+            };
+        } catch (e) {
+            console.error('Fetch template for diff failed:', e);
+            showNotification("差分の計算に失敗しました", "error");
+            return null;
+        }
+    }, [appliedTemplateId, state.jobs, showNotification]);
+
+    const handleFinalizeTemplateUpdate = useCallback(async (templateId: string, newJobs: any[]) => {
+        try {
+            const { error } = await supabase
+                .from('board_templates')
+                .update({ jobs_json: newJobs, updated_at: new Date().toISOString() })
+                .eq('id', templateId);
+            if (error) throw error;
+            showNotification("テンプレートを更新しました", "success");
+        } catch (e) {
+            console.error('Template update failed:', e);
+            showNotification("テンプレートの更新に失敗しました", "error");
+            throw e;
+        }
+    }, [showNotification]);
 
     return {
         masterDrivers,
@@ -558,6 +646,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
         handleExceptionChange, exceptionReasons, confirmedSnapshot,
         handleRegisterTemplate, handleApplyTemplate, assignPendingJob, unassignJob,
+        handleUpdateAppliedTemplate, handleFinalizeTemplateUpdate, appliedTemplateId,
         history, recordHistory, undo, redo,
         addColumn, deleteColumn
     };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, CheckCircle, Database, Undo2, Redo2, Save, Loader2, AlertTriangle, Clipboard } from 'lucide-react';
+import { Layers, CheckCircle, Database, Undo2, Redo2, Save, Loader2, AlertTriangle, Clipboard, RefreshCw } from 'lucide-react';
 import { DateDisplay } from './DateDisplay';
 import { BoardJob } from '../../../types';
 
@@ -25,6 +25,8 @@ interface BoardActionBarProps {
     isSidebarOpen: boolean;
     setIsSidebarOpen: (isOpen: boolean) => void;
     pendingJobs: BoardJob[];
+    handleOpenMergeModal: () => void;
+    appliedTemplateId: string | null;
 }
 
 export const BoardActionBar: React.FC<BoardActionBarProps> = ({
@@ -42,7 +44,9 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
     setIsSaveModalOpen,
     isSidebarOpen,
     setIsSidebarOpen,
-    pendingJobs
+    pendingJobs,
+    handleOpenMergeModal,
+    appliedTemplateId
 }) => {
     const hasEditRights = boardMode === 'EDIT' || boardMode === 'CONFIRM';
 
@@ -144,6 +148,17 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                     >
                         {isExpanding ? <Loader2 size={16} className="animate-spin" /> : <Layers size={16} />}
                         {isExpanding ? '展開中...' : 'テンプレート管理'}
+                    </button>
+                )}
+
+                {hasEditRights && appliedTemplateId && (
+                    <button
+                        onClick={handleOpenMergeModal}
+                        className="px-3 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2 bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 shadow-sm animate-pulse-subtle"
+                        title="現在の盤面とテンプレートの差分を確認し、テンプレートを更新します"
+                    >
+                        <RefreshCw size={16} className="text-amber-500" />
+                        tpl更新 (Diff)
                     </button>
                 )}
 
