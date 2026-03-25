@@ -33,6 +33,7 @@ export class JobAdapter {
             id,
             title,
             bucket,
+            startTime: j.start_time || j.startTime || undefined,
             duration: j.duration ?? (j as any).duration_minutes ?? 60,
             area: j.area || j.display_name || j.customer_name || '',
             requiredVehicle,

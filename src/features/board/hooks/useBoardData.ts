@@ -536,6 +536,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                 task_type: job.taskType ?? null,
                 customer_id: job.location_id ?? null,
                 customer_name: job.title ?? null,
+                start_time: job.startTime ?? null,
                 // マスタ属性を JobAdapter が復元可能な形式で封入
                 time_constraint_type: (job as any).time_constraint_type ?? null,
                 special_type: (job as any).special_type ?? null

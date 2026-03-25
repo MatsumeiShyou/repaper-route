@@ -12,6 +12,7 @@ const makeSkeleton = (overrides: Partial<SkeletonJob> = {}): SkeletonJob => ({
     task_type: null,
     customer_id: 'loc-1',
     customer_name: 'テスト顧客',
+    start_time: '09:00',
     ...overrides,
 });
 
@@ -27,7 +28,7 @@ const makeDriver = (id: string, overrides: Record<string, unknown> = {}): any =>
 describe('TemplateExpander v2 (Skeleton Edition)', () => {
     // ── 基本シナリオ ──
     it('骨格テンプレートをドライバーにグリーディ割り当てする', () => {
-        const skeletons = [makeSkeleton({ id: 'j1', required_vehicle: 'AT' })];
+        const skeletons = [makeSkeleton({ id: 'j1', required_vehicle: 'AT', start_time: '09:00' } as any)];
         const drivers = [
             makeDriver('s1', { display_order: 1 }),
             makeDriver('s2', { display_order: 2 }),
@@ -89,8 +90,8 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
     // ── 決定論的優先度 ──
     it('visit_slot 昇順で優先的に割り当てる', () => {
         const skeletons = [
-            makeSkeleton({ id: 'j-afternoon', visit_slot: 'PM', required_vehicle: 'AT' }),
-            makeSkeleton({ id: 'j-morning', visit_slot: 'AM', required_vehicle: 'AT' }),
+            makeSkeleton({ id: 'j-afternoon', visit_slot: 'PM', required_vehicle: 'AT', start_time: '13:00' } as any),
+            makeSkeleton({ id: 'j-morning', visit_slot: 'AM', required_vehicle: 'AT', start_time: '09:00' } as any),
         ];
         const drivers = [
             makeDriver('s1', { display_order: 1 }),
@@ -100,11 +101,21 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
         ];
 
         const result = TemplateExpander.expand(skeletons, drivers);
-        // AM が優先されるため、j-morning が割当、j-afternoon が退避
-        expect(result.assigned).toHaveLength(1);
+        // 【仕様変更】d1に2件とも割り当て可能 (AM, PMの順)
+        expect(result.assigned).toHaveLength(2);
         expect(result.assigned[0].id).toBe('j-morning');
+        expect(result.assigned[1].id).toBe('j-afternoon');
+        expect(result.unassigned).toHaveLength(0);
+    });
+
+    // ── 100点品質: 旧データ退避ガード ──
+    it('start_time が欠落している旧データは安全に未配車に退避する', () => {
+        const skeletons = [makeSkeleton({ id: 'old-job', start_time: undefined } as any)];
+        const drivers = [makeDriver('d1')];
+        const result = TemplateExpander.expand(skeletons, drivers);
+        expect(result.assigned).toHaveLength(0);
         expect(result.unassigned).toHaveLength(1);
-        expect(result.unassigned[0].id).toBe('j-afternoon');
+        expect(result.unassigned[0].note).toContain('旧形式');
     });
 
     // ── 100点品質: 属性復元 (亡霊A対策) ──
@@ -113,7 +124,8 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
             makeSkeleton({ 
                 id: 'j1', 
                 time_constraint_type: 'FIXED',
-                special_type: 'VIP'
+                special_type: 'VIP',
+                start_time: '10:00'
             } as any)
         ];
         const drivers = [
@@ -132,10 +144,10 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
     // ── 100点品質: 3段決定論的ソート (亡霊C対策) ──
     it('visit_slot -> customer_name -> id の順で決定論的にソート・割り当てを行う', () => {
         const skeletons = [
-            makeSkeleton({ id: 'c', customer_name: 'サトウ', visit_slot: 'AM' }),
-            makeSkeleton({ id: 'a', customer_name: 'アオキ', visit_slot: 'AM' }), // 1番目
-            makeSkeleton({ id: 'b', customer_name: 'アオキ', visit_slot: 'PM' }), // 3番目
-            makeSkeleton({ id: 'd', customer_name: 'アオキ', visit_slot: 'AM' }), // 2番目 (ID順)
+            makeSkeleton({ id: 'c', customer_name: 'サトウ', visit_slot: 'AM', start_time: '09:00' } as any),
+            makeSkeleton({ id: 'a', customer_name: 'アオキ', visit_slot: 'AM', start_time: '09:00' } as any), // 1番目
+            makeSkeleton({ id: 'b', customer_name: 'アオキ', visit_slot: 'PM', start_time: '13:00' } as any), // 3番目
+            makeSkeleton({ id: 'd', customer_name: 'アオキ', visit_slot: 'AM', start_time: '09:00' } as any), // 2番目 (ID順)
         ];
         const drivers = [
             makeDriver('d1', { display_order: 10 }),

@@ -23,6 +23,7 @@ export interface SkeletonJob {
     // 【100点品質】保存時に封印されたマスタ属性 (亡霊A対策)
     time_constraint_type?: string | null;
     special_type?: string | null;
+    start_time?: string | null;
 }
 
 export interface ExpansionResult {
@@ -77,11 +78,15 @@ export class TemplateExpander {
 
         const assigned: Job[] = [];
         const unassigned: Job[] = [];
-        // ドライバーの使用済みフラグ（各ドライバーは1回だけ割り当て可能）
-        const usedDriverIds = new Set<string>();
 
         // 3. グリーディ割り当て
         for (const skeleton of sortedJobs) {
+            // 3a-0. 旧データ互換性ガード (時間は必須属性)
+            if (!(skeleton as any).start_time) {
+                unassigned.push(TemplateExpander.toUnassignedJob(skeleton, '旧形式のデータ（時間未定）のため未配車リストに退避しました'));
+                continue;
+            }
+
             // 3a. マスタ不整合ガード
             if (validLocationIds && skeleton.customer_id && !validLocationIds.has(skeleton.customer_id)) {
                 unassigned.push(TemplateExpander.toUnassignedJob(skeleton, 'マスタ削除済みのため退避'));
@@ -90,8 +95,6 @@ export class TemplateExpander {
 
             // 3b. 車両要件を満たすドライバーを探す（グリーディ）
             const matchedDriver = activeDrivers.find(driver => {
-                if (usedDriverIds.has(driver.id)) return false;
-
                 const vehicleReq = skeleton.required_vehicle || 'AT';
                 const driverLicense = driver.vehicle_number || 'AT';
 
@@ -105,7 +108,6 @@ export class TemplateExpander {
             }
 
             // 3c. 配置成功
-            usedDriverIds.add(matchedDriver.id);
             assigned.push(TemplateExpander.toAssignedJob(skeleton, matchedDriver));
         }
 
@@ -132,10 +134,11 @@ export class TemplateExpander {
             // 骨格に含まれないフィールドはデフォルト値
             driver_id: null,
             driver_name: null,
-            start_time: null,
+            start_time: (skeleton as any).start_time ?? null,
             created_at: new Date().toISOString(),
             actual_time: null,
-            bucket_type: null,
+            bucket_type: skeleton.visit_slot ?? null,
+            // ...
             is_admin_forced: null,
             is_skipped: null,
             is_spot: null,
