@@ -15,13 +15,27 @@ interface CalendarPickerProps {
     selectedDate: Date;
     onDateChange: (date: Date) => void;
     onClose: () => void;
+    userRole?: string;
 }
 
 /**
  * CalendarPicker - AGENTS.md 100pt Version
  * F-SSOT: 「表示月」のみを基本状態とし、グリッドや祝日フラグはすべて純粋派生。
  */
-export const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, onDateChange, onClose }) => {
+export const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, onDateChange, onClose, userRole }) => {
+    // 【100pt 統治】管理者判定
+    const isAdmin = userRole === 'admin';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const minDateLimit = new Date(today);
+    minDateLimit.setMonth(today.getMonth() - 1);
+    minDateLimit.setDate(1); // 1ヶ月前の月初
+
+    const maxDateLimit = new Date(today);
+    maxDateLimit.setMonth(today.getMonth() + 1);
+    maxDateLimit.setDate(new Date(maxDateLimit.getFullYear(), maxDateLimit.getMonth() + 1, 0).getDate()); // 1ヶ月後の月末
+
     // SSOT: 現在表示している「年月」
     const [viewDate, setViewDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
     // UI Mode: 'calendar' | 'month' | 'year'
@@ -71,17 +85,27 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, on
     }, [viewDate]);
 
     const handlePrev = () => {
+        if (!isAdmin) {
+            const nextViewMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+            if (nextViewMonth < minDateLimit) return;
+        }
         if (mode === 'calendar') {
             setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
         } else if (mode === 'year') {
+            if (!isAdmin) return; // Year navigation restricted for drivers
             setViewDate(new Date(viewDate.getFullYear() - 12, viewDate.getMonth(), 1));
         }
     };
 
     const handleNext = () => {
+        if (!isAdmin) {
+            const nextViewMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
+            if (nextViewMonth > maxDateLimit) return;
+        }
         if (mode === 'calendar') {
             setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
         } else if (mode === 'year') {
+            if (!isAdmin) return; // Year navigation restricted for drivers
             setViewDate(new Date(viewDate.getFullYear() + 12, viewDate.getMonth(), 1));
         }
     };
@@ -122,26 +146,40 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, on
         >
             {/* Header */}
             <div className="flex items-center justify-between mb-4 px-1">
-                <button onClick={handlePrev} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-500">
+                <button 
+                    onClick={handlePrev} 
+                    disabled={!isAdmin && (new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1) < minDateLimit)}
+                    className="p-1.5 hover:bg-slate-100 disabled:opacity-20 disabled:cursor-not-allowed rounded-lg transition-colors text-slate-500"
+                >
                     <ChevronLeft size={18} />
                 </button>
 
                 <div className="flex gap-1">
                     <button
-                        onClick={() => setMode(mode === 'year' ? 'calendar' : 'year')}
-                        className="text-sm font-bold text-slate-700 hover:bg-slate-100 px-1.5 py-0.5 rounded-md transition-colors"
+                        onClick={() => isAdmin && setMode(mode === 'year' ? 'calendar' : 'year')}
+                        className={cn(
+                            "text-sm font-bold text-slate-700 hover:bg-slate-100 px-1.5 py-0.5 rounded-md transition-colors",
+                            !isAdmin && "cursor-default hover:bg-transparent"
+                        )}
                     >
                         {viewDate.getFullYear()}年
                     </button>
                     <button
-                        onClick={() => setMode(mode === 'month' ? 'calendar' : 'month')}
-                        className="text-sm font-bold text-slate-700 hover:bg-slate-100 px-1.5 py-0.5 rounded-md transition-colors"
+                        onClick={() => isAdmin && setMode(mode === 'month' ? 'calendar' : 'month')}
+                        className={cn(
+                            "text-sm font-bold text-slate-700 hover:bg-slate-100 px-1.5 py-0.5 rounded-md transition-colors",
+                            !isAdmin && "cursor-default hover:bg-transparent"
+                        )}
                     >
                         {viewDate.getMonth() + 1}月
                     </button>
                 </div>
 
-                <button onClick={handleNext} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-500">
+                <button 
+                    onClick={handleNext} 
+                    disabled={!isAdmin && (new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1) > maxDateLimit)}
+                    className="p-1.5 hover:bg-slate-100 disabled:opacity-20 disabled:cursor-not-allowed rounded-lg transition-colors text-slate-500"
+                >
                     <ChevronRight size={18} />
                 </button>
             </div>
@@ -168,23 +206,38 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, on
                             const isToday = new Date().toDateString() === date.toDateString();
                             const isFocused = focusedDate.toDateString() === date.toDateString();
 
+                            // 【100pt 統治】ドライバー権限の前後1ヶ月制限チェック
+                            const isAdmin = userRole === 'admin';
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+
+                            const minAllowed = new Date(today);
+                            minAllowed.setMonth(today.getMonth() - 1);
+                            const maxAllowed = new Date(today);
+                            maxAllowed.setMonth(today.getMonth() + 1);
+
+                            const isRestricted = !isAdmin && (date < minAllowed || date > maxAllowed);
+                            const restrictionMsg = isRestricted ? "計画は確定されていません" : (holiday?.name || undefined);
+
                             return (
                                 <button
                                     key={idx}
                                     onClick={() => {
+                                        if (isRestricted) return; // ガード
                                         onDateChange(date);
                                         onClose();
                                     }}
-                                    onMouseEnter={() => setFocusedDate(date)}
-                                    title={holiday?.name}
+                                    onMouseEnter={() => !isRestricted && setFocusedDate(date)}
+                                    disabled={isRestricted}
+                                    title={restrictionMsg}
                                     className={cn(
                                         "relative h-8 w-8 text-xs rounded-lg flex items-center justify-center transition-all duration-200 outline-none",
-                                        isCurrentMonth ? "text-slate-700 font-medium" : "text-slate-300",
-                                        isSelected ? "bg-blue-600 text-white font-bold shadow-indigo-200 shadow-lg scale-110 z-10" : "hover:bg-slate-100",
-                                        holiday && isCurrentMonth && !isSelected && "text-rose-500 font-bold bg-rose-50/50",
+                                        isRestricted ? "text-slate-200 cursor-not-allowed bg-slate-50/30" : (isCurrentMonth ? "text-slate-700 font-medium" : "text-slate-300"),
+                                        isSelected ? "bg-blue-600 text-white font-bold shadow-indigo-200 shadow-lg scale-110 z-10" : (!isRestricted && "hover:bg-slate-100"),
+                                        holiday && isCurrentMonth && !isSelected && !isRestricted && "text-rose-500 font-bold bg-rose-50/50",
                                         isToday && !isSelected && "ring-1 ring-blue-200 ring-inset",
-                                        !isCurrentMonth && holiday && "text-rose-200",
-                                        isFocused && !isSelected && "bg-slate-100 ring-2 ring-blue-400/30"
+                                        !isCurrentMonth && holiday && !isRestricted && "text-rose-200",
+                                        isFocused && !isSelected && !isRestricted && "bg-slate-100 ring-2 ring-blue-400/30"
                                     )}
                                 >
                                     {date.getDate()}

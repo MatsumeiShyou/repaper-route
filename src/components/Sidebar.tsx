@@ -13,6 +13,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     const { currentUser, logout } = useAuth();
 
+    const isAdmin = currentUser?.role === 'admin';
+
     const menuGroups = [
         {
             title: "業務メニュー",
@@ -21,23 +23,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
                 { id: 'board', label: '配車盤', icon: Truck, highlight: true },
             ]
         },
-        {
-            title: "マスタ管理",
-            items: [
-                { id: 'master_drivers', label: 'ドライバー', icon: Users },
-                { id: 'master_vehicles', label: '車両', icon: Truck },
-                { id: 'master_points', label: '回収先', icon: MapPin },
-                { id: 'master_items', label: '品目', icon: Box },
-            ]
-        },
-        {
-            title: "システム設定",
-            items: [
-                { id: 'sdr', label: 'SDR監査ログ', icon: Activity },
-                { id: 'users', label: 'ユーザー管理', icon: Shield },
-                { id: 'settings', label: '設定', icon: Settings },
-            ]
-        }
+        ...(isAdmin ? [
+            {
+                title: "マスタ管理",
+                items: [
+                    { id: 'master_drivers', label: 'ドライバー', icon: Users },
+                    { id: 'master_vehicles', label: '車両', icon: Truck },
+                    { id: 'master_points', label: '回収先', icon: MapPin },
+                    { id: 'master_items', label: '品目', icon: Box },
+                ]
+            },
+            {
+                title: "システム設定",
+                items: [
+                    { id: 'sdr', label: 'SDR監査ログ', icon: Activity },
+                    { id: 'users', label: 'ユーザー管理', icon: Shield },
+                    { id: 'settings', label: '設定', icon: Settings },
+                ]
+            }
+        ] : [])
     ];
 
     return (

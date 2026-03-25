@@ -44,7 +44,8 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     // ----------------------------------------
     const { data: remoteData, isLoading: isSyncing, error: syncError, mutate: mutateCache } = useDataSync(
         currentDateKey, 
-        getDefaultDrivers
+        getDefaultDrivers,
+        user?.role
     );
 
     // ----------------------------------------
@@ -138,16 +139,37 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         return lockState.userId === currentUserId && lockState.dateKey === currentDateKey;
     }, [lockState, currentUserId, currentDateKey]);
 
+    // 【100pt 統治】閲覧制限範囲の境界判定 (IS 8601 準拠)
+    const isOutOfRange = useMemo(() => {
+        if (canEditBoard && user?.role === 'admin') return false; // 管理者は全能
+        const target = new Date(currentDateKey);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const min = new Date(today);
+        min.setMonth(today.getMonth() - 1);
+        min.setDate(1); // 1ヶ月前の月初
+
+        // 1ヶ月後の月末を計算
+        const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+        const lastDayOfNextMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0);
+        
+        return target < min || target > lastDayOfNextMonth;
+    }, [currentDateKey, canEditBoard, user?.role]);
+
     const editMode = useMemo(() => {
-        return isTargetDateLockedByMe && !isPastDate && canEditBoard;
-    }, [isTargetDateLockedByMe, isPastDate, canEditBoard]);
+        // 非管理者の場合、過去日付は編集不可。管理者は過去日付でもロックが取れれば編集可能。
+        const pastCheck = (user?.role === 'admin') ? true : !isPastDate;
+        return isTargetDateLockedByMe && pastCheck && canEditBoard;
+    }, [isTargetDateLockedByMe, isPastDate, canEditBoard, user?.role]);
 
     const boardMode = useMemo(() => {
-        if (isPastDate) return 'VIEW_PAST' as const;
+        // 非管理者の場合、過去日付は VIEW_PAST 固定。管理者は過去でもロックがあれば EDIT 許可。
+        if (isPastDate && user?.role !== 'admin') return 'VIEW_PAST' as const;
         if (state.jobs.some(j => j.status === 'confirmed')) return 'CONFIRM' as const;
         if (!editMode) return 'VIEW_LOCKED' as const;
         return 'EDIT' as const;
-    }, [isPastDate, state.jobs, editMode]);
+    }, [isPastDate, state.jobs, editMode, user?.role]);
 
     const lockedBy = lockState.userId;
 
@@ -436,7 +458,8 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
 
     const unassignJob = useCallback((jobId: string) => {
         if (!editMode) {
-            showNotification("編集権限がありません。「編集開始」ボタンを押し、ロックを取得してから操作してください。", "error");
+            const reason = isPastDate ? "計画は確定されています（変更不可）" : "編集権限がありません";
+            showNotification(reason, "error");
             return;
         }
 
@@ -662,7 +685,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         pendingJobs: state.pendingJobs, setPendingJobs: (pj: BoardJob[] | ((prev: BoardJob[]) => BoardJob[])) => setState(s => ({ ...s, pendingJobs: typeof pj === 'function' ? pj(s.pendingJobs) : pj })),
         splits: state.splits, setSplits: (sp: BoardSplit[] | ((prev: BoardSplit[]) => BoardSplit[])) => setState(s => ({ ...s, splits: typeof sp === 'function' ? sp(s.splits) : sp })),
         isDataLoaded, isOffline, isSyncing, isExpanding: isApplyingTemplate,
-        editMode, lockedBy, canEditBoard, isPastDate, boardMode,
+        editMode, lockedBy, canEditBoard, isPastDate, boardMode, isOutOfRange,
         showNotification,
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
         handleExceptionChange, exceptionReasons, templateDescriptions, confirmedSnapshot,

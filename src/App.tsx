@@ -14,7 +14,7 @@ import MasterItemList from './features/admin/MasterItemList.tsx'
 import { DeviceSettings } from './features/settings/DeviceSettings'
 
 function AppContent() {
-    const { currentUser, logout, isLoading: isAuthLoading } = useAuth()
+    const { currentUser, isLoading: isAuthLoading } = useAuth()
     const [activeView, setActiveView] = React.useState(() => {
         // 初期ロード時にURLパラメータ (?activeView=...) があれば優先する
         if (typeof window !== 'undefined') {
@@ -60,19 +60,22 @@ function AppContent() {
         return <ProfilePortal />
     }
 
-    // 管理者権限チェック（サンクチュアリ・モード）
-    if (currentUser.role !== 'admin') {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-6 text-center">
-                <h2 className="text-2xl font-black text-white mb-2">アクセス拒否</h2>
-                <p className="text-slate-400 text-sm mb-8">管理者専用ポータルです。</p>
-                <button onClick={logout} className="bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold">ログアウト</button>
-            </div>
-        );
-    }
+    // 管理者以外の一般アクセス制御（閲覧制限のガードレール）
+    const isAdmin = currentUser.role === 'admin';
+    const isDriver = currentUser.role === 'driver';
+
+    // 管理者もドライバーも配車盤は閲覧可能。それ以外は管理者のみ。
+    const canAccessView = (view: string) => {
+        if (isAdmin) return true;
+        if (isDriver && view === 'board') return true;
+        return false;
+    };
 
     const renderView = () => {
-        switch (activeView) {
+        // 権限がないビューを要求された場合は制約に基づき 'board' へ強制送還
+        const targetView = canAccessView(activeView) ? activeView : 'board';
+
+        switch (targetView) {
             case 'board':
                 return <BoardCanvas />;
             case 'master_drivers':
@@ -89,7 +92,7 @@ function AppContent() {
                 return (
                     <div className="h-full flex flex-col items-center justify-center bg-slate-50 text-slate-400">
                         <Database size={48} className="mb-4 opacity-20" />
-                        <h2 className="text-sm font-black uppercase tracking-widest italic opacity-50">準備中: {activeView}</h2>
+                        <h2 className="text-sm font-black uppercase tracking-widest italic opacity-50">準備中: {targetView}</h2>
                         <p className="text-[10px] mt-2 font-mono">モジュールの統合が必要です</p>
                     </div>
                 );
@@ -97,7 +100,7 @@ function AppContent() {
     }
 
     return (
-        <AdminLayout activeView={activeView} onViewChange={setActiveView}>
+        <AdminLayout activeView={canAccessView(activeView) ? activeView : 'board'} onViewChange={setActiveView}>
             {renderView()}
         </AdminLayout>
     );

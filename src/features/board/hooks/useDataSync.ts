@@ -21,7 +21,8 @@ export interface SyncResult {
 
 export const useDataSync = (
     date: string,
-    getDefaultDrivers: () => BoardDriver[]
+    getDefaultDrivers: () => BoardDriver[],
+    userRole?: string
 ): SyncResult => {
     const [data, setData] = useState<BoardState | null>(() => cache[date] || null);
     const [isLoading, setIsLoading] = useState<boolean>(!cache[date]);
@@ -32,6 +33,26 @@ export const useDataSync = (
     const fetchData = useCallback(async (forceBypassCache: boolean = false) => {
         if (!forceBypassCache && cache[dateKey]) {
             setData(cache[dateKey]);
+            setIsLoading(false);
+            return;
+        }
+
+        // 【100pt 統治】データ層の物理ガードレール
+        const isAdmin = userRole === 'admin';
+        const target = new Date(dateKey);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const min = new Date(today);
+        min.setMonth(today.getMonth() - 1);
+        min.setDate(1); 
+
+        const nextMonthView = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+        const lastDayOfNextMonth = new Date(nextMonthView.getFullYear(), nextMonthView.getMonth() + 1, 0);
+
+        if (!isAdmin && (target < min || target > lastDayOfNextMonth)) {
+            console.warn(`[useDataSync] Unauthorized fetch attempt for ${dateKey}. Reverting to localized empty state.`);
+            setData({ drivers: getDefaultDrivers(), jobs: [], pendingJobs: [], splits: [] });
             setIsLoading(false);
             return;
         }

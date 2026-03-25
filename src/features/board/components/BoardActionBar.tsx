@@ -27,6 +27,7 @@ interface BoardActionBarProps {
     pendingJobs: BoardJob[];
     handleOpenMergeModal: () => void;
     appliedTemplateId: string | null;
+    currentUser: any;
 }
 
 export const BoardActionBar: React.FC<BoardActionBarProps> = ({
@@ -46,7 +47,8 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
     setIsSidebarOpen,
     pendingJobs,
     handleOpenMergeModal,
-    appliedTemplateId
+    appliedTemplateId,
+    currentUser
 }) => {
     const hasEditRights = boardMode === 'EDIT' || boardMode === 'CONFIRM';
 
@@ -87,6 +89,7 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                     <DateDisplay
                         selectedDate={selectedDate}
                         onDateChange={(date) => setSelectedDate(date)}
+                        userRole={currentUser?.role}
                     />
                 </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthProvider';
 import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
@@ -49,13 +49,21 @@ export default function BoardCanvas() {
         pendingJobs, setPendingJobs,
         splits, setSplits,
         isDataLoaded, isSyncing, isExpanding,
-        editMode, canEditBoard, boardMode,
+        editMode, canEditBoard, boardMode, isOutOfRange,
         handleSave, handleConfirmAll, handleRegisterTemplate, handleApplyTemplate, recordHistory, undo, redo,
         handleUpdateAppliedTemplate, handleFinalizeTemplateUpdate, appliedTemplateId,
         assignPendingJob, unassignJob,
         addColumn, showNotification,
         templateDescriptions
     } = useBoardData(currentUser, currentDateKey, isInteracting);
+
+    // 【100pt 統治】自動還還 (Auto-Reset) ロジック
+    useEffect(() => {
+        if (isDataLoaded && isOutOfRange && currentUser?.role !== 'admin') {
+            showNotification("計画は確定されていません（本日の盤面に戻ります）", "info");
+            setSelectedDate(getJSTNow());
+        }
+    }, [isDataLoaded, isOutOfRange, currentUser?.role, showNotification]);
 
     const { ghostJobs } = useGhostTemplate(currentDateKey, jobs.length === 0);
 
@@ -248,6 +256,7 @@ export default function BoardCanvas() {
                 isSidebarOpen={isSidebarOpen}
                 setIsSidebarOpen={setIsSidebarOpen}
                 pendingJobs={pendingJobs}
+                currentUser={currentUser}
             />
 
             <div className="flex flex-1 overflow-hidden relative">

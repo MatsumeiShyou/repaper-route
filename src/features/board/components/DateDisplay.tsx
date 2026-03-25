@@ -15,13 +15,14 @@ function cn(...inputs: ClassValue[]) {
 interface DateDisplayProps {
     selectedDate: Date;
     onDateChange: (newDate: Date) => void;
+    userRole?: string;
 }
 
 /**
  * AGENTS.md 准拠: ユーザー指定の表示形式
  * 100pt Version: 日本の祝日対応カスタムカレンダーを統合
  */
-export const DateDisplay: React.FC<DateDisplayProps> = ({ selectedDate, onDateChange }) => {
+export const DateDisplay: React.FC<DateDisplayProps> = ({ selectedDate, onDateChange, userRole }) => {
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +70,7 @@ export const DateDisplay: React.FC<DateDisplayProps> = ({ selectedDate, onDateCh
                         selectedDate={selectedDate}
                         onDateChange={onDateChange}
                         onClose={() => setIsPickerOpen(false)}
+                        userRole={userRole}
                     />
                 </div>
             )}
