@@ -20,6 +20,9 @@ export interface SkeletonJob {
     visit_slot: string | null;
     task_type: string | null;
     location_id?: string;
+    // 【100点品質】保存時に封印されたマスタ属性 (亡霊A対策)
+    time_constraint_type?: string | null;
+    special_type?: string | null;
 }
 
 export interface ExpansionResult {
@@ -53,13 +56,22 @@ export class TemplateExpander {
         // 1. 選別要員2名を確保
         const { reserved, remaining: activeDrivers } = SortingBuffer.reserveSortingStaff(availableDrivers);
 
-        // 2. 決定論的優先度でソート: visit_slot 昇順 → customer_id 昇順
+        // 2. 【100点品質】3段決定論的ソート (亡霊C対策)
+        // 優先度: visit_slot 昇順 → customer_name 昇順 → id 昇順
         const sortedJobs = [...skeletonJobs].sort((a, b) => {
+            // 1段目: 訪問枠 (AM/PM)
             const slotA = a.visit_slot ?? 'zzz';
             const slotB = b.visit_slot ?? 'zzz';
             if (slotA !== slotB) return slotA.localeCompare(slotB);
-            const idA = a.customer_id ?? '';
-            const idB = b.customer_id ?? '';
+
+            // 2段目: 顧客名 (漢字・カナ混在に関わらず、文字コード順で安定させる)
+            const nameA = a.customer_name ?? '';
+            const nameB = b.customer_name ?? '';
+            if (nameA !== nameB) return nameA.localeCompare(nameB);
+
+            // 3段目: ID (最終的な一意性)
+            const idA = a.id || '';
+            const idB = b.id || '';
             return idA.localeCompare(idB);
         });
 
@@ -106,7 +118,7 @@ export class TemplateExpander {
 
     /** 骨格データ → 未割当 Job に変換 */
     private static toUnassignedJob(skeleton: SkeletonJob, reason: string): Job {
-        return {
+        const job = {
             id: skeleton.id,
             job_title: skeleton.job_title,
             customer_id: skeleton.customer_id,
@@ -137,7 +149,13 @@ export class TemplateExpander {
             vehicle_name: null,
             weight_kg: null,
             work_type: null,
-        };
+        } as any;
+        
+        // 【100点品質】封印された属性の最終復元 (型制約を回避して確実に注入)
+        job.time_constraint_type = skeleton.time_constraint_type;
+        job.special_type = skeleton.special_type;
+        
+        return job as Job;
     }
 
     /** 骨格データ → 割当済み Job に変換 */

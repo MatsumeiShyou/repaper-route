@@ -107,23 +107,52 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
         expect(result.unassigned[0].id).toBe('j-afternoon');
     });
 
-    // ── 複数ドライバー割り当て ──
-    it('複数の骨格を複数ドライバーに割り当てる（1対1）', () => {
+    // ── 100点品質: 属性復元 (亡霊A対策) ──
+    it('展開時にマスタ属性 (time_constraint_type 等) を保持・復元する', () => {
         const skeletons = [
-            makeSkeleton({ id: 'j1', required_vehicle: 'AT' }),
-            makeSkeleton({ id: 'j2', required_vehicle: 'AT' }),
+            makeSkeleton({ 
+                id: 'j1', 
+                time_constraint_type: 'FIXED',
+                special_type: 'VIP'
+            } as any)
         ];
         const drivers = [
-            makeDriver('s1', { display_order: 1 }),
-            makeDriver('s2', { display_order: 2 }),
-            makeDriver('d1', { vehicle_number: 'MT', display_order: 3 }),
-            makeDriver('d2', { vehicle_number: 'AT', display_order: 4 }),
+            makeDriver('s1', { display_order: 1 }), // Sorting staff 1
+            makeDriver('s2', { display_order: 2 }), // Sorting staff 2
+            makeDriver('d1', { vehicle_number: 'AT', display_order: 10 }), // Active driver
         ];
 
         const result = TemplateExpander.expand(skeletons, drivers);
-        expect(result.assigned).toHaveLength(2);
-        // 各ドライバーが1件ずつ割り当てられている
-        const assignedDriverIds = result.assigned.map(j => j.driver_id);
-        expect(new Set(assignedDriverIds).size).toBe(2);
+        expect(result.assigned).toHaveLength(1);
+        const job = result.assigned[0] as any;
+        expect(job.time_constraint_type).toBe('FIXED');
+        expect(job.special_type).toBe('VIP');
+    });
+
+    // ── 100点品質: 3段決定論的ソート (亡霊C対策) ──
+    it('visit_slot -> customer_name -> id の順で決定論的にソート・割り当てを行う', () => {
+        const skeletons = [
+            makeSkeleton({ id: 'c', customer_name: 'サトウ', visit_slot: 'AM' }),
+            makeSkeleton({ id: 'a', customer_name: 'アオキ', visit_slot: 'AM' }), // 1番目
+            makeSkeleton({ id: 'b', customer_name: 'アオキ', visit_slot: 'PM' }), // 3番目
+            makeSkeleton({ id: 'd', customer_name: 'アオキ', visit_slot: 'AM' }), // 2番目 (ID順)
+        ];
+        const drivers = [
+            makeDriver('d1', { display_order: 10 }),
+            makeDriver('d2', { display_order: 11 }),
+            makeDriver('d3', { display_order: 12 }),
+            makeDriver('d4', { display_order: 13 }),
+            makeDriver('d5', { display_order: 14 }),
+            makeDriver('d6', { display_order: 15 }),
+        ];
+
+        const result = TemplateExpander.expand(skeletons, drivers);
+        expect(result.assigned).toHaveLength(4);
+        
+        // ソート順序の検証
+        expect(result.assigned[0].id).toBe('a'); // AM, アオキ, ID:a
+        expect(result.assigned[1].id).toBe('d'); // AM, アオキ, ID:d
+        expect(result.assigned[2].id).toBe('c'); // AM, サトウ
+        expect(result.assigned[3].id).toBe('b'); // PM, アオキ
     });
 });

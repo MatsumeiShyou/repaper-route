@@ -106,22 +106,24 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     const [templateDescriptions, setTemplateDescriptions] = useState<string[]>([]);
     const [confirmedSnapshot, setConfirmedSnapshot] = useState<any>(null);
     
+    // 【100点品質】備考サジェストの再取得ロジック (亡霊B対策・抽象化)
+    const refreshTemplateDescriptions = useCallback(async () => {
+        const { data } = await supabase.from('board_templates').select('description')
+            .not('description', 'is', null)
+            .neq('description', '');
+        if (data) {
+            const uniqueDesc = Array.from(new Set(data.map(t => t.description))).filter(Boolean) as string[];
+            setTemplateDescriptions(uniqueDesc);
+        }
+    }, []);
+
     // Fetch Master Metadata, Exception Reasons, and Template History
     useEffect(() => {
         supabase.from('exception_reason_masters').select('*').eq('is_active', true).order('created_at', { ascending: true })
             .then(({ data }) => { if (data) setExceptionReasons(data as any); });
         
-        // Fetch unique non-empty descriptions for suggestions
-        supabase.from('board_templates').select('description')
-            .not('description', 'is', null)
-            .neq('description', '')
-            .then(({ data }) => {
-                if (data) {
-                    const uniqueDesc = Array.from(new Set(data.map(t => t.description))).filter(Boolean) as string[];
-                    setTemplateDescriptions(uniqueDesc);
-                }
-            });
-
+        refreshTemplateDescriptions();
+        
         // Fetch Confirmed Snapshot for the route
         if (currentDateKey) {
             supabase.from('routes').select('confirmed_snapshot').eq('date', currentDateKey).maybeSingle()
@@ -500,6 +502,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
             console.info("[handleRegisterTemplate] Saving with parameters:", { name, dayOfWeek, nthWeek, absentCount, description });
 
             // 骨格データのみを抽出（driver情報, startTime, status を除外）
+            // 【100点品質】マスタ属性をスケルトンに封印 (亡霊A対策)
             const skeletonJobs = state.jobs.map(job => ({
                 id: job.id,
                 job_title: job.title,
@@ -510,6 +513,9 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                 task_type: job.taskType ?? null,
                 customer_id: job.location_id ?? null,
                 customer_name: job.title ?? null,
+                // マスタ属性を JobAdapter が復元可能な形式で封入
+                time_constraint_type: (job as any).time_constraint_type ?? null,
+                special_type: (job as any).special_type ?? null
             }));
             const { data, error } = await supabase.from('board_templates').insert({
                 name, day_of_week: dayOfWeek, nth_week: nthWeek,
@@ -525,6 +531,9 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
             if (data && data.length > 0) {
                 console.log('[handleRegisterTemplate] Persistence success. ID:', data[0].id);
             }
+
+            // 保存成功後にサジェストリストを更新 (亡霊B対策)
+            refreshTemplateDescriptions();
 
             showNotification(`テンプレート「${name}」を登録しました`, "success");
         } catch (e: any) {

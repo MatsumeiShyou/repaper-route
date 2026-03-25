@@ -27,10 +27,17 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
 
     const days = ['日', '月', '火', '水', '木', '金', '土'];
 
-    // 【100点品質】非破壊的自動命名ロジック
+    // 【100点品質】非破壊的自動命名ロジック & 日付追従 (亡霊D対策)
     useEffect(() => {
-        const weekStr = nthWeek === null ? '毎週' : `第${nthWeek}`;
-        const dayStr = days[dayOfWeek];
+        const newDay = TemplateManager.getDayOfWeek(currentDate);
+        const newNth = TemplateManager.getNthWeek(currentDate);
+        
+        // 日付が変わった場合は曜日・週設定を強制更新（モーダルを開いたまま日付を変えた場合への対応）
+        setDayOfWeek(newDay);
+        setNthWeek(newNth);
+
+        const weekStr = newNth === null ? '毎週' : `第${newNth}`;
+        const dayStr = days[newDay];
         const absentStr = absentCount > 0 ? `_${absentCount}欠員` : '';
         const generated = `${weekStr}${dayStr}曜${absentStr}`;
 
@@ -39,7 +46,7 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
             setName(generated);
             setLastGeneratedName(generated);
         }
-    }, [dayOfWeek, nthWeek, absentCount]);
+    }, [currentDate, absentCount]); // currentDate へのリアクティブ性を確保
 
     if (!isOpen) return null;
 
