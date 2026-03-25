@@ -53,7 +53,8 @@ export default function BoardCanvas() {
         handleSave, handleConfirmAll, handleRegisterTemplate, handleApplyTemplate, recordHistory, undo, redo,
         handleUpdateAppliedTemplate, handleFinalizeTemplateUpdate, appliedTemplateId,
         assignPendingJob, unassignJob,
-        addColumn, showNotification
+        addColumn, showNotification,
+        templateDescriptions
     } = useBoardData(currentUser, currentDateKey, isInteracting);
 
     const { ghostJobs } = useGhostTemplate(currentDateKey, jobs.length === 0);
@@ -417,6 +418,7 @@ export default function BoardCanvas() {
                 onClose={() => setIsSaveTemplateModalOpen(false)}
                 onSave={handleRegisterTemplate}
                 currentDate={selectedDate}
+                templateDescriptions={templateDescriptions}
             />
 
             <TemplateDashboard 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import { TemplateManager } from '../../logic/core/TemplateManager';
 
@@ -7,24 +7,42 @@ interface SaveTemplateModalProps {
     onClose: () => void;
     onSave: (name: string, dayOfWeek: number, nthWeek: number | null, absentCount: number, description?: string) => Promise<void>;
     currentDate: Date;
+    templateDescriptions?: string[];
 }
 
 export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
     isOpen,
     onClose,
     onSave,
-    currentDate
+    currentDate,
+    templateDescriptions = []
 }) => {
-    const [name, setName] = useState(`テンプレート_${currentDate.toISOString().split('T')[0]}`);
+    const [name, setName] = useState('');
+    const [lastGeneratedName, setLastGeneratedName] = useState('');
     const [dayOfWeek, setDayOfWeek] = useState(TemplateManager.getDayOfWeek(currentDate));
     const [nthWeek, setNthWeek] = useState<number | null>(TemplateManager.getNthWeek(currentDate));
     const [absentCount, setAbsentCount] = useState(0);
     const [description, setDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
+    const days = ['日', '月', '火', '水', '木', '金', '土'];
+
+    // 【100点品質】非破壊的自動命名ロジック
+    useEffect(() => {
+        const weekStr = nthWeek === null ? '毎週' : `第${nthWeek}`;
+        const dayStr = days[dayOfWeek];
+        const absentStr = absentCount > 0 ? `_${absentCount}欠員` : '';
+        const generated = `${weekStr}${dayStr}曜${absentStr}`;
+
+        // ユーザーが一度も編集していないか、前回の自動生成名と同じ場合のみ更新
+        if (!name || name === lastGeneratedName) {
+            setName(generated);
+            setLastGeneratedName(generated);
+        }
+    }, [dayOfWeek, nthWeek, absentCount]);
+
     if (!isOpen) return null;
 
-    const days = ['日', '月', '火', '水', '木', '金', '土'];
     const nthOptions = [
         { label: '毎週', value: null },
         { label: '第1', value: 1 },
@@ -39,6 +57,10 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
         setIsSaving(true);
         try {
             await onSave(name, dayOfWeek, nthWeek, absentCount, description);
+            // 保存成功時にリセット
+            setName('');
+            setAbsentCount(0);
+            setDescription('');
             onClose();
         } catch (error) {
             console.error('Template save error:', error);
@@ -126,14 +148,21 @@ export const SaveTemplateModal: React.FC<SaveTemplateModalProps> = ({
 
                     <div>
                         <label htmlFor="tplDesc" className="mb-2 block text-sm font-medium text-slate-300">備考・説明</label>
-                        <textarea
+                        <input
                             id="tplDesc"
+                            list="descHistory"
+                            type="text"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            rows={2}
-                            className="w-full rounded-lg border border-white/10 bg-slate-800/50 px-4 py-2 text-white placeholder-slate-500 transition-all focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            className="w-full rounded-lg border border-white/10 bg-slate-800/50 px-4 py-2.5 text-white placeholder-slate-500 transition-all focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             placeholder="例: お盆・年末年始用の特別ルート"
+                            autoComplete="off"
                         />
+                        <datalist id="descHistory">
+                            {templateDescriptions.map((desc, idx) => (
+                                <option key={idx} value={desc} />
+                            ))}
+                        </datalist>
                     </div>
 
                     <p className="rounded-lg bg-emerald-500/10 p-3 text-xs leading-relaxed text-emerald-400/90 border border-emerald-500/20">

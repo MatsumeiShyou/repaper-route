@@ -103,13 +103,25 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
 
     // Exception Model State
     const [exceptionReasons, setExceptionReasons] = useState<ExceptionReasonMaster[]>([]);
+    const [templateDescriptions, setTemplateDescriptions] = useState<string[]>([]);
     const [confirmedSnapshot, setConfirmedSnapshot] = useState<any>(null);
     
-    // Fetch Master Metadata (Exception Reasons)
+    // Fetch Master Metadata, Exception Reasons, and Template History
     useEffect(() => {
         supabase.from('exception_reason_masters').select('*').eq('is_active', true).order('created_at', { ascending: true })
             .then(({ data }) => { if (data) setExceptionReasons(data as any); });
         
+        // Fetch unique non-empty descriptions for suggestions
+        supabase.from('board_templates').select('description')
+            .not('description', 'is', null)
+            .neq('description', '')
+            .then(({ data }) => {
+                if (data) {
+                    const uniqueDesc = Array.from(new Set(data.map(t => t.description))).filter(Boolean) as string[];
+                    setTemplateDescriptions(uniqueDesc);
+                }
+            });
+
         // Fetch Confirmed Snapshot for the route
         if (currentDateKey) {
             supabase.from('routes').select('confirmed_snapshot').eq('date', currentDateKey).maybeSingle()
@@ -644,7 +656,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         editMode, lockedBy, canEditBoard, isPastDate, boardMode,
         showNotification,
         requestEditLock, releaseEditLock, handleSave, handleConfirmAll,
-        handleExceptionChange, exceptionReasons, confirmedSnapshot,
+        handleExceptionChange, exceptionReasons, templateDescriptions, confirmedSnapshot,
         handleRegisterTemplate, handleApplyTemplate, assignPendingJob, unassignJob,
         handleUpdateAppliedTemplate, handleFinalizeTemplateUpdate, appliedTemplateId,
         history, recordHistory, undo, redo,
