@@ -13,9 +13,10 @@ function getArg(name) {
 const title = getArg('--title');
 const scope = getArg('--scope');
 const impact = getArg('--impact');
+const designRef = getArg('--design-ref');
 
 if (!title || !scope || !impact) {
-    console.error('Usage: node record_amp.js --title "<Title>" --scope "<Scope>" --impact "<Impact>"');
+    console.error('Usage: node record_amp.js --title "<Title>" --scope "<Scope>" --impact "<Impact>" [--design-ref "<Ref>"]');
     process.exit(1);
 }
 
@@ -27,6 +28,7 @@ const entry = {
         title,
         scope,
         impact,
+        design_ref: designRef,
         status: '(PW: ｙ)',
         evidence_locked: true
     }

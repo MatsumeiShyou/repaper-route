@@ -239,7 +239,8 @@ function validateTaskActive(effectiveTier) {
     console.error('\n🚫───────────── [ TASK EXECUTION LOCK ] ─────────────🚫');
     console.error('❌ 進行中のタスク（Intent または [/]）が見つかりません。');
     console.error('   → AGENTS.md §E/I: 実装前に必ず Task Boundary または task.md を更新せよ。');
-    console.error('   → [FIX_REQUIRED]: task_boundary ツールを実行して意思（Intent）を宣言してください。');
+    console.error('   → [FIX_REQUIRED]: task_boundary ツールを実行するか、');
+    console.error('     task.md のマーカーを一時的に [/] (進行中) に戻してください。');
     console.error('🚫──────────────────────────────────────────────────🚫\n');
     process.exit(1);
 }

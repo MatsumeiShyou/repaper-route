@@ -108,12 +108,52 @@ function checkExpiredDebt() {
     Log.success('No expired debt.');
 }
 
+function verifySessionDesync() {
+    Log.info('Verifying Session-Log Alignment (Sentinel 5.5)...');
+    const sessionPath = join(process.cwd(), '.agent', 'session', 'active_task.json');
+    const ampLogPath = join(process.cwd(), 'AMPLOG.jsonl');
+
+    if (!existsSync(sessionPath) || !existsSync(ampLogPath)) return;
+
+    try {
+        const session = JSON.parse(readFileSync(sessionPath, 'utf8'));
+        const currentId = session?.active_task?.current_request_id;
+        if (!currentId) return;
+
+        const ampLines = readFileSync(ampLogPath, 'utf8').trim().split('\n');
+        // 最新の AMP または EVIDENCE 等の『承認系エントリ』を逆順に探す
+        const lastValidEntry = ampLines.reverse().map(l => {
+            try { return JSON.parse(l); } catch (e) { return null; }
+        }).find(e => e && (e.type === 'AMP' || e.design_ref || e.detail?.design_ref));
+
+        if (!lastValidEntry) {
+            Log.warn('No prior AMP approvals found. Skipping desync check.');
+            return;
+        }
+
+        const lastRef = lastValidEntry.design_ref || lastValidEntry.detail?.design_ref || '';
+
+        if (!lastRef.includes(currentId)) {
+            Log.error('AMPID DESYNC DETECTED');
+            console.error(`   ❌ 現在のセッション ID [${currentId}] が最新の承認ログに見つかりません。`);
+            console.error(`   🔎 発見された最新 ID: ${lastValidEntry.id || 'N/A'}`);
+            console.error('   → 原因: 統治資産の非同期（情報のデシンク）が起きています。');
+            console.error('   → [FIX_REQUIRED]: node .agent/scripts/record_amp.js を実行して同期してください。');
+            process.exit(1);
+        }
+    } catch (e) {
+        Log.warn(`Session analysis skipped: ${e.message}`);
+    }
+    Log.success('Session Alignment OK.');
+}
+
 function main() {
     process.on('exit', () => { if (!completionFlag) incrementRetryCount('Aborted'); });
 
     const tier = getActiveTier();
     Log.info(`Closure Started (Tier: ${tier})...`);
 
+    verifySessionDesync();
     verifyConstitutionalIntegrity();
     verifyLegislativeInterlock();
     verifyClosureStandard();
