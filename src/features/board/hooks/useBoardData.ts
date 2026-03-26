@@ -537,6 +537,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                 customer_id: job.location_id ?? null,
                 customer_name: job.title ?? null,
                 start_time: job.startTime ?? null,
+                course: state.drivers.find(d => d.id === job.driverId)?.course ?? null,
                 // マスタ属性を JobAdapter が復元可能な形式で封入
                 time_constraint_type: (job as any).time_constraint_type ?? null,
                 special_type: (job as any).special_type ?? null
@@ -608,11 +609,20 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                 validLocationIds
             );
 
+            // 【100点品質】非破壊・重複排除マージロジック
+            // 既存の未配車リストを保持しつつ、テンプレート適用分を追加する。
+            // 既に表（assigned）にある案件IDは、未配車リストから除外して二重登録を防ぐ。
+            const assignedIds = new Set(result.assigned.map(j => j.id));
+            const existingPendingFiltered = state.pendingJobs.filter(pj => !assignedIds.has(pj.id));
+
             // 状態反映 (Result Job -> BoardJob 変換)
             setState(prev => ({
                 ...prev,
                 jobs: result.assigned.map(j => JobAdapter.mapToBoardJob(j)),
-                pendingJobs: result.unassigned.map(j => JobAdapter.mapToBoardJob(j))
+                pendingJobs: [
+                    ...existingPendingFiltered, 
+                    ...result.unassigned.map(j => JobAdapter.mapToBoardJob(j))
+                ]
             }));
             setAppliedTemplateId(templateId);
             recordHistory();

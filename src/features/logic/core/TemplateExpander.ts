@@ -24,6 +24,8 @@ export interface SkeletonJob {
     time_constraint_type?: string | null;
     special_type?: string | null;
     start_time?: string | null;
+    driver_id?: string;
+    course?: string;
 }
 
 export interface ExpansionResult {
@@ -93,21 +95,27 @@ export class TemplateExpander {
                 continue;
             }
 
-            // 3b. 車両要件を満たすドライバーを探す（グリーディ）
-            const matchedDriver = activeDrivers.find(driver => {
-                const vehicleReq = skeleton.required_vehicle || 'AT';
-                const driverLicense = driver.vehicle_number || 'AT';
+            // 3b. 【最重要】確定的割り当て (ID一致 -> コース名一致)
+            // 先のグリーディ方式を廃止し、保存時のコンテクストを優先復元する
+            const matchedDriver = availableDrivers.find(d => 
+                (skeleton.driver_id && d.id === skeleton.driver_id) || 
+                (skeleton.course && (d as any).course === skeleton.course)
+            );
 
-                return LicenseMatcher.canDrive(driverLicense, vehicleReq);
-            });
+            // 3c. マッチしたドライバーが「稼働中（選別要員以外）」かつ「免許要件を満たす」かチェック
+            const isActive = matchedDriver && activeDrivers.some(d => d.id === matchedDriver.id);
+            const canDrive = matchedDriver && LicenseMatcher.canDrive(
+                (matchedDriver as any).vehicle_number || 'AT', 
+                skeleton.required_vehicle || 'AT'
+            );
 
-            if (!matchedDriver) {
-                // 人員不足: 利用可能なドライバーがいない
-                unassigned.push(TemplateExpander.toUnassignedJob(skeleton, 'リソース不足のため退避'));
+            if (!matchedDriver || !isActive || !canDrive) {
+                const reason = !matchedDriver ? '担当ドライバー不在' : (!isActive ? '選別要員のため退避' : '免許不適合のため退避');
+                unassigned.push(TemplateExpander.toUnassignedJob(skeleton, reason));
                 continue;
             }
 
-            // 3c. 配置成功
+            // 3d. 配置成功
             assigned.push(TemplateExpander.toAssignedJob(skeleton, matchedDriver));
         }
 
