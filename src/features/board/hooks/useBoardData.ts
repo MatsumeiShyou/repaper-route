@@ -537,7 +537,6 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                 customer_id: job.location_id ?? null,
                 customer_name: job.title ?? null,
                 start_time: job.startTime ?? null,
-                course: state.drivers.find(d => d.id === job.driverId)?.course ?? null,
                 // マスタ属性を JobAdapter が復元可能な形式で封入
                 time_constraint_type: job.time_constraint_type ?? null,
                 special_type: job.special_type ?? null
@@ -590,38 +589,27 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
 
             const skeletonJobs = (data.jobs_json as any) as SkeletonJob[];
             
-            // マスタバリデーション用IDセット作成
-            const validLocationIds = new Set(masterPoints.map(p => p.location_id));
-
-            // TemplateExpander が期待する Driver 形式に変換 (BoardDriver -> Database Driver 互換)
-            const availableDriversForExpander = state.drivers.map(d => ({
-                id: d.id,
-                driver_name: d.driverName,
-                vehicle_number: d.currentVehicle, // License Matcher が参照
-                display_order: (d as any).display_order ?? 999,
-                created_at: new Date().toISOString(), // Dummy for type
-            })) as any[];
-
-            // 展開
-            const result = TemplateExpander.expand(
-                skeletonJobs,
-                availableDriversForExpander,
-                validLocationIds
-            );
+            // 展開 (New Spec: 属人性排除・純粋スケルトン生成)
+            const result = TemplateExpander.expand(skeletonJobs);
 
             // 【100点品質】非破壊・重複排除マージロジック
-            // 既存の未配車リストを保持しつつ、テンプレート適用分を追加する。
-            // 既に表（assigned）にある案件IDは、未配車リストから除外して二重登録を防ぐ。
-            const assignedIds = new Set(result.assigned.map(j => j.id));
-            const existingPendingFiltered = state.pendingJobs.filter(pj => !assignedIds.has(pj.id));
+            // すべてのテンプレート案件は unassigned (pending) として扱われる。
+            // 既に盤面（jobs）や未配車リスト（pendingJobs）に存在するIDの案件は除外する。
+            const currentJobIds = new Set([
+                ...state.jobs.map(j => j.id),
+                ...state.pendingJobs.map(j => j.id)
+            ]);
+            
+            const newPendingJobs = result.unassigned
+                .filter(j => !currentJobIds.has(j.id))
+                .map(j => JobAdapter.mapToBoardJob(j));
 
-            // 状態反映 (Result Job -> BoardJob 変換)
+            // 状態反映 (既存の配車を維持しつつ、テンプレート分を未配車に追加)
             setState(prev => ({
                 ...prev,
-                jobs: result.assigned.map(j => JobAdapter.mapToBoardJob(j)),
                 pendingJobs: [
-                    ...existingPendingFiltered, 
-                    ...result.unassigned.map(j => JobAdapter.mapToBoardJob(j))
+                    ...prev.pendingJobs, 
+                    ...newPendingJobs
                 ]
             }));
             setAppliedTemplateId(templateId);
