@@ -60,6 +60,9 @@ export interface BoardJob {
     actual_time?: string; // Phase 12+: Driver-reported time
     weight_kg?: number;   // Phase 12+: Driver-reported weight
     isGhost?: boolean;    // Redesign: Historical/Template preview flag
+    // 【100点品質】TemplateExpander/JobAdapter 互換用のマスタ属性
+    time_constraint_type?: string | null;
+    special_type?: string | null;
 }
 
 export interface BoardDriver {

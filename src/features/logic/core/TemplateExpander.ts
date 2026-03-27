@@ -81,10 +81,10 @@ export class TemplateExpander {
         const assigned: Job[] = [];
         const unassigned: Job[] = [];
 
-        // 3. グリーディ割り当て
+        // 3. 確定的割り当て (ID一致 -> コース名一致)
         for (const skeleton of sortedJobs) {
             // 3a-0. 旧データ互換性ガード (時間は必須属性)
-            if (!(skeleton as any).start_time) {
+            if (!skeleton.start_time) {
                 unassigned.push(TemplateExpander.toUnassignedJob(skeleton, '旧形式のデータ（時間未定）のため未配車リストに退避しました'));
                 continue;
             }
@@ -99,13 +99,13 @@ export class TemplateExpander {
             // 先のグリーディ方式を廃止し、保存時のコンテクストを優先復元する
             const matchedDriver = availableDrivers.find(d => 
                 (skeleton.driver_id && d.id === skeleton.driver_id) || 
-                (skeleton.course && (d as any).course === skeleton.course)
+                (skeleton.course && (d.route_name === skeleton.course))
             );
 
             // 3c. マッチしたドライバーが「稼働中（選別要員以外）」かつ「免許要件を満たす」かチェック
             const isActive = matchedDriver && activeDrivers.some(d => d.id === matchedDriver.id);
             const canDrive = matchedDriver && LicenseMatcher.canDrive(
-                (matchedDriver as any).vehicle_number || 'AT', 
+                matchedDriver.vehicle_number || 'AT', 
                 skeleton.required_vehicle || 'AT'
             );
 
@@ -142,7 +142,7 @@ export class TemplateExpander {
             // 骨格に含まれないフィールドはデフォルト値
             driver_id: null,
             driver_name: null,
-            start_time: (skeleton as any).start_time ?? null,
+            start_time: skeleton.start_time ?? null,
             created_at: new Date().toISOString(),
             actual_time: null,
             bucket_type: skeleton.visit_slot ?? null,

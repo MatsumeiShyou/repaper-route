@@ -539,8 +539,8 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                 start_time: job.startTime ?? null,
                 course: state.drivers.find(d => d.id === job.driverId)?.course ?? null,
                 // マスタ属性を JobAdapter が復元可能な形式で封入
-                time_constraint_type: (job as any).time_constraint_type ?? null,
-                special_type: (job as any).special_type ?? null
+                time_constraint_type: job.time_constraint_type ?? null,
+                special_type: job.special_type ?? null
             }));
             const { data, error } = await supabase.from('board_templates').insert({
                 name, day_of_week: dayOfWeek, nth_week: nthWeek,

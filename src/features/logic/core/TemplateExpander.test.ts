@@ -1,15 +1,19 @@
+```typescript
 import { describe, it, expect } from 'vitest';
 import { TemplateExpander, SkeletonJob } from './TemplateExpander';
+import { Database } from '../../../types/database.types';
+
+type Driver = Database['public']['Tables']['drivers']['Row'];
 
 /** ヘルパー: 最低限の SkeletonJob を生成 */
 const makeSkeleton = (overrides: Partial<SkeletonJob> = {}): SkeletonJob => ({
-    id: 'job-1',
-    job_title: 'テスト回収先',
-    duration_minutes: 30,
-    area: null,
-    required_vehicle: null,
-    visit_slot: null,
-    task_type: null,
+    id: 'j-1',
+    job_title: 'テスト案件',
+    duration_minutes: 60,
+    area: '千代田区',
+    required_vehicle: 'AT',
+    visit_slot: 'AM',
+    task_type: 'collection',
     customer_id: 'loc-1',
     customer_name: 'テスト顧客',
     start_time: '09:00',
@@ -17,18 +21,29 @@ const makeSkeleton = (overrides: Partial<SkeletonJob> = {}): SkeletonJob => ({
 });
 
 /** ヘルパー: 最低限の Driver を生成 */
-const makeDriver = (id: string, overrides: Record<string, unknown> = {}): any => ({
+const makeDriver = (id: string, overrides: Partial<Driver> = {}): Driver => ({
     id,
-    driver_name: `Driver ${id}`,
+    driver_name: `ドラバー-${id}`,
+    is_active: true,
     display_order: 10,
     vehicle_number: 'AT',
+    route_name: 'A',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    default_split_driver_name: null,
+    default_split_time: null,
+    default_split_vehicle_number: null,
+    display_color: null,
+    furigana: null,
+    note: null,
+    user_id: null,
     ...overrides,
 });
 
 describe('TemplateExpander v2 (Skeleton Edition)', () => {
     // ── 基本シナリオ ──
     it('テンプレートの構成を確定的に復元する', () => {
-        const skeletons = [makeSkeleton({ id: 'j1', required_vehicle: 'AT', start_time: '09:00', driver_id: 'd1' } as any)];
+        const skeletons = [makeSkeleton({ id: 'j1', required_vehicle: 'AT', start_time: '09:00', driver_id: 'd1' })];
         const drivers = [
             makeDriver('s1', { display_order: 1 }),
             makeDriver('s2', { display_order: 2 }),
@@ -43,11 +58,11 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
     });
 
     it('IDが不一致でもコース名が一致すれば割り当てる', () => {
-        const skeletons = [makeSkeleton({ id: 'j1', course: 'A', start_time: '09:00' } as any)];
+        const skeletons = [makeSkeleton({ id: 'j1', course: 'A', start_time: '09:00' })];
         const drivers = [
             makeDriver('s1', { display_order: 1 }),
             makeDriver('s2', { display_order: 2 }),
-            makeDriver('new-d1', { course: 'A', vehicle_number: 'AT' }),
+            makeDriver('new-d1', { route_name: 'A', vehicle_number: 'AT' }),
         ];
 
         const result = TemplateExpander.expand(skeletons, drivers);
@@ -57,7 +72,7 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
 
     // ── 人員不足シナリオ ──
     it('ドライバー不足時は未割当に退避する', () => {
-        const skeletons = [makeSkeleton({ id: 'j1', driver_id: 'd1', start_time: '09:00' } as any)];
+        const skeletons = [makeSkeleton({ id: 'j1', driver_id: 'd1', start_time: '09:00' })];
         const drivers = [
             makeDriver('s1', { display_order: 1 }),
             makeDriver('s2', { display_order: 2 }),
@@ -71,7 +86,7 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
 
     // ── 免許不一致シナリオ ──
     it('免許不一致の場合は未割当に退避する', () => {
-        const skeletons = [makeSkeleton({ id: 'j1', required_vehicle: 'MT', driver_id: 'd1', start_time: '09:00' } as any)];
+        const skeletons = [makeSkeleton({ id: 'j1', required_vehicle: 'MT', driver_id: 'd1', start_time: '09:00' })];
         const drivers = [
             makeDriver('s1', { display_order: 1 }),
             makeDriver('s2', { display_order: 2 }),
@@ -86,7 +101,7 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
 
     // ── マスタ不整合ガード ──
     it('マスタ削除済みの location_id は安全に退避する', () => {
-        const skeletons = [makeSkeleton({ id: 'j1', customer_id: 'deleted-loc', driver_id: 'd1', start_time: '09:00' } as any)];
+        const skeletons = [makeSkeleton({ id: 'j1', customer_id: 'deleted-loc', driver_id: 'd1', start_time: '09:00' })];
         const drivers = [
             makeDriver('s1', { display_order: 1 }),
             makeDriver('s2', { display_order: 2 }),
@@ -103,8 +118,8 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
     // ── 決定論的優先度 ──
     it('visit_slot 昇順で優先的に割り当てる', () => {
         const skeletons = [
-            makeSkeleton({ id: 'j-afternoon', visit_slot: 'PM', required_vehicle: 'AT', start_time: '13:00', driver_id: 'd1' } as any),
-            makeSkeleton({ id: 'j-morning', visit_slot: 'AM', required_vehicle: 'AT', start_time: '09:00', driver_id: 'd1' } as any),
+            makeSkeleton({ id: 'j-afternoon', visit_slot: 'PM', required_vehicle: 'AT', start_time: '13:00', driver_id: 'd1' }),
+            makeSkeleton({ id: 'j-morning', visit_slot: 'AM', required_vehicle: 'AT', start_time: '09:00', driver_id: 'd1' }),
         ];
         const drivers = [
             makeDriver('s1', { display_order: 1 }),
@@ -123,7 +138,7 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
 
     // ── 100点品質: 旧データ退避ガード ──
     it('start_time が欠落している旧データは安全に未配車に退避する', () => {
-        const skeletons = [makeSkeleton({ id: 'old-job', start_time: undefined, driver_id: 'd1' } as any)];
+        const skeletons = [makeSkeleton({ id: 'old-job', start_time: undefined, driver_id: 'd1' })];
         const drivers = [makeDriver('d1')];
         const result = TemplateExpander.expand(skeletons, drivers);
         expect(result.assigned).toHaveLength(0);
@@ -140,7 +155,7 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
                 special_type: 'VIP',
                 start_time: '10:00',
                 driver_id: 'd1'
-            } as any)
+            })
         ];
         const drivers = [
             makeDriver('s1', { display_order: 1 }), // Sorting staff 1
@@ -158,10 +173,10 @@ describe('TemplateExpander v2 (Skeleton Edition)', () => {
     // ── 100点品質: 3段決定論的ソート (亡霊C対策) ──
     it('visit_slot -> customer_name -> id の順で決定論的にソート・割り当てを行う', () => {
         const skeletons = [
-            makeSkeleton({ id: 'c', customer_name: 'サトウ', visit_slot: 'AM', start_time: '09:00', driver_id: 'd1' } as any),
-            makeSkeleton({ id: 'a', customer_name: 'アオキ', visit_slot: 'AM', start_time: '09:00', driver_id: 'd1' } as any), // 1番目
-            makeSkeleton({ id: 'b', customer_name: 'アオキ', visit_slot: 'PM', start_time: '13:00', driver_id: 'd1' } as any), // 3番目
-            makeSkeleton({ id: 'd', customer_name: 'アオキ', visit_slot: 'AM', start_time: '09:00', driver_id: 'd1' } as any), // 2番目 (ID順)
+            makeSkeleton({ id: 'c', customer_name: 'サトウ', visit_slot: 'AM', start_time: '09:00', driver_id: 'd1' }),
+            makeSkeleton({ id: 'a', customer_name: 'アオキ', visit_slot: 'AM', start_time: '09:00', driver_id: 'd1' }), // 1番目
+            makeSkeleton({ id: 'b', customer_name: 'アオキ', visit_slot: 'PM', start_time: '13:00', driver_id: 'd1' }), // 3番目
+            makeSkeleton({ id: 'd', customer_name: 'アオキ', visit_slot: 'AM', start_time: '09:00', driver_id: 'd1' }), // 2番目 (ID順)
         ];
         const drivers = [
             makeDriver('s1', { display_order: 1 }),
