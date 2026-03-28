@@ -18,10 +18,8 @@ export function serializeMasterData<T extends Record<string, any>>(
         if (field.type === 'number') {
             serialized[field.name] = value === '' ? null : Number(value);
         } else if (value === '') {
-            // ID系（UUID）やセレクトボックス（外部キー）の空文字は null として送り、
-            // それ以外のテキスト項目は空文字のまま送る（DBのNOT NULL制約回避のため）
-            const isIdField = field.name.endsWith('_id') || field.type === 'select';
-            serialized[field.name] = isIdField ? null : '';
+            // 空文字はそのまま送り、DB側のデフォルト値やRPC内部の正規化ロジックに委ねる
+            serialized[field.name] = '';
         } else if (field.type === 'switch' || field.type === 'boolean') {
             serialized[field.name] = !!value;
         } else if (field.type === 'days' || Array.isArray(value)) {

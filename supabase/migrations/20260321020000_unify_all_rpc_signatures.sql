@@ -88,17 +88,13 @@ BEGIN
 
     -- [EXECUTE] Unified Table Logic
     
+/* [SANCTUARY PURGE] 廃止されたテンプレート関連カラム (is_spot, special_type等) への依存を物理排除 */
     -- Master Collection Points
     IF p_table_name IN ('points', 'master_collection_points') THEN
-        v_is_spot_val := COALESCE((p_core_data->>'is_spot_only')::boolean, (p_core_data->>'is_spot')::boolean);
-        
         UPDATE public.master_collection_points SET
             display_name = COALESCE(p_core_data->>'display_name', display_name),
             furigana = COALESCE(p_core_data->>'furigana', furigana),
             address = COALESCE(p_core_data->>'address', address),
-            -- Field Sync: is_spot synchronization
-            is_spot_only = COALESCE(v_is_spot_val, is_spot_only),
-            is_spot = COALESCE(v_is_spot_val, is_spot),
             -- Field Sync: note/internal_note synchronization
             note = COALESCE(p_core_data->>'note', p_core_data->>'internal_note', note),
             is_active = COALESCE((p_core_data->>'is_active')::boolean, is_active),
@@ -107,8 +103,8 @@ BEGIN
            OR location_id = v_target_id_text;
            
         IF NOT FOUND THEN
-            INSERT INTO public.master_collection_points (location_id, display_name, furigana, name, address, is_spot_only, is_spot, note, is_active, updated_at)
-            VALUES (v_target_id_text, p_core_data->>'display_name', p_core_data->>'furigana', COALESCE(p_core_data->>'name', p_core_data->>'display_name'), p_core_data->>'address', COALESCE(v_is_spot_val, false), COALESCE(v_is_spot_val, false), COALESCE(p_core_data->>'note', p_core_data->>'internal_note'), COALESCE((p_core_data->>'is_active')::boolean, true), NOW());
+            INSERT INTO public.master_collection_points (location_id, display_name, furigana, name, address, note, is_active, updated_at)
+            VALUES (v_target_id_text, p_core_data->>'display_name', p_core_data->>'furigana', COALESCE(p_core_data->>'name', p_core_data->>'display_name'), p_core_data->>'address', COALESCE(p_core_data->>'note', p_core_data->>'internal_note'), COALESCE((p_core_data->>'is_active')::boolean, true), NOW());
         END IF;
 
     -- Master Vehicles
