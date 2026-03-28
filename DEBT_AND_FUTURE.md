@@ -98,7 +98,15 @@
   - **暫定処置**: 門番（closure_gate.js）の全量検証をパスさせるため、対象ファイルに `describe.skip()` を付与して隔離（Quarantine）。
   - **恒久対策**: 各テストのモック・コンテキスト依存関係を修正し、スキップを解除、すべて統合的に成功させました。
 
+- [ ] **DBカラムの物理削除 (Migration 残渣)**
+#type: db_cleanup_debt, #domain: database, #severity: low
+#registered: 2026-03-28
+  - **事象**: テンプレート機能パージに伴い、フロントエンドの型定義（masterSchema.ts 等）からは対象項目が排除されたが、データベース（master_collection_points）にはまだ `special_type`, `time_constraint_type`, `is_spot`, `is_spot_only` などのカラムが物理的に残存している。
+  - **リスク**: スキーマ定義の形骸化（Ghost Columns）および管理上の混乱。
+  - **恒久対策**: 次回のスキーマメンテナンス。あるいは大規模マイグレーション時に、これらの不純項目を `DROP COLUMN` し、物理的な零残渣（Zero-Residue）を達成する。
+
 ---
+
 
 
 
