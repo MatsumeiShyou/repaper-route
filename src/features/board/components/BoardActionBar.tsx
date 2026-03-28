@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, CheckCircle, Database, Undo2, Redo2, Save, Loader2, AlertTriangle, Clipboard, RefreshCw } from 'lucide-react';
+import { Layers, CheckCircle, Database, Undo2, Redo2, Save, AlertTriangle, Clipboard } from 'lucide-react';
 import { DateDisplay } from './DateDisplay';
 import { BoardJob } from '../../../types';
 
@@ -13,9 +13,6 @@ interface BoardActionBarProps {
     undo: () => void;
     redo: () => void;
     handleConfirmAll: () => void;
-    setIsSaveTemplateModalOpen: (isOpen: boolean) => void;
-    setIsTemplateDashboardOpen: (isOpen: boolean) => void;
-    isExpanding: boolean;
     validation: {
         isValid: boolean;
         summary: string;
@@ -25,8 +22,6 @@ interface BoardActionBarProps {
     isSidebarOpen: boolean;
     setIsSidebarOpen: (isOpen: boolean) => void;
     pendingJobs: BoardJob[];
-    handleOpenMergeModal: () => void;
-    appliedTemplateId: string | null;
     currentUser: any;
 }
 
@@ -38,16 +33,11 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
     undo,
     redo,
     handleConfirmAll,
-    setIsSaveTemplateModalOpen,
-    setIsTemplateDashboardOpen,
-    isExpanding,
     validation,
     setIsSaveModalOpen,
     isSidebarOpen,
     setIsSidebarOpen,
     pendingJobs,
-    handleOpenMergeModal,
-    appliedTemplateId,
     currentUser
 }) => {
     const hasEditRights = boardMode === 'EDIT' || boardMode === 'CONFIRM';
@@ -126,42 +116,6 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                     >
                         <CheckCircle size={16} />
                         確定
-                    </button>
-                )}
-
-                {hasEditRights && (
-                    <button
-                        onClick={() => setIsSaveTemplateModalOpen(true)}
-                        className="px-3 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 shadow-sm"
-                        title="現在の状態をテンプレートとして登録"
-                    >
-                        <Save size={16} />
-                        tpl登録
-                    </button>
-                )}
-
-                {hasEditRights && (
-                    <button
-                        onClick={() => setIsTemplateDashboardOpen(true)}
-                        disabled={isExpanding}
-                        className={`px-3 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2
-                            ${isExpanding ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 shadow-sm'}
-                        `}
-                        title="テンプレート管理ダッシュボードを開く"
-                    >
-                        {isExpanding ? <Loader2 size={16} className="animate-spin" /> : <Layers size={16} />}
-                        {isExpanding ? '展開中...' : 'テンプレート管理'}
-                    </button>
-                )}
-
-                {hasEditRights && appliedTemplateId && (
-                    <button
-                        onClick={handleOpenMergeModal}
-                        className="px-3 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all mr-2 bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 shadow-sm animate-pulse-subtle"
-                        title="現在の盤面とテンプレートの差分を確認し、テンプレートを更新します"
-                    >
-                        <RefreshCw size={16} className="text-amber-500" />
-                        tpl更新 (Diff)
                     </button>
                 )}
 

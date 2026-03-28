@@ -4,7 +4,6 @@ import { useBoardData } from './hooks/useBoardData';
 import { useBoardDragDrop } from './hooks/useBoardDragDrop';
 import { useBoardValidation } from './hooks/useBoardValidation';
 import { useMasterData } from './hooks/useMasterData';
-import { useGhostTemplate } from './hooks/useGhostTemplate';
 import { TIME_SLOTS } from '../board/logic/constants';
 
 import { DriverHeader } from './components/DriverHeader';
@@ -18,14 +17,10 @@ import { AuditTrailPanel } from './components/AuditTrailPanel';
 import HeaderEditModal from './components/HeaderEditModal';
 import { SaveReasonModal } from './components/SaveReasonModal';
 import { AddJobModal } from './components/AddJobModal';
-import { SaveTemplateModal } from './components/SaveTemplateModal';
-import { TemplateMergeModal } from './components/TemplateMergeModal';
-import { TemplateDashboard } from './components/TemplateDashboard';
 import { BoardActionBar } from './components/BoardActionBar';
 import { JobDetailPanel } from './components/JobDetailPanel';
 import { getJSTNow, formatDateKey } from './utils/dateUtils';
 import { AlertTriangle } from 'lucide-react';
-import { DiffItem } from '../logic/core/TemplateDiffCalculator';
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
@@ -48,13 +43,11 @@ export default function BoardCanvas() {
         jobs, setJobs,
         pendingJobs, setPendingJobs,
         splits, setSplits,
-        isDataLoaded, isSyncing, isExpanding,
+        isDataLoaded, isSyncing,
         editMode, canEditBoard, boardMode, isOutOfRange,
-        handleSave, handleConfirmAll, handleRegisterTemplate, handleApplyTemplate, recordHistory, undo, redo,
-        handleUpdateAppliedTemplate, handleFinalizeTemplateUpdate, appliedTemplateId,
+        handleSave, handleConfirmAll, recordHistory, undo, redo,
         assignPendingJob, unassignJob,
-        addColumn, showNotification,
-        templateDescriptions
+        addColumn, showNotification
     } = useBoardData(currentUser, currentDateKey, isInteracting);
 
     // 【100pt 統治】自動還還 (Auto-Reset) ロジック
@@ -64,8 +57,6 @@ export default function BoardCanvas() {
             setSelectedDate(getJSTNow());
         }
     }, [isDataLoaded, isOutOfRange, currentUser?.role, showNotification]);
-
-    const { ghostJobs } = useGhostTemplate(currentDateKey, jobs.length === 0);
 
     // 2. Drag & Drop Hook
     const driverColRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -111,10 +102,6 @@ export default function BoardCanvas() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [pendingFilter, setPendingFilter] = useState('すべて');
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-    const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
-    const [isTemplateDashboardOpen, setIsTemplateDashboardOpen] = useState(false);
-    const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
-    const [mergeDiffData, setMergeDiffData] = useState<{ diffs: DiffItem[], templateName: string, templateId: string } | null>(null);
     const [isHeaderEditModalOpen, setIsHeaderEditModalOpen] = useState(false);
     const [isAddJobModalOpen, setIsAddJobModalOpen] = useState(false);
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
@@ -175,19 +162,6 @@ export default function BoardCanvas() {
         setIsHeaderEditModalOpen(true);
     };
 
-    const handleOpenMergeModal = async () => {
-        const result = await handleUpdateAppliedTemplate();
-        if (result) {
-            setMergeDiffData(result);
-            setIsMergeModalOpen(true);
-        }
-    };
-
-    const handleApplyMerge = async (templateId: string, newJobs: any[]) => {
-        await handleFinalizeTemplateUpdate(templateId, newJobs);
-        setIsMergeModalOpen(false);
-    };
-
     if (isAuthLoading || !isDataLoaded || masterLoading) {
         return <BoardSkeleton />;
     }
@@ -246,11 +220,6 @@ export default function BoardCanvas() {
                 undo={undo}
                 redo={redo}
                 handleConfirmAll={handleConfirmAll}
-                setIsSaveTemplateModalOpen={setIsSaveTemplateModalOpen}
-                setIsTemplateDashboardOpen={setIsTemplateDashboardOpen}
-                handleOpenMergeModal={handleOpenMergeModal}
-                appliedTemplateId={appliedTemplateId}
-                isExpanding={isExpanding}
                 validation={validation}
                 setIsSaveModalOpen={setIsSaveModalOpen}
                 isSidebarOpen={isSidebarOpen}
@@ -297,7 +266,6 @@ export default function BoardCanvas() {
                         />
                         <JobLayer
                             jobs={validatedJobs}
-                            ghostJobs={ghostJobs}
                             splits={splits}
                             drivers={drivers}
                             draggingJobId={draggingJobId}
@@ -419,30 +387,6 @@ export default function BoardCanvas() {
                             updatedAt: '2026-03-01 10:00'
                         }
                     ]}
-                />
-            )}
-
-            <SaveTemplateModal
-                isOpen={isSaveTemplateModalOpen}
-                onClose={() => setIsSaveTemplateModalOpen(false)}
-                onSave={handleRegisterTemplate}
-                currentDate={selectedDate}
-                templateDescriptions={templateDescriptions}
-            />
-
-            <TemplateDashboard 
-                isOpen={isTemplateDashboardOpen}
-                onClose={() => setIsTemplateDashboardOpen(false)}
-                onApply={handleApplyTemplate}
-            />
-
-            {mergeDiffData && (
-                <TemplateMergeModal
-                    isOpen={isMergeModalOpen}
-                    onClose={() => setIsMergeModalOpen(false)}
-                    templateName={mergeDiffData.templateName}
-                    diffItems={mergeDiffData.diffs}
-                    onApply={(newJobs) => handleApplyMerge(mergeDiffData.templateId, newJobs)}
                 />
             )}
         </div>

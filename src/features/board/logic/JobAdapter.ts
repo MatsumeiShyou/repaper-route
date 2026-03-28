@@ -43,10 +43,9 @@ export class JobAdapter {
             visitSlot: j.visitSlot || j.visit_slot || undefined,
             taskType: this.evaluateTaskType(j),
             status: j.status || options?.defaultStatus || 'planned',
-            location_id: j.location_id || j.customer_id || undefined, // customer_id も考慮
+            location_id: j.location_id || undefined,
             is_admin_forced: !!(j.is_admin_forced),
-            is_skipped: !!(j.is_skipped),
-            isGhost: !!(j.isGhost) // テンプレート展開分を識別
+            is_skipped: !!(j.is_skipped)
         };
     }
 

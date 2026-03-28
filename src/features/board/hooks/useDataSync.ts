@@ -129,7 +129,17 @@ export const useDataSync = (
                         .filter(Boolean) 
                 );
 
-                const mergedPendingJobs = [...upgradedSavedPending];
+                // 【超精密浄化タスク 2-1】物理的遮断 (Physical Isolation)
+                // DBに残っているテンプレート由来の不純物(UUID)を、未配車リストから完全に排除する。
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                const filteredPending = upgradedSavedPending.filter(j => !uuidRegex.test(j.id));
+                const isolatedCount = upgradedSavedPending.length - filteredPending.length;
+                
+                if (isolatedCount > 0) {
+                    console.info(`[Purification-Complete] Isolated and removed ${isolatedCount} ghost jobs from pending list registry.`);
+                }
+
+                const mergedPendingJobs = [...filteredPending];
                 autoImportedJobs.forEach(job => {
                     if (!job.location_id || !existingLocationIds.has(job.location_id)) {
                         mergedPendingJobs.push(job);
@@ -143,8 +153,7 @@ export const useDataSync = (
                         : getDefaultDrivers(),
                     jobs: upgradedSavedJobs,
                     pendingJobs: mergedPendingJobs,
-                    splits: Array.isArray(routeData.splits) ? routeData.splits as unknown as BoardSplit[] : [],
-                    appliedTemplateId: (routeData as any).applied_template_id
+                    splits: Array.isArray(routeData.splits) ? routeData.splits as unknown as BoardSplit[] : []
                 };
 
                 setData(newState);
