@@ -158,13 +158,18 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
                     last_activity_at: currentTime,
                     updated_at: currentTime
                 };
-                if (!route) {
-                    updateData = { ...updateData, jobs: [], drivers: [], splits: [], pending: [] };
-                }
-                const { error: upsertError } = await supabase.from('routes').upsert(updateData, { onConflict: 'date' });
-                if (upsertError && (upsertError as any).code !== '409' && (upsertError as any).status !== 409) {
-                    throw upsertError;
-                }
+                const { error: lockError } = await supabase.rpc('rpc_execute_board_update', {
+                    p_date: currentDateKey,
+                    p_new_state: {
+                        ...updateData,
+                        edit_locked_by: currentUserId,
+                        edit_locked_at: currentTime
+                    },
+                    p_decision_type: 'LOCK_ACQUIRE',
+                    p_reason: 'Acquiring edit lock',
+                    p_user_id: currentUserId
+                } as any);
+                if (lockError) throw lockError;
                 setLockState({ userId: currentUserId || null, dateKey: currentDateKey });
             } else {
                 setLockState({ userId: route.edit_locked_by, dateKey: currentDateKey });
@@ -362,8 +367,7 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
         if (targetJob.location_id) {
             const masterPoint = masterPoints.find(p => p.id === targetJob.location_id);
             if (masterPoint) {
-                restoredTimeConstraint = masterPoint.time_constraint || 
-                    ((masterPoint.time_constraint_type && masterPoint.time_constraint_type !== 'NONE') ? '要確認' : undefined);
+                restoredTimeConstraint = masterPoint.time_constraint || undefined;
             }
         }
         setState(prev => ({

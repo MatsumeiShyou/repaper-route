@@ -1,4 +1,4 @@
-import { MasterField } from '../config/masterSchema';
+import { MasterField } from '../types/master';
 
 /**
  * マスタデータの保存用形式への変換
@@ -101,4 +101,31 @@ export function normalizeDays(days: any): string[] {
     if (Array.isArray(days)) return days.map(String).filter(s => s !== 'undefined' && s !== 'null');
     if (typeof days === 'string' && days.trim() !== '') return days.split(',').map(s => s.trim()).filter(Boolean);
     return [];
+}
+/**
+ * 送信前のデータから廃止された不純物フィールド（is_spot等）を再帰的に全削除する
+ * [Ref: Sanctuary Governance Constitution Section B-4 F-SSOT]
+ */
+export function cleansePurgedFields<T>(data: T): T {
+    if (!data || typeof data !== 'object') return data;
+
+    const purgedKeys = [
+        'is_spot', 'is_spot_only', 'special_type', 
+        'time_constraint_type', 'is_template', 'applied_template_id'
+    ];
+
+    if (Array.isArray(data)) {
+        return data.map(item => cleansePurgedFields(item)) as any;
+    }
+
+    const cleansed = { ...data } as any;
+    Object.keys(cleansed).forEach(key => {
+        if (purgedKeys.includes(key)) {
+            delete cleansed[key];
+        } else if (typeof cleansed[key] === 'object') {
+            cleansed[key] = cleansePurgedFields(cleansed[key]);
+        }
+    });
+
+    return cleansed;
 }

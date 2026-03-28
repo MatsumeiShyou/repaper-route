@@ -2,7 +2,7 @@
  * Master Data Management Types (Purified & Unified)
  */
 
-export type MasterFieldType = 'text' | 'tel' | 'select' | 'days' | 'tags' | 'switch' | 'number';
+export type MasterFieldType = 'text' | 'tel' | 'select' | 'days' | 'tags' | 'switch' | 'number' | 'boolean';
 
 export interface MasterField {
     name: string;
