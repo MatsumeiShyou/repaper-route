@@ -250,23 +250,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 sortable: true,
                 className: 'text-xs font-mono'
             },
-            {
-                key: 'special_type',
-                label: '特殊案件フラグ',
-                type: 'badge',
-                sortable: true,
-                styleRules: {
-                    default: 'bg-slate-100 text-slate-600',
-                    'SITE_WORK': 'bg-amber-100 text-amber-800 border border-amber-200',
-                    'MAINTENANCE': 'bg-blue-100 text-blue-800 border border-blue-200'
-                },
-                optionLabels: {
-                    'NONE': 'なし',
-                    'SITE_WORK': '現場作業',
-                    'MAINTENANCE': 'メンテナンス',
-                    'OTHER': 'その他'
-                }
-            },
+
             {
                 key: 'recurrence_pattern',
                 label: '回収契機 (曜以外)',
@@ -285,23 +269,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 sortable: true,
                 className: 'text-[10px] text-emerald-600 font-mono'
             },
-            {
-                key: 'time_constraint_type',
-                label: '時間制約',
-                type: 'badge',
-                sortable: true,
-                styleRules: {
-                    default: 'bg-slate-100 text-slate-600',
-                    'NONE': 'bg-slate-50 text-slate-400',
-                    'RANGE': 'bg-blue-50 text-blue-600 border border-blue-100',
-                    'FIXED': 'bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold'
-                },
-                optionLabels: {
-                    'NONE': 'なし',
-                    'RANGE': '時間枠指定',
-                    'FIXED': '時間固定'
-                }
-            },
+
             {
                 key: 'is_spot_only',
                 label: '種別',
@@ -359,18 +327,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                     'PM': 'PM便'
                 }
             },
-            {
-                name: 'special_type',
-                label: '特殊案件フラグ',
-                type: 'select',
-                options: ['NONE', 'SITE_WORK', 'MAINTENANCE', 'OTHER'],
-                optionLabels: {
-                    'NONE': 'なし',
-                    'SITE_WORK': '現場作業',
-                    'MAINTENANCE': 'メンテナンス',
-                    'OTHER': 'その他'
-                }
-            },
+
             { name: 'recurrence_pattern', label: '回収契機 (曜以外)', type: 'text', placeholder: '例: 第1月曜日' },
             {
                 name: 'vehicle_restriction_type',
@@ -404,19 +361,7 @@ export const MASTER_SCHEMAS: MasterSchemas = {
                 className: 'col-span-2',
                 placeholder: '例: 裏口から入場。天井低い。'
             },
-            {
-                name: 'time_constraint_type',
-                label: '時間制約',
-                type: 'select',
-                options: ['NONE', 'RANGE', 'FIXED'],
-                optionLabels: {
-                    'NONE': 'なし',
-                    'RANGE': '時間枠指定',
-                    'FIXED': '時間固定'
-                },
-                className: 'col-span-1',
-                required: true
-            },
+
             {
                 name: 'is_spot_only',
                 label: '種別 (スポット)',
