@@ -13,6 +13,8 @@ export interface Profile {
     updated_at: string;
 }
 
+export * from './master';
+
 // Supabase 'jobs' table record (Legacy/Sync form)
 export interface SupabaseJob {
     id: string;
@@ -27,7 +29,6 @@ export interface SupabaseJob {
     weighing_site_id?: string | null;
     company_phone?: string | null;
     manager_phone?: string | null;
-    special_type?: string | null;
     recurrence_pattern?: string | null;
     driver_id: string | null;
     updated_at: string;
@@ -134,9 +135,7 @@ export interface MasterCustomer {
     area?: string;
     company_phone?: string;
     manager_phone?: string;
-    special_type?: string;
     recurrence_pattern?: string;
-    time_constraint_type?: string;
     time_constraint?: string;
 }
 
