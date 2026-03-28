@@ -75,6 +75,7 @@ export class TemplateExpander {
     private static toUnassignedJob(skeleton: SkeletonJob): Job {
         const job: any = {
             ...skeleton,
+            id: crypto.randomUUID(), // 【重要】既存IDとの競合を避けるため新規採番
             driver_id: null,
             driver_name: null,
             start_time: skeleton.start_time ?? null,

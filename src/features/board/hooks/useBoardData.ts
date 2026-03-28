@@ -591,27 +591,44 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
             
             // 展開 (New Spec: 属人性排除・純粋スケルトン生成)
             const result = TemplateExpander.expand(skeletonJobs);
+            
+            console.debug(`[handleApplyTemplate] Expanded ${result.unassigned.length} skeleton jobs.`);
 
             // 【100点品質】非破壊・重複排除マージロジック
-            // すべてのテンプレート案件は unassigned (pending) として扱われる。
-            // 既に盤面（jobs）や未配車リスト（pendingJobs）に存在するIDの案件は除外する。
-            const currentJobIds = new Set([
+            // UUID化された案件のみならず、万が一の重複に備えたフィルタリング（ID指定での重複排除）
+            const existingJobIds = new Set([
                 ...state.jobs.map(j => j.id),
                 ...state.pendingJobs.map(j => j.id)
             ]);
             
-            const newPendingJobs = result.unassigned
-                .filter(j => !currentJobIds.has(j.id))
+            const newJobs = result.unassigned
+                .filter(j => !existingJobIds.has(j.id))
                 .map(j => JobAdapter.mapToBoardJob(j));
 
-            // 状態反映 (既存の配車を維持しつつ、テンプレート分を未配車に追加)
+            console.info(`[handleApplyTemplate] Adding ${newJobs.length} new pending jobs to UI state.`);
+
+            // 状態反映とDB同期 (既存の配車を維持しつつ、テンプレート分を未配車に追加)
+            const updatedPending = [...state.pendingJobs, ...newJobs];
+            
+            // 【100点品質】原子的なDB保存 (Persistence-First)
+            // これによりリアルタイム同期による上書き（Race Condition）を防ぎ、永続性を保証する。
+            const { error: upsertError } = await supabase
+                .from('routes')
+                .upsert({ 
+                    date: currentDateKey, 
+                    pending: updatedPending as any,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'date' });
+
+            if (upsertError) throw upsertError;
+
+            console.info(`[handleApplyTemplate] DB Sync success. Updating UI state with ${updatedPending.length} pending jobs.`);
+
             setState(prev => ({
                 ...prev,
-                pendingJobs: [
-                    ...prev.pendingJobs, 
-                    ...newPendingJobs
-                ]
+                pendingJobs: updatedPending
             }));
+            
             setAppliedTemplateId(templateId);
             recordHistory();
             
