@@ -99,6 +99,17 @@ npm run done
 ---
 > [!IMPORTANT]
 > 本憲法は TBNY DXOS の精神的支柱であり、詳細な物理コマンドやOS制約は **Environment Abstraction Layer (EAL)** に隠蔽されている。AIは `govCore` 等のツールを介して環境と対話せよ。
-#   D u m m y   c h a n g e   f o r   e s c a l a t i o n   t e s t 
- 
- 
+
+---
+## 第5層【現場統治】— TBNY DXOS 統合条項 (v6.1 Amendment)
+
+### Q. DOM観測プロトコル (3-Stage Observation)
+- **Q-1 三連星報告**: DOM操作を伴うツール実行の前後で、`[Loading]`, `[Ready]`, `[Stable]` の3段階の状態を物理的に観測・報告せよ。特に待機アニメーションの消失と要素の完全描画を「事実（State）」として記録することを義務とする。
+
+### R. データベース整合性 (Strict SQL Sync)
+- **R-1 SQL Diff 強制**: スキーマ変更を伴う実装では、必ず `npx supabase db diff` を実行し、生成された SQL ファイルをコードと同一の AMP で提示せよ。
+- **R-2 履歴同期**: 変更内容は `SCHEMA_HISTORY.md` に即時記録し、物理的なスキーマ状態とドキュメントの乖離を零（Zero）に保て。
+
+### S. 推論と負債の管理 (SDR & Loan)
+- **S-1 SDR Append-only**: 過去の「事実（State）」を改ざん・上書きしてはならない。新たな観測事実は必ず「追記」し、判断の変遷を辿れるようにせよ。
+- **S-2 負債の「借金」認定**: `DEBT_AND_FUTURE.md` への記録は「技術的借金」として扱い、完済（完了）が証明されるまで、当該モジュールに関連する新規機能の提案を物理的に禁止する。
