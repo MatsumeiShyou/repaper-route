@@ -29,7 +29,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const saved = localStorage.getItem('repaper_auth_user');
         if (saved) {
             try {
-                return JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                // [AUDIT] ダミー ID (0000...) の残存を物理検知し、あればパージする
+                if (parsed?.id && parsed.id.startsWith('00000000-0000')) {
+                    console.warn("[Auth] Legacy dummy ID detected - Purging...");
+                    localStorage.removeItem('repaper_auth_user');
+                    return null;
+                }
+                return parsed;
             } catch (e) {
                 console.error("Failed to parse saved auth user", e);
             }
@@ -60,12 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     }));
                     setProfiles(mappedProfiles);
                 } else {
-                    // EMERGENCY MOCK for recovery
-                    const mockProfiles: Profile[] = [
-                        { id: '00000000-0000-0000-0000-000000000001', name: 'システム管理者 (Recov)', role: 'admin' as UserRole, can_edit_board: true, updated_at: new Date().toISOString() },
-                        { id: '00000000-0000-0000-0000-000000000002', name: 'デモドライバー (Recov)', role: 'driver' as UserRole, vehicle_info: 'R-01', can_edit_board: false, updated_at: new Date().toISOString() }
-                    ];
-                    setProfiles(mockProfiles);
+                    setProfiles([]);
                 }
                 if (error) console.error("Staff Fetch Error:", error);
             } catch (e) {
@@ -77,7 +79,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         fetchStaffs();
     }, []);
 
+    useEffect(() => {
+        // [AUDIT] 100pt Auth Sync
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log(`[Auth Event] ${event}`, session?.user?.id);
+            if (event === 'SIGNED_IN' && session?.user) {
+                const user = session.user;
+                const userData: AppUser = {
+                    id: user.id,
+                    name: user.user_metadata?.name || user.email || 'User',
+                    role: (user.user_metadata?.role as UserRole) || 'driver',
+                    allowedApps: user.user_metadata?.allowed_apps || [],
+                    vehicle: user.user_metadata?.vehicle_info || undefined
+                };
+                setCurrentUser(userData);
+                localStorage.setItem('repaper_auth_user', JSON.stringify(userData));
+            } else if (event === 'SIGNED_OUT') {
+                setCurrentUser(null);
+                localStorage.removeItem('repaper_auth_user');
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, []);
+
     const login = (user: any) => {
+        // [Legacy Support] Keep state for UI but let onAuthStateChange be the master
         const userData: AppUser = {
             id: user.id || user.user_id,
             name: user.name,
@@ -89,10 +115,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('repaper_auth_user', JSON.stringify(userData));
     };
 
-    const logout = () => {
+    const logout = async () => {
         console.log("[Auth] Logout requested");
         if (window.confirm('ログアウトしますか？')) {
-            console.log("[Auth] Logout confirmed - clearing user");
+            console.log("[Auth] Logout confirmed - clearing session");
+            await supabase.auth.signOut();
             setCurrentUser(null);
             localStorage.removeItem('repaper_auth_user');
         }
