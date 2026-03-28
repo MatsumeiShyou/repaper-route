@@ -298,7 +298,8 @@ export const MASTER_SCHEMAS: MasterSchemas = {
         ],
         fields: [
             { name: 'id', label: 'UUID', type: 'text', updatable: false, className: 'hidden' },
-            { name: 'location_id', label: '管理番号', type: 'text', updatable: true, placeholder: '例: 28' },
+            { name: 'location_id', label: '管理番号', type: 'text', required: true, updatable: true, placeholder: '例: 28' },
+            { name: 'name', label: '正式名称', type: 'text', required: true, placeholder: '例: ○○スーパー' },
             { name: 'display_name', label: '拠点名（表示用）', type: 'text', required: true, placeholder: '例: ○○スーパー(AM)' },
             { name: 'furigana', label: 'ﾌﾘｶﾞﾅ（半角ｶﾅ）', type: 'text', placeholder: '例: ﾏﾙﾏﾙｽｰﾊﾟｰ' },
             { name: 'area', label: '地域', type: 'text', placeholder: '例: 中央区, 六本木' },
