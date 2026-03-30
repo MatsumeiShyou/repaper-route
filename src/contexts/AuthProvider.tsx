@@ -1,12 +1,18 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { supabase } from '../lib/supabase/client';
-import { Profile, AppUser, UserRole } from '../types';
+import { authAdapter } from '../os/auth/AuthAdapter';
+import type { Staff, AuthStatus } from '../os/auth/types';
+import { Modal } from '../components/Modal';
 
 interface AuthContextType {
-    currentUser: AppUser | null;
-    profiles: Profile[];
+    /** @deprecated use staff instead */
+    currentUser: Staff | null;
+    staff: Staff | null;
+    staffs: Staff[];
+    status: AuthStatus;
+    /** React 19 use() フック用 Promise */
+    staffPromise: Promise<Staff | null> | null;
     isLoading: boolean;
-    login: (user: any) => void;
     logout: () => void;
 }
 
@@ -25,109 +31,117 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
-        const saved = localStorage.getItem('repaper_auth_user');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                // [AUDIT] ダミー ID (0000...) の残存を物理検知し、あればパージする
-                if (parsed?.id && parsed.id.startsWith('00000000-0000')) {
-                    console.warn("[Auth] Legacy dummy ID detected - Purging...");
-                    localStorage.removeItem('repaper_auth_user');
-                    return null;
-                }
-                return parsed;
-            } catch (e) {
-                console.error("Failed to parse saved auth user", e);
-            }
-        }
-        return null;
-    });
-    const [isLoading, setIsLoading] = useState(true);
-    const [profiles, setProfiles] = useState<Profile[]>([]);
+    const [staff, setStaff] = useState<Staff | null>(null);
+    const [staffs, setStaffs] = useState<Staff[]>([]);
+    const [status, setStatus] = useState<AuthStatus>('INITIALIZING');
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    
+    // React 19 use() 用の Promise を保持
+    const [staffPromise, setStaffPromise] = useState<Promise<Staff | null> | null>(null);
 
-    useEffect(() => {
-        const fetchStaffs = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .order('role', { ascending: true })
-                    .order('name');
-
-                if (data && (data as any[]).length > 0) {
-                    // Map Supabase Row to our Profile type
-                    const mappedProfiles: Profile[] = (data as any[]).map(p => ({
-                        id: p.id,
-                        name: p.name,
-                        role: (p.role as UserRole) || 'driver',
-                        vehicle_info: p.vehicle_info || undefined,
-                        can_edit_board: p.can_edit_board || false,
-                        updated_at: p.updated_at
-                    }));
-                    setProfiles(mappedProfiles);
-                } else {
-                    setProfiles([]);
-                }
-                if (error) console.error("Staff Fetch Error:", error);
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setIsLoading(false);
+    useMemo(() => {
+        const promise = authAdapter.resolveStaff();
+        setStaffPromise(promise);
+        
+        promise.then(s => {
+            setStaff(s);
+            setStatus(s ? 'AUTHENTICATED' : 'UNAUTHENTICATED');
+        }).catch(err => {
+            console.error('[AuthProvider] Auth resolution failed:', err);
+            setStaff(null);
+            // エラーの種類に応じて LOCKED か UNAUTHENTICATED へ
+            if (err.code === 'FORBIDDEN') {
+                setStatus('LOCKED');
+            } else {
+                setStatus('UNAUTHENTICATED');
             }
-        };
-        fetchStaffs();
+        });
+        return promise;
     }, []);
 
     useEffect(() => {
-        // [AUDIT] 100pt Auth Sync
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log(`[Auth Event] ${event}`, session?.user?.id);
-            if (event === 'SIGNED_IN' && session?.user) {
-                const user = session.user;
-                const userData: AppUser = {
-                    id: user.id,
-                    name: user.user_metadata?.name || user.email || 'User',
-                    role: (user.user_metadata?.role as UserRole) || 'driver',
-                    allowedApps: user.user_metadata?.allowed_apps || [],
-                    vehicle: user.user_metadata?.vehicle_info || undefined
-                };
-                setCurrentUser(userData);
-                localStorage.setItem('repaper_auth_user', JSON.stringify(userData));
+        // 初期化およびスタッフリストの取得
+        const init = async () => {
+            try {
+                const list = await authAdapter.fetchAllStaffs();
+                setStaffs(list);
+            } catch (e) {
+                console.error('[AuthProvider] Failed to fetch staffs list:', e);
+            }
+        };
+        init();
+    }, []);
+
+    useEffect(() => {
+        // [AuthAdapter] の内部リスナーと協調しつつ、UI ステートを同期
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, _session) => {
+            console.log(`[AuthProvider] Auth Event: ${event}`);
+            
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+                const s = await authAdapter.resolveStaff();
+                setStaff(s);
+                setStatus(s ? 'AUTHENTICATED' : 'UNAUTHENTICATED');
             } else if (event === 'SIGNED_OUT') {
-                setCurrentUser(null);
-                localStorage.removeItem('repaper_auth_user');
+                setStaff(null);
+                setStaffs([]);
+                setStatus('UNAUTHENTICATED');
             }
         });
         return () => subscription.unsubscribe();
     }, []);
 
-    const login = (user: any) => {
-        // [Legacy Support] Keep state for UI but let onAuthStateChange be the master
-        const userData: AppUser = {
-            id: user.id || user.user_id,
-            name: user.name,
-            role: (user.role as UserRole),
-            allowedApps: user.allowed_apps || [],
-            vehicle: user.vehicle_info || user.vehicle || undefined
-        };
-        setCurrentUser(userData);
-        localStorage.setItem('repaper_auth_user', JSON.stringify(userData));
+    const logout = async () => {
+        setIsLogoutModalOpen(true);
     };
 
-    const logout = async () => {
-        console.log("[Auth] Logout requested");
-        if (window.confirm('ログアウトしますか？')) {
-            console.log("[Auth] Logout confirmed - clearing session");
-            await supabase.auth.signOut();
-            setCurrentUser(null);
-            localStorage.removeItem('repaper_auth_user');
-        }
+    const confirmLogout = async () => {
+        setIsLogoutModalOpen(false);
+        await supabase.auth.signOut();
+        await authAdapter.clearCache();
     };
 
     return (
-        <AuthContext.Provider value={{ currentUser, profiles, isLoading, login, logout }}>
+        <AuthContext.Provider value={{ 
+            staff, 
+            currentUser: staff, // Backward compatibility
+            staffs, 
+            status, 
+            staffPromise,
+            isLoading: status === 'INITIALIZING',
+            logout 
+        }}>
             {children}
+
+            <Modal
+                isOpen={isLogoutModalOpen}
+                onClose={() => setIsLogoutModalOpen(false)}
+                title="ログアウト"
+                footer={
+                    <div className="flex gap-3 justify-end w-full">
+                        <button
+                            onClick={() => setIsLogoutModalOpen(false)}
+                            className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-200"
+                        >
+                            キャンセル
+                        </button>
+                        <button
+                            onClick={confirmLogout}
+                            className="px-6 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-black rounded-xl shadow-lg shadow-rose-900/20"
+                        >
+                            ログアウト実行
+                        </button>
+                    </div>
+                }
+            >
+                <div className="py-2">
+                    <p className="text-sm text-slate-300">
+                        システムからログアウトしますか？<br />
+                        <span className="text-[10px] text-slate-500 mt-2 block">
+                            ※オフラインキャッシュは破棄されます
+                        </span>
+                    </p>
+                </div>
+            </Modal>
         </AuthContext.Provider>
     );
 };

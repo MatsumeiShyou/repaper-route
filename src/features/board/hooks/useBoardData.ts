@@ -5,8 +5,9 @@ import { useNotification } from '../../../contexts/NotificationContext';
 import { isPastDayJST } from '../utils/dateUtils';
 import { useDataSync } from './useDataSync';
 import {
-    BoardJob, BoardDriver, BoardSplit, BoardHistory, AppUser, ExceptionReasonMaster
+    BoardJob, BoardDriver, BoardSplit, BoardHistory, ExceptionReasonMaster
 } from '../../../types';
+import { Staff } from '../../../os/auth/types';
 
 // --- Types ---
 export interface BoardState {
@@ -16,7 +17,7 @@ export interface BoardState {
     splits: BoardSplit[];
 }
 
-export const useBoardData = (user: AppUser | null, currentDateKey: string, isInteracting: boolean = false) => {
+export const useBoardData = (user: Staff | null, currentDateKey: string, isInteracting: boolean = false) => {
     const currentUserId = user?.id;
 
     const { drivers: masterDrivers, customers: masterPoints } = useMasterData();
@@ -71,19 +72,11 @@ export const useBoardData = (user: AppUser | null, currentDateKey: string, isInt
     const [isOffline, setIsOffline] = useState(false);
     const [lockState, setLockState] = useState<{ userId: string | null, dateKey: string | null }>({ userId: null, dateKey: null });
     
-    const [profile, setProfile] = useState<{ can_edit_board: boolean, role: string } | null>(null);
     const canEditBoard = useMemo(() => {
         if (!user) return false;
         if (user.role === 'admin') return true;
-        return !!profile?.can_edit_board;
-    }, [user, profile]);
-
-    useEffect(() => {
-        if (currentUserId) {
-            supabase.from('profiles').select('*').eq('id', currentUserId).maybeSingle()
-                .then(({ data }) => { if (data) setProfile(data as any); });
-        }
-    }, [currentUserId]);
+        return !!user.permissions?.can_edit_board;
+    }, [user]);
 
     const [exceptionReasons, setExceptionReasons] = useState<ExceptionReasonMaster[]>([]);
     const [confirmedSnapshot, setConfirmedSnapshot] = useState<any>(null);

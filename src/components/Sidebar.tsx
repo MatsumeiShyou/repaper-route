@@ -11,9 +11,10 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
-    const { currentUser, logout } = useAuth();
+    const { staff, logout } = useAuth();
 
-    const isAdmin = currentUser?.role === 'admin';
+    // 物理権限に基づく表示制御 (F-SSOT)
+    const canManageMaster = staff?.permissions?.can_manage_master ?? false;
 
     const menuGroups = [
         {
@@ -23,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
                 { id: 'board', label: '配車盤', icon: Truck, highlight: true },
             ]
         },
-        ...(isAdmin ? [
+        ...(canManageMaster ? [
             {
                 title: "マスタ管理",
                 items: [
@@ -49,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
             {/* Logo Area */}
             <div
                 className="h-20 flex items-center px-6 border-b border-slate-800 bg-slate-950/50 cursor-pointer hover:bg-slate-900 transition-colors"
-                onClick={() => onViewChange('menu')}
+                onClick={() => onViewChange('board')}
             >
                 <div className="mr-3">
                     <img
@@ -57,7 +58,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
                         alt="Logo"
                         className="h-8 w-auto invert opacity-80"
                         onError={(e) => {
-                            // Fallback if logo not found
                             (e.target as HTMLImageElement).style.display = 'none';
                         }}
                     />
@@ -116,11 +116,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
             <div className="p-4 border-t border-slate-800 bg-slate-950/20">
                 <div className="flex items-center gap-3 px-2">
                     <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-blue-400 shadow-inner">
-                        {currentUser?.name?.substring(0, 1) || 'U'}
+                        {staff?.name?.substring(0, 1) || 'U'}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black truncate text-slate-200 uppercase tracking-tight">{currentUser?.name || '不明'}</p>
-                        <p className="text-[8px] text-slate-500 uppercase tracking-widest font-mono font-bold leading-none mt-0.5">{currentUser?.role || 'ゲスト'}</p>
+                        <p className="text-[10px] font-black truncate text-slate-200 uppercase tracking-tight">{staff?.name || '不明'}</p>
+                        <p className="text-[8px] text-slate-500 uppercase tracking-widest font-mono font-bold leading-none mt-0.5">{staff?.role || 'ゲスト'}</p>
                     </div>
                     <button
                         onClick={() => logout()}

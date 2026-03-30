@@ -1,14 +1,19 @@
-﻿src/components/MasterDataLayout.tsx(20,54): error TS6133: 'MasterField' is declared but its value is never read.
-src/components/MasterDataLayout.tsx(123,27): error TS2769: No overload matches this call.
-  Overload 1 of 2, '(relation: string): PostgrestQueryBuilder<{ PostgrestVersion: "12"; }, { Tables: { [key: string]: any; exception_reason_masters: { Row: { id: string; label: string; is_active: boolean; created_by: string | null; created_at: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: []; }; ... 9 more ...; master_items: { ...; }; }; Views: { ...; }; Functions: { ...; }; Enums: {}; CompositeTypes: {}; }, any, string, unknown>', gave the following error.
-    Argument of type 'string | number' is not assignable to parameter of type 'string'.
-      Type 'number' is not assignable to type 'string'.
-  Overload 2 of 2, '(relation: "view_master_points"): PostgrestQueryBuilder<{ PostgrestVersion: "12"; }, { Tables: { [key: string]: any; exception_reason_masters: { Row: { id: string; label: string; is_active: boolean; created_by: string | null; created_at: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: []; }; ... 9 more ...; master_items: { ...; }; }; Views: { ...; }; Functions: { ...; }; Enums: {}; CompositeTypes: {}; }, { ...; }, "view_master_points", []>', gave the following error.
-    Argument of type 'string | number' is not assignable to parameter of type '"view_master_points"'.
-      Type 'string' is not assignable to type '"view_master_points"'.
-src/components/MasterDataLayout.tsx(151,77): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
-  Type 'number' is not assignable to type 'string'.
-src/hooks/useMasterCRUD.ts(47,77): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
-  Type 'number' is not assignable to type 'string'.
-src/hooks/useMasterCRUD.ts(75,82): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
-  Type 'number' is not assignable to type 'string'.
+﻿
+> repaper-route@1.0.0 type-check
+> tsc --noEmit
+
+src/components/MasterDataLayout.tsx(21,10): error TS2724: '"../config/masterSchema"' has no exported member named 'MasterSchema'. Did you mean 'masterSchemas'?
+src/components/MasterDataLayout.tsx(21,24): error TS2305: Module '"../config/masterSchema"' has no exported member 'MasterColumn'.
+src/components/MasterDataLayout.tsx(62,53): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/components/MasterDataLayout.tsx(66,55): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/components/MasterDataLayout.tsx(151,71): error TS7006: Parameter 'field' implicitly has an 'any' type.
+src/components/MasterDataLayout.tsx(359,78): error TS7006: Parameter 'opt' implicitly has an 'any' type.
+src/components/MasterDataLayout.tsx(647,31): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/components/MasterDataLayout.tsx(682,36): error TS7006: Parameter 'field' implicitly has an 'any' type.
+src/components/MasterDataLayout.tsx(737,53): error TS7006: Parameter 'opt' implicitly has an 'any' type.
+src/components/MasterDataLayout.tsx(908,53): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/hooks/useMasterCRUD.ts(3,10): error TS2724: '"../config/masterSchema"' has no exported member named 'MasterSchema'. Did you mean 'masterSchemas'?
+src/hooks/useMasterCRUD.ts(40,35): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/hooks/useMasterCRUD.ts(72,35): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/os/auth/AuthAdapter.ts(2,22): error TS6196: 'AuthError' is declared but never used.
+src/os/auth/AuthAdapter.ts(65,25): error TS2339: Property 'metadata' does not exist on type '{ allowed_apps: Json; created_at: string | null; id: string; name: string; role: string | null; updated_at: string | null; }'.

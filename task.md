@@ -1,20 +1,34 @@
-# Task Checklist - Workflow Protection & Governance Cleanup
+# リスクティア：T3 垂直統合タスクリスト (Phase 3 - v3.1)
 
-- [x] Restore lost workflow files (`git restore`)
-- [x] Populate global workflows directory (`C:\Users\shiyo\.gemini\antigravity\global_workflows`)
-- [x] Update `compliance.json` to protect workflow directories
-- [x] Update `denylist.json` to warn about workflow file deletion
-- [x] Register missing scripts in `inventory.json`
-- [x] Fix `pre_flight.js` ReferenceError (validateDebt crash)
-- [x] Zero-Residue Purification
-    - [x] 1.1 Identify all untracked files in the workspace
-    - [x] 1.2 Purge temporary items via `reflect.js --purge`
-    - [x] 1.3 Verify "Clean State" for T3 gating
-- [x] Atomic Governance Commit
-    - [x] 2.1 Record AMP entry with `design_ref`
-    - [x] 2.2 Stage final governance assets
-    - [x] 2.3 Execute T3 commit and validate success (Route B)
-- [x] Physical Push & Closure
-    - [x] 3.1 Perform `npm run done` or `/push`
-    - [x] 3.2 Verify workflow visibility and protection rules
-    - [x] 3.3 Create `walkthrough.md` and declare `**[TASK_CLOSED]**`
+## Phase 2: Auth 基盤の核心刷新 (完了)
+- [x] 2.1 `AuthAdapter.ts` 拡張
+- [x] 2.2 `authStore.ts` 物理パージ強化
+- [x] 2.3 `AuthProvider.tsx` 刷新 (State Machine)
+- [x] 2.4 UI ガードレール転換 (Permission-First)
+- [x] 2.5 `AuthErrorBoundary.tsx` 新規作成
+
+## Phase 3: スキーマ統合と最終物理封印 (v3.1)
+- [x] 3.1 データベース層：`staffs` スキーマ拡張
+    - [x] 3.1.1 マイグレーション SQL 生成 (`device_mode`, `vehicle_info`, `can_edit_board`)
+    - [x] 3.1.2 データ移行 SQL の実行（型キャスト修正を含む）
+    - [x] 3.1.3 RLS ポリシーの物理移植
+    - [x] 3.1.4 `npm run gen:types` による型定義の再構成
+- [x] 3.2 認証・ストレージ層：市民属性の取り込み
+    - [x] 3.2.1 `src/os/auth/types.ts` での `Staff` 型更新
+    - [x] 3.2.2 `AuthAdapter.ts` での属性取得ロジック追加
+    - [x] 3.2.3 `authStore.clear()` によるキャッシュ整合性の強制確保
+- [x] 3.3 アプリケーション層：`profiles` 依存の物理パージ
+    - [x] 3.3.1 `InteractionContext.tsx` の staffs 移行
+    - [x] 3.3.2 `useBoardData.ts` の staffs 移行（AppUser → Staff）
+    - [x] 3.3.3 `masterSchema.ts` の driverSchema を `staffs` テーブルへ変更
+    - [x] 3.3.4 `JobDetailPanel.tsx` の AppUser → Staff 置換
+    - [x] 3.3.5 `ProfilePortal.tsx` を Supabase Email Auth に刷新
+- [x] 3.4 最終検証と封印
+    - [x] 3.4.1 `MasterSchema` 型定義の拡張（MasterColumn, viewName, rpcTableName 等）
+    - [x] 3.4.2 `npm run build` による全域型検証（exit 0 確認）
+    - [ ] 3.4.3 垂直統合「Gate」の物理封印宣言（`npm run done`）
+
+---
+**現在のモード**: 標準モード
+**リスクスコア**: 合計 6 [2/2/2]
+**次のアクション**: `npm run done` による物理封印

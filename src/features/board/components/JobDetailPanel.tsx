@@ -4,12 +4,13 @@ import {
     CheckCircle2, History, ArrowRightLeft, ShieldAlert,
     Save, Maximize2, Minimize2, MapPin, Tag, Info, Box, Truck
 } from 'lucide-react';
-import { BoardJob, BoardDriver, AppUser } from '../../../types';
+import { BoardJob, BoardDriver } from '../../../types';
+import { Staff } from '../../../os/auth/types';
 
 interface JobDetailPanelProps {
     job: BoardJob;
     drivers: BoardDriver[];
-    currentUser: AppUser | null;
+    currentUser: Staff | null;
     canEdit: boolean;
     onClose: () => void;
     onUpdate: (jobId: string, updates: Partial<BoardJob>) => void;

@@ -61,7 +61,8 @@ export default defineConfig(({ mode }) => {
                 workbox: {
                     cleanupOutdatedCaches: true,
                     clientsClaim: true,
-                    skipWaiting: true
+                    skipWaiting: true,
+                    navigateFallbackDenylist: [/^\/supabase\//, /^\/auth\//] // OS 認証エンドポイントを PWA キャッシュから保護
                 },
                 devOptions: {
                     enabled: true,
@@ -81,11 +82,14 @@ export default defineConfig(({ mode }) => {
             setupFiles: './src/test/setup.ts',
         },
         server: {
-            host: true, // Listen on all IP addresses (0.0.0.0)
+            host: true,
             port: 5173,
             strictPort: true,
+            warmup: {
+                clientFiles: ['./src/main.tsx', './src/App.tsx'] // Vite 7 の新機能：事前ビルドで初動を高速化
+            },
             watch: {
-                usePolling: true, // Critical for Windows/WSL2 Docker Volumes
+                usePolling: true,
             }
         },
     }

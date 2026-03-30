@@ -27,7 +27,7 @@ interface InteractionProviderProps {
 }
 
 export const InteractionProvider: React.FC<InteractionProviderProps> = ({ children }) => {
-    const { currentUser } = useAuth();
+    const { currentUser, staff } = useAuth();
 
     // フェーズ 1.1: 初期化と LocalStorage 読み込み
     const [deviceMode, setDeviceModeState] = useState<DeviceMode>(() => {
@@ -69,32 +69,13 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({ childr
 
     // クラウドから初期値をフェッチ
     useEffect(() => {
-        if (!currentUser) return;
-
-        const loadProfileMode = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('device_mode')
-                    .eq('id', currentUser.id)
-                    .maybeSingle();
-
-                if (error) {
-                    console.error("[InteractionContext] Failed to fetch device_mode from profiles:", error.message);
-                    return;
-                }
-
-                if (data && data.device_mode && data.device_mode !== deviceMode) {
-                    setDeviceModeState(data.device_mode as DeviceMode);
-                }
-            } catch (err) {
-                console.error("[InteractionContext] device_mode fetch error:", err);
-            }
-        };
-
-        loadProfileMode();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentUser]);
+        if (!currentUser || !staff?.device_mode) return;
+        
+        // AuthContext (staff) から初期値を反映
+        if (staff.device_mode !== deviceMode) {
+            setDeviceModeState(staff.device_mode as DeviceMode);
+        }
+    }, [currentUser, staff?.device_mode, deviceMode]);
 
     // モードをセットし、クラウドと同期する
     const syncTimer = useRef<NodeJS.Timeout | null>(null);
@@ -108,7 +89,7 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({ childr
         if (syncTimer.current) clearTimeout(syncTimer.current);
         syncTimer.current = setTimeout(async () => {
             const { error } = await supabase
-                .from('profiles')
+                .from('staffs')
                 .update({ device_mode: mode })
                 .eq('id', currentUser.id);
 
