@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase/client';
 import { authAdapter } from '../os/auth/AuthAdapter';
 import type { Staff, AuthStatus } from '../os/auth/types';
+import type { Session } from '@supabase/supabase-js';
 import { Modal } from '../components/Modal';
 
 interface AuthContextType {
@@ -39,25 +40,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // React 19 use() 用の Promise を保持
     const [staffPromise, setStaffPromise] = useState<Promise<Staff | null> | null>(null);
 
-    useMemo(() => {
-        const promise = authAdapter.resolveStaff();
-        setStaffPromise(promise);
-        
-        promise.then(s => {
+    /**
+     * 認証解決のヘルパー関数
+     * onAuthStateChange のコールバックから呼ばれる（競合状態の排除）
+     * session を直接受け取ることで、getSession() の再呼び出しによるデッドロックを回避
+     */
+    const resolveAndSetStaff = async (session: Session | null) => {
+        if (!session?.user) {
+            setStaff(null);
+            setStatus('UNAUTHENTICATED');
+            return;
+        }
+
+        try {
+            const promise = authAdapter.resolveStaffFromSession(session);
+            setStaffPromise(promise);
+            const s = await promise;
             setStaff(s);
             setStatus(s ? 'AUTHENTICATED' : 'UNAUTHENTICATED');
-        }).catch(err => {
-            console.error('[AuthProvider] Auth resolution failed:', err);
+        } catch (err: any) {
+            console.error('[AuthProvider] Auth resolution failed with error:', err);
             setStaff(null);
-            // エラーの種類に応じて LOCKED か UNAUTHENTICATED へ
-            if (err.code === 'FORBIDDEN') {
+            
+            // AbortError の場合はエラー画面に移行させずリトライ可能にするか、未認証にする
+            if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
+                console.warn('[AuthProvider] Fetch aborted, attempting cache sync setup...');
+                setStatus('UNAUTHENTICATED'); // 少なくともスタック状態を解除する
+            } else if (err.code === 'FORBIDDEN') {
                 setStatus('LOCKED');
             } else {
                 setStatus('UNAUTHENTICATED');
             }
-        });
-        return promise;
-    }, []);
+        }
+    };
 
     useEffect(() => {
         // 初期化およびスタッフリストの取得
@@ -73,14 +88,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        // [AuthAdapter] の内部リスナーと協調しつつ、UI ステートを同期
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, _session) => {
-            console.log(`[AuthProvider] Auth Event: ${event}`);
+        // [React 18 StrictMode + Supabase v2 対策]
+        // INITIAL_SESSION イベントは初回の onAuthStateChange 登録時にしか発火しないため、
+        // 直後の unsubscribe によって消失し、再マウント時に発火せずハングする問題がある。
+        // これを防ぐため、明示的に初期セッションを取得する。
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            console.log('[AuthProvider] Initial session fetch result:', { session: session ? 'exists' : 'null', error });
+            if (error) {
+                console.error('[AuthProvider] getSession error:', error);
+                setStatus('UNAUTHENTICATED'); // デッドロック回避
+                return;
+            }
+            
+            resolveAndSetStaff(session).then(() => {
+                if (session) {
+                    authAdapter.fetchAllStaffs().then(setStaffs).catch(e => console.error('[AuthProvider] fetchAllStaffs error:', e));
+                }
+            });
+        }).catch(err => {
+            console.error('[AuthProvider] getSession promise rejected:', err);
+            setStatus('UNAUTHENTICATED');
+        });
+
+        // onAuthStateChange は「その後の変更」のみを監視する
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`[AuthProvider] Auth Event: ${event}, session: ${session ? 'exists' : 'null'}`);
             
             if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-                const s = await authAdapter.resolveStaff();
-                setStaff(s);
-                setStatus(s ? 'AUTHENTICATED' : 'UNAUTHENTICATED');
+                await resolveAndSetStaff(session);
+                try {
+                    const list = await authAdapter.fetchAllStaffs();
+                    setStaffs(list);
+                } catch (e) {
+                    console.error('[AuthProvider] Failed to fetch staffs list:', e);
+                }
             } else if (event === 'SIGNED_OUT') {
                 setStaff(null);
                 setStaffs([]);

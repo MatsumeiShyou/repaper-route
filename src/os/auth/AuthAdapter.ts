@@ -26,8 +26,8 @@ export class AuthAdapter {
       console.log(`[AuthAdapter] Event: ${event}`);
       if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
         this.clearCache().catch(e => console.error('[AuthAdapter] Error clearing cache on auth event:', e));
-      } else if (event === 'SIGNED_IN') {
-        // サインイン時は古いキャッシュ（Promise）を破棄し、最新を取得できる状態にする
+      } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        // サインイン時・リロード時は古いキャッシュ（Promise）を破棄し、最新を取得できる状態にする
         this.currentStaff = null;
       }
     });
@@ -47,20 +47,48 @@ export class AuthAdapter {
   public resolveStaff(): Promise<Staff | null> {
     if (this.currentStaff) return this.currentStaff;
 
-    this.currentStaff = this.fetchStaff();
+    this.currentStaff = this.fetchStaff().catch(err => {
+      // reject した Promise がキャッシュに固着するのを防止
+      this.currentStaff = null;
+      throw err;
+    });
+    return this.currentStaff;
+  }
+
+  /**
+   * onAuthStateChange コールバックから呼ばれる専用メソッド。
+   * 既に取得済みの Session を受け取り、getSession() の再呼び出しを回避する。
+   * これにより Supabase クライアント内部のロック競合（デッドロック）を物理的に排除する。
+   */
+  public resolveStaffFromSession(session: import('@supabase/supabase-js').Session): Promise<Staff | null> {
+    // セッション付き解決では常に新鮮な Promise を生成する（キャッシュを使わない）
+    this.currentStaff = this.fetchStaff(session).catch(err => {
+      this.currentStaff = null;
+      throw err;
+    });
     return this.currentStaff;
   }
 
   /**
    * staffs テーブル (OS 規格) から Staff 情報を取得・検証する。
    * ネットワークエラー時は IndexedDB キャッシュからの復旧を試みる。
+   * 
+   * @param preFetchedSession onAuthStateChange から渡されたセッション（デッドロック回避用）
    */
-  private async fetchStaff(): Promise<Staff | null> {
+  private async fetchStaff(preFetchedSession?: import('@supabase/supabase-js').Session): Promise<Staff | null> {
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      let session = preFetchedSession;
       
-      if (sessionError || !session?.user) {
-        console.warn('[AuthAdapter] Session not found, attempting cache recovery:', sessionError);
+      // 引数でセッションが渡されなかった場合のみ、getSession() で取得する
+      if (!session) {
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.warn('[AuthAdapter] Session not found, attempting cache recovery:', sessionError);
+        }
+        session = data.session || undefined;
+      }
+      
+      if (!session?.user) {
         const cached = await this.recoverFromCache();
         if (cached) return cached;
         throw new NotAuthenticatedError();

@@ -26,7 +26,7 @@
 - [x] 3.4 最終検証と封印
     - [x] 3.4.1 `MasterSchema` 型定義の拡張（MasterColumn, viewName, rpcTableName 等）
     - [x] 3.4.2 `npm run build` による全域型検証（exit 0 確認）
-    - [ ] 3.4.3 垂直統合「Gate」の物理封印宣言（`npm run done`）
+    - [x] 3.4.3 垂直統合「Gate」の物理封印宣言（`npm run done`）
 
 ---
 **現在のモード**: 標準モード

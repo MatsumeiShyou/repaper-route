@@ -1,0 +1,39 @@
+﻿
+> repaper-route@1.0.0 dev
+> vite --host
+
+node.exe : error when sta
+rting dev server:
+発生場所 行:1 文字:1
++ & "C:\Program Files\nod
+ejs/node.exe" "C:\Program
+ Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  (error when starting   
+  dev server::String)    
+ [], RemoteException
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+Error: Port 5173 is alrea
+dy in use
+    at Server.onError (fi
+le:///C:/Users/shiyo/%E9%
+96%8B%E7%99%BA%E4%B8%ADAP
+P/RePaper%20Route/node_mo
+dules/vite/dist/node/chun
+ks/dep-BK3b2jBa.js:45596:
+18)
+    at Server.emit (node:
+events:508:28)
+    at emitErrorNT (node:
+net:1976:8)
+    at process.processTic
+ksAndRejections (node:int
+ernal/process/task_queues
+:89:21)
