@@ -20,7 +20,7 @@ export const useBoardDragDrop = (
     drivers: BoardDriver[],
     splits: BoardSplit[],
     driverColRefs: React.MutableRefObject<Record<string, HTMLElement | null>>,
-    gridContainerRef: React.RefObject<HTMLDivElement>,
+    gridContainerRef: React.RefObject<HTMLDivElement | null>,
     setJobs: React.Dispatch<React.SetStateAction<BoardJob[]>>,
     setPendingJobs: React.Dispatch<React.SetStateAction<BoardJob[]>>,
     _setSplits: React.Dispatch<React.SetStateAction<BoardSplit[]>>, // unused but kept for interface match

@@ -1,19 +1,13 @@
-import { defineWorkspace } from 'vitest/config';
+import { defineWorkspace } from 'vitest/config'
 
 export default defineWorkspace([
-    {
-        name: 'logic',
-        test: {
-            environment: 'node',
-            include: ['src/features/logic/**/*.test.ts'],
-            exclude: [
-                '**/node_modules/**',
-                'tests/vlm/**',
-                'tests/e2e/**'
-            ],
-            alias: {
-                '@': './src'
-            }
-        }
+  'apps/*',
+  {
+    test: {
+      include: ['apps/repaper-route/src/**/*.test.{js,ts,jsx,tsx}'],
+      name: 'repaper-route',
+      environment: 'jsdom',
+      globals: true,
     }
-]);
+  }
+])

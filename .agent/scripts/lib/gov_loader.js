@@ -27,13 +27,31 @@ export class ProtocolError extends Error {
     }
 }
 
+/**
+ * AGENTS.md §P: Dynamic Root Alignment
+ * Finds the project root by searching upwards for the '.agent' marker directory.
+ */
+export function findProjectRoot(startDir = process.cwd()) {
+    let current = path.resolve(startDir);
+    while (current !== path.parse(current).root) {
+        if (fs.existsSync(path.join(current, '.agent'))) {
+            return current;
+        }
+        current = path.dirname(current);
+    }
+    // Fallback if marker not found
+    return path.resolve(startDir);
+}
+
+const PROJECT_ROOT = findProjectRoot();
 const cache = new Map();
 
 /**
  * readJsonStrict: Enforces Zero-Fallback and Traceability Log
  */
 export function readJsonStrict(filePath, logicKey, fixCommand = null) {
-    const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+    // AGENTS.md §N: Path Resilience (Rev 4.1 Sync)
+    const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(PROJECT_ROOT, filePath);
 
     if (cache.has(absolutePath)) {
         return cache.get(absolutePath);

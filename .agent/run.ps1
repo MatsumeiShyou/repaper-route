@@ -1,9 +1,12 @@
 # .agent/run.ps1
-# UTF-8 共通ランナー
+# UTF-8 共通ランナー (Sovereign Root 版)
 # 全ての Node.js ガバナンススクリプトはこれ経由で実行する。
-# 目的: 文字化け(CP932/UTF-8混在)の排除 & ターミナル雑音の最小化
 
 param([Parameter(Mandatory=$true, ValueFromRemainingArguments=$true)][string[]]$ScriptArgs)
+
+# 基準点の設定 ($PSScriptRoot = .agent/ フォルダ)
+$AGENT_DIR = $PSScriptRoot
+$ROOT = Split-Path -Path $AGENT_DIR -Parent
 
 # UTF-8 強制
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -11,9 +14,10 @@ param([Parameter(Mandatory=$true, ValueFromRemainingArguments=$true)][string[]]$
 $OutputEncoding           = [System.Text.Encoding]::UTF8
 chcp 65001 | Out-Null
 
-# NODE_OPTIONS: 出力エンコーディングをUTF-8に固定
+# NODE_OPTIONS: 警告抑制
 $env:NODE_OPTIONS = "--no-warnings"
 
-# 実行
+# 実行ディレクトリをルートに固定して実行
+Set-Location -Path $ROOT
 node $ScriptArgs
 exit $LASTEXITCODE
