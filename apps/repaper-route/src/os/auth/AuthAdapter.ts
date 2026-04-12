@@ -95,11 +95,13 @@ export class AuthAdapter {
       }
 
       // staffs テーブルから市民情報を取得
+      console.log('[AuthAdapter] Fetching staff record from DB for UID:', session.user.id);
       const { data: staff, error } = await supabase
         .from('staffs')
         .select('*')
         .eq('id', session.user.id)
         .single();
+      console.log('[AuthAdapter] DB Fetch completed. result:', staff ? 'found' : 'not found', 'error:', error);
 
       if (error || !staff) {
         console.warn('[AuthAdapter] Staff record not found or inaccessible, attempting cache recovery:', error);
@@ -134,7 +136,10 @@ export class AuthAdapter {
       };
 
       // 正常に取得できたらキャッシュを更新 (Fire-and-forget)
-      authStore.saveStaff(resolvedStaff).catch(e => console.error('[AuthAdapter] Cache save failed:', e));
+      console.log('[AuthAdapter] Updating IDB cache for staff:', resolvedStaff.name);
+      authStore.saveStaff(resolvedStaff).then(() => {
+          console.log('[AuthAdapter] IDB cache update success');
+      }).catch(e => console.error('[AuthAdapter] Cache save failed:', e));
 
       return resolvedStaff;
     } catch (error) {

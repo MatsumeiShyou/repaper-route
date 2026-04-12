@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
 import { Shield, Loader2, LogIn, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
+import { useAuth } from '../contexts/AuthProvider';
 
 export const ProfilePortal: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { status } = useAuth();
+
+    React.useEffect(() => {
+        // AuthProvider側で権限エラー等により未認証状態に戻された場合、ローディングを解除する
+        if (status === 'UNAUTHENTICATED' || status === 'NOT_REGISTERED') {
+            setIsLoading(false);
+        }
+    }, [status]);
+
+    const displayError = error || (status === 'NOT_REGISTERED' ? 'スタッフ名簿に登録されていません。管理者に申請してください。' : null);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

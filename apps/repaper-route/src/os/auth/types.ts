@@ -75,4 +75,4 @@ export class AppAccessDeniedError extends AuthBaseError {
 /**
  * 統合 OS における認証状態の列挙
  */
-export type AuthStatus = 'INITIALIZING' | 'UNAUTHENTICATED' | 'AUTHENTICATED' | 'LOCKED';
+export type AuthStatus = 'INITIALIZING' | 'UNAUTHENTICATED' | 'AUTHENTICATED' | 'LOCKED' | 'NOT_REGISTERED';

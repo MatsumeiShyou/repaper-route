@@ -53,22 +53,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         try {
+            // [FAIL-SAFE] 5秒間のタイムアウトを設定（IDBやSWのハング対策）
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error('Auth resolution TIMEOUT: Local storage or IDB might be hung.')), 5000);
+            });
+
             const promise = authAdapter.resolveStaffFromSession(session);
             setStaffPromise(promise);
-            const s = await promise;
+            
+            // Promise.race を使用してハングを防止
+            const s = await Promise.race([promise, timeoutPromise]);
+            
             setStaff(s);
             setStatus(s ? 'AUTHENTICATED' : 'UNAUTHENTICATED');
         } catch (err: any) {
-            console.error('[AuthProvider] Auth resolution failed with error:', err);
+            console.error('[AuthProvider] Auth resolution failed or timed out:', err);
             setStaff(null);
             
-            // AbortError の場合はエラー画面に移行させずリトライ可能にするか、未認証にする
             if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
-                console.warn('[AuthProvider] Fetch aborted, attempting cache sync setup...');
-                setStatus('UNAUTHENTICATED'); // 少なくともスタック状態を解除する
-            } else if (err.code === 'FORBIDDEN') {
-                setStatus('LOCKED');
+                setStatus('UNAUTHENTICATED');
+            } else if (err?.code === 'FORBIDDEN') {
+                // スタッフ名簿に不在、またはアプリ権限がない場合は明示的に NOT_REGISTERED へ
+                setStatus('NOT_REGISTERED');
             } else {
+                // その他の重大なエラー
                 setStatus('UNAUTHENTICATED');
             }
         }

@@ -32,9 +32,14 @@ describe('TemplateExpander v3 (Pure Skeleton)', () => {
         expect(result.unassigned).toHaveLength(3);
 
         // 2. 決定論的にソートされている (AM 09:00 -> AM 10:00 -> PM 13:00)
-        expect(result.unassigned[0].id).toBe('j-am1');
-        expect(result.unassigned[1].id).toBe('j-am2');
-        expect(result.unassigned[2].id).toBe('j-pm');
+        expect(result.unassigned[0].job_title).toBe('テスト案件');
+        expect(result.unassigned[0].start_time).toBe('09:00');
+        expect(result.unassigned[1].start_time).toBe('10:00');
+        expect(result.unassigned[2].start_time).toBe('13:00');
+        
+        // ID は UUID に変換されているはずなので、存在確認のみ
+        expect(result.unassigned[0].id).toBeDefined();
+        expect(result.unassigned[0].id).not.toBe('j-am1');
     });
 
     it('展開時にマスタ属性 (time_constraint_type 等) を保持・復元する', () => {
@@ -62,8 +67,9 @@ describe('TemplateExpander v3 (Pure Skeleton)', () => {
         const result = TemplateExpander.expand(skeletons);
         
         // ID:a (アオキ) -> ID:d (アオキ) -> ID:c (サトウ) の順
-        expect(result.unassigned[0].id).toBe('a');
-        expect(result.unassigned[1].id).toBe('d');
-        expect(result.unassigned[2].id).toBe('c');
+        // ID 自体は UUID に変わっているため、customer_name でソートを確認
+        expect(result.unassigned[0].customer_name).toBe('アオキ');
+        expect(result.unassigned[1].customer_name).toBe('アオキ');
+        expect(result.unassigned[2].customer_name).toBe('サトウ');
     });
 });

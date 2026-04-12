@@ -12,7 +12,7 @@
     },
     "scripts": {
         "dev": "npm run dev -w apps/repaper-route",
-        "prebuild": "npm run prebuild -w apps/repaper-route",
+        "prebuild": "npm run type-check",
         "build": "npm run build -w apps/repaper-route",
         "lint": "npm run lint -w apps/repaper-route",
         "type-check": "npm run type-check -w apps/repaper-route",
@@ -32,7 +32,8 @@
         "supabase": "supabase",
         "db:diff": "supabase db diff",
         "db:push": "supabase db push",
-        "gen:types": "supabase gen types typescript --project-id mjaoolcjjlxwstlpdgrg > apps/repaper-route/src/types/database.types.ts"
+        "gen:types": "supabase gen types typescript --project-id mjaoolcjjlxwstlpdgrg > apps/repaper-route/src/types/database.types.ts",
+        "auth:init": "node scripts/auth-init.js"
     },
     "devDependencies": {
         "@eslint/js": "^9.0.0",
