@@ -51,9 +51,8 @@ const runPurgeInternal = async () => {
         // 4. ストレージの「全件」消去
         localStorage.clear();
         sessionStorage.clear();
-        console.log('[PURGE] All local/session storage cleared.');
+        console.log('[PURGE] Radical purge complete. Rebooting...');
 
-        alert('RADICAL PURGE COMPLETE. The system will reboot in a 100-pt clean state.');
         window.location.href = window.location.origin + window.location.pathname;
     } catch (e) {
         console.error('[PURGE] Critical error:', e);

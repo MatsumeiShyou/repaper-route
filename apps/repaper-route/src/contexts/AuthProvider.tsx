@@ -31,6 +31,9 @@ interface AuthProviderProps {
     children: ReactNode;
 }
 
+// [SINGLETON] 初期セッション解決プロセスの二重実行（Token Reuse）を防止
+let initialSessionPromise: Promise<{ session: Session | null; error: any }> | null = null;
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [staff, setStaff] = useState<Staff | null>(null);
     const [staffs, setStaffs] = useState<Staff[]>([]);
@@ -45,8 +48,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     /**
      * 認証解決のヘルパー関数
-     * onAuthStateChange のコールバックから呼ばれる（競合状態の排除）
-     * session を直接受け取ることで、getSession() の再呼び出しによるデッドロックを回避
      */
     const resolveAndSetStaff = async (session: Session | null) => {
         if (isResolving.current) {
@@ -56,6 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isResolving.current = true;
 
         if (!session?.user) {
+            console.log('[AuthProvider] No session user, setting UNUATHENTICATED');
             setStaff(null);
             setStatus('UNAUTHENTICATED');
             isResolving.current = false;
@@ -63,21 +65,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         try {
-            // [FAIL-SAFE] 5秒間のタイムアウトを設定（IDBやSWのハング対策）
+            console.log('[AuthProvider] Resolving staff for UID:', session.user.id);
+            // [FAIL-SAFE] 5秒間のタイムアウトを設定
             const timeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error('Auth resolution TIMEOUT: Local storage or IDB might be hung.')), 5000);
+                setTimeout(() => reject(new Error('Auth resolution TIMEOUT')), 5000);
             });
 
             const promise = authAdapter.resolveStaffFromSession(session);
             setStaffPromise(promise);
             
-            // Promise.race を使用してハングを防止
             const s = await Promise.race([promise, timeoutPromise]);
             
             setStaff(s);
             setStatus(s ? 'AUTHENTICATED' : 'UNAUTHENTICATED');
         } catch (err: any) {
-            console.error('[AuthProvider] Auth resolution failed or timed out:', err);
+            console.error('[AuthProvider] Auth resolution failed:', err);
             setStaff(null);
             
             const isAbort = err?.name === 'AbortError' || err?.message?.includes('aborted');
@@ -85,20 +87,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const isNotFound = err?.name === 'StaffNotFoundError' || err?.code === 'FORBIDDEN';
 
             if (isTimeout) {
-                console.error('[AuthProvider] CRITICAL: DB Fetch Timeout. Forcing radical logout to clear stuck state.');
+                console.error('[AuthProvider] CRITICAL: DB Fetch Timeout. Forcing radical logout.');
                 setStatus('UNAUTHENTICATED');
-                // ハングを断絶するため強制サインアウトとキャッシュクリア
-                supabase.auth.signOut().finally(() => {
-                    authAdapter.clearCache();
-                });
+                supabase.auth.signOut().finally(() => authAdapter.clearCache());
             } else if (isAbort) {
-                // タイムアウトや中断時は初期状態（ログイン画面）へ
                 setStatus('UNAUTHENTICATED');
             } else if (isNotFound) {
-                // スタッフ名簿に不在、またはアプリ権限がない場合は明示的に NOT_REGISTERED へ
                 setStatus('NOT_REGISTERED');
             } else {
-                // その他の重大なエラー
                 setStatus('UNAUTHENTICATED');
             }
         } finally {
@@ -109,8 +105,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     useEffect(() => {
         let isCancelled = false;
         
-        // 初期化およびスタッフリストの取得
-        const init = async () => {
+        // 1. スタッフリストの取得
+        const fetchList = async () => {
             try {
                 const list = await authAdapter.fetchAllStaffs();
                 if (!isCancelled) setStaffs(list);
@@ -118,14 +114,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 console.error('[AuthProvider] Failed to fetch staffs list:', e);
             }
         };
-        init();
 
-        // [React 18/19 StrictMode 対策] 一度だけ実行を保証
+        // 2. [SINGLETON] 初期セッションのロード（二重実行を物理的に排除）
         const loadInitialSession = async () => {
+            if (!initialSessionPromise) {
+                console.log('[AuthProvider] Dispatching singleton getSession call...');
+                initialSessionPromise = supabase.auth.getSession();
+            } else {
+                console.log('[AuthProvider] Awaiting existing singleton session promise...');
+            }
+
             try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                console.log('[AuthProvider] Initial session fetch result:', { session: session ? 'exists' : 'null', error });
-                
+                const { data: { session }, error } = await initialSessionPromise;
                 if (isCancelled) return;
                 
                 if (error) {
@@ -135,36 +135,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 }
                 
                 await resolveAndSetStaff(session);
-                
-                if (session && !isCancelled) {
-                    const list = await authAdapter.fetchAllStaffs();
-                    setStaffs(list);
-                }
+                await fetchList();
             } catch (err) {
-                console.error('[AuthProvider] getSession promise rejected:', err);
+                console.error('[AuthProvider] Initial session fetch failed:', err);
                 if (!isCancelled) setStatus('UNAUTHENTICATED');
             }
         };
 
         loadInitialSession();
 
-        // onAuthStateChange は「その後の変更」のみを監視する
+        // 3. 認証状態の変化を監視
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log(`[AuthProvider] Auth Event: ${event}, session: ${session ? 'exists' : 'null'}`);
+            console.log(`[AuthProvider] Auth Event: ${event}`);
             if (isCancelled) return;
             
             if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-                await resolveAndSetStaff(session);
-                try {
-                    const list = await authAdapter.fetchAllStaffs();
-                    if (!isCancelled) setStaffs(list);
-                } catch (e) {
-                    console.error('[AuthProvider] Failed to fetch staffs list:', e);
+                // セッションが確立している場合のみ解決を実行
+                if (session) {
+                    await resolveAndSetStaff(session);
+                    await fetchList();
                 }
             } else if (event === 'SIGNED_OUT') {
                 setStaff(null);
                 setStaffs([]);
                 setStatus('UNAUTHENTICATED');
+                // サインアウト時は初期化 Promise もリセットし、次回の再マウントに備える
+                initialSessionPromise = null;
             }
         });
 
@@ -181,13 +177,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const confirmLogout = async () => {
         setIsLogoutModalOpen(false);
         await supabase.auth.signOut();
+        initialSessionPromise = null; // サインアウト時に Promise をリセット
         await authAdapter.clearCache();
     };
 
     return (
         <AuthContext.Provider value={{ 
             staff, 
-            currentUser: staff, // Backward compatibility
+            currentUser: staff,
             staffs, 
             status, 
             staffPromise,
