@@ -10,41 +10,55 @@ import { registerSW } from 'virtual:pwa-register'
  * URL に ?purge=true を付与してアクセスすることで発動します。
  */
 const runPurgeInternal = async () => {
-    console.warn('[PURGE] Sanctuary Purge Protocol Initiated...');
+    console.warn('--- 💀 RADICAL PHYSICAL PURGE INITIATED ---');
     
-    // 1. Service Worker の完全抹消
-    if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const r of registrations) {
-            await r.unregister();
-            console.log('[PURGE] Unregistered Service Worker');
+    try {
+        // 1. Service Worker の完全抹消
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const r of registrations) {
+                console.log('[PURGE] Unregistering SW:', r.scope);
+                await r.unregister();
+            }
         }
-    }
 
-    // 2. Cache API の消去
-    if ('caches' in window) {
-        const keys = await caches.keys();
-        for (const key of keys) {
-            await caches.delete(key);
-            console.log(`[PURGE] Deleted Cache: ${key}`);
+        // 2. Cache API の消去
+        if ('caches' in window) {
+            const keys = await caches.keys();
+            for (const key of keys) {
+                console.log('[PURGE] Deleting Cache:', key);
+                await caches.delete(key);
+            }
         }
+
+        // 3. IndexedDB の物理的抹殺（動的特定と削除）
+        if (window.indexedDB.databases) {
+            const dbs = await window.indexedDB.databases();
+            for (const db of dbs) {
+                if (db.name) {
+                    await new Promise((resolve) => {
+                        console.log(`[PURGE] Deleting DB: ${db.name}`);
+                        const req = indexedDB.deleteDatabase(db.name);
+                        req.onsuccess = () => resolve(null);
+                        req.onerror = () => resolve(null);
+                        req.onblocked = () => resolve(null);
+                        setTimeout(() => resolve(null), 1000);
+                    });
+                }
+            }
+        }
+
+        // 4. ストレージの「全件」消去
+        localStorage.clear();
+        sessionStorage.clear();
+        console.log('[PURGE] All local/session storage cleared.');
+
+        alert('RADICAL PURGE COMPLETE. The system will reboot in a 100-pt clean state.');
+        window.location.href = window.location.origin + window.location.pathname;
+    } catch (e) {
+        console.error('[PURGE] Critical error:', e);
+        window.location.reload();
     }
-
-    // 3. IndexedDB の削除 (dxos-auth-db 等)
-    // 注意: 具体的な DB 名が不明な場合も想定し、一般的な名前を試行
-    const dbs = ['dxos-auth-db', 'keyval-store', 'workbox-precache-v2'];
-    for (const dbName of dbs) {
-        window.indexedDB.deleteDatabase(dbName);
-        console.log(`[PURGE] Deleted IndexedDB: ${dbName}`);
-    }
-
-    // 4. ストレージの全消去
-    localStorage.clear();
-    sessionStorage.clear();
-    console.log('[PURGE] LocalStorage/SessionStorage cleared.');
-
-    alert('Sanctuary Purge Complete. The page will reload in a clean state.');
-    window.location.href = window.location.origin + window.location.pathname;
 };
 
 if (window.location.search.includes('purge=true')) {

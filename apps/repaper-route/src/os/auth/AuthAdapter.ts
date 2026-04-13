@@ -19,6 +19,12 @@ export class AuthAdapter {
 
   private constructor() {
     this.setupAuthListener();
+    // [DIAGNOSTIC] LocalStorage のキーをすべて出力し、パージ漏れを可視化
+    const keys = Object.keys(localStorage);
+    console.log('[AuthAdapter] Current LocalStorage keys:', keys);
+    if (keys.some(k => k.includes('sb-') || k.includes('supabase'))) {
+      console.warn('[AuthAdapter] PERSISTENT GHOST DETECTED: Supabase related keys still exist in storage.');
+    }
   }
   
   private setupAuthListener() {
@@ -96,15 +102,21 @@ export class AuthAdapter {
 
       // staffs テーブルから市民情報を取得
       console.log('[AuthAdapter] Fetching staff record from DB for UID:', session.user.id);
-      const { data: staff, error } = await supabase
+      
+      const timeoutPromise = new Promise<any>((_, reject) => {
+        setTimeout(() => reject(new Error('TIMEOUT_DB_FETCH')), 5000);
+      });
+      const queryPromise = supabase
         .from('staffs')
         .select('*')
         .eq('id', session.user.id)
         .single();
+        
+      const { data: staff, error } = await Promise.race([queryPromise, timeoutPromise]);
       console.log('[AuthAdapter] DB Fetch completed. result:', staff ? 'found' : 'not found', 'error:', error);
 
       if (error || !staff) {
-        console.warn('[AuthAdapter] Staff record not found or inaccessible, attempting cache recovery:', error);
+        console.warn('[AuthAdapter] Staff record not found or inaccessible for UID:', session.user.id, 'Error:', error);
         const cached = await this.recoverFromCache(session.user.id);
         if (cached) return cached;
         throw new StaffNotFoundError();

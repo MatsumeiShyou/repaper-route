@@ -40,15 +40,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // React 19 use() 用の Promise を保持
     const [staffPromise, setStaffPromise] = useState<Promise<Staff | null> | null>(null);
 
+    // [MUTEX] 認証解決プロセスの二重起動（競合による AbortError）を防止
+    const isResolving = React.useRef(false);
+
     /**
      * 認証解決のヘルパー関数
      * onAuthStateChange のコールバックから呼ばれる（競合状態の排除）
      * session を直接受け取ることで、getSession() の再呼び出しによるデッドロックを回避
      */
     const resolveAndSetStaff = async (session: Session | null) => {
+        if (isResolving.current) {
+            console.log('[AuthProvider] Auth resolution already in progress. Skipping duplicate call.');
+            return;
+        }
+        isResolving.current = true;
+
         if (!session?.user) {
             setStaff(null);
             setStatus('UNAUTHENTICATED');
+            isResolving.current = false;
             return;
         }
 
@@ -70,63 +80,84 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.error('[AuthProvider] Auth resolution failed or timed out:', err);
             setStaff(null);
             
-            if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
+            const isAbort = err?.name === 'AbortError' || err?.message?.includes('aborted');
+            const isTimeout = err?.message === 'TIMEOUT_DB_FETCH' || err?.message?.includes('TIMEOUT');
+            const isNotFound = err?.name === 'StaffNotFoundError' || err?.code === 'FORBIDDEN';
+
+            if (isTimeout) {
+                console.error('[AuthProvider] CRITICAL: DB Fetch Timeout. Forcing radical logout to clear stuck state.');
                 setStatus('UNAUTHENTICATED');
-            } else if (err?.code === 'FORBIDDEN') {
+                // ハングを断絶するため強制サインアウトとキャッシュクリア
+                supabase.auth.signOut().finally(() => {
+                    authAdapter.clearCache();
+                });
+            } else if (isAbort) {
+                // タイムアウトや中断時は初期状態（ログイン画面）へ
+                setStatus('UNAUTHENTICATED');
+            } else if (isNotFound) {
                 // スタッフ名簿に不在、またはアプリ権限がない場合は明示的に NOT_REGISTERED へ
                 setStatus('NOT_REGISTERED');
             } else {
                 // その他の重大なエラー
                 setStatus('UNAUTHENTICATED');
             }
+        } finally {
+            isResolving.current = false;
         }
     };
 
     useEffect(() => {
+        let isCancelled = false;
+        
         // 初期化およびスタッフリストの取得
         const init = async () => {
             try {
                 const list = await authAdapter.fetchAllStaffs();
-                setStaffs(list);
+                if (!isCancelled) setStaffs(list);
             } catch (e) {
                 console.error('[AuthProvider] Failed to fetch staffs list:', e);
             }
         };
         init();
-    }, []);
 
-    useEffect(() => {
-        // [React 18 StrictMode + Supabase v2 対策]
-        // INITIAL_SESSION イベントは初回の onAuthStateChange 登録時にしか発火しないため、
-        // 直後の unsubscribe によって消失し、再マウント時に発火せずハングする問題がある。
-        // これを防ぐため、明示的に初期セッションを取得する。
-        supabase.auth.getSession().then(({ data: { session }, error }) => {
-            console.log('[AuthProvider] Initial session fetch result:', { session: session ? 'exists' : 'null', error });
-            if (error) {
-                console.error('[AuthProvider] getSession error:', error);
-                setStatus('UNAUTHENTICATED'); // デッドロック回避
-                return;
-            }
-            
-            resolveAndSetStaff(session).then(() => {
-                if (session) {
-                    authAdapter.fetchAllStaffs().then(setStaffs).catch(e => console.error('[AuthProvider] fetchAllStaffs error:', e));
+        // [React 18/19 StrictMode 対策] 一度だけ実行を保証
+        const loadInitialSession = async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                console.log('[AuthProvider] Initial session fetch result:', { session: session ? 'exists' : 'null', error });
+                
+                if (isCancelled) return;
+                
+                if (error) {
+                    console.error('[AuthProvider] getSession error:', error);
+                    setStatus('UNAUTHENTICATED');
+                    return;
                 }
-            });
-        }).catch(err => {
-            console.error('[AuthProvider] getSession promise rejected:', err);
-            setStatus('UNAUTHENTICATED');
-        });
+                
+                await resolveAndSetStaff(session);
+                
+                if (session && !isCancelled) {
+                    const list = await authAdapter.fetchAllStaffs();
+                    setStaffs(list);
+                }
+            } catch (err) {
+                console.error('[AuthProvider] getSession promise rejected:', err);
+                if (!isCancelled) setStatus('UNAUTHENTICATED');
+            }
+        };
+
+        loadInitialSession();
 
         // onAuthStateChange は「その後の変更」のみを監視する
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log(`[AuthProvider] Auth Event: ${event}, session: ${session ? 'exists' : 'null'}`);
+            if (isCancelled) return;
             
             if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
                 await resolveAndSetStaff(session);
                 try {
                     const list = await authAdapter.fetchAllStaffs();
-                    setStaffs(list);
+                    if (!isCancelled) setStaffs(list);
                 } catch (e) {
                     console.error('[AuthProvider] Failed to fetch staffs list:', e);
                 }
@@ -136,7 +167,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 setStatus('UNAUTHENTICATED');
             }
         });
-        return () => subscription.unsubscribe();
+
+        return () => {
+            isCancelled = true;
+            subscription.unsubscribe();
+        };
     }, []);
 
     const logout = async () => {
