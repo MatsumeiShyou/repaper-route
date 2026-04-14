@@ -29,21 +29,24 @@ export class ProtocolError extends Error {
 
 /**
  * AGENTS.md §P: Dynamic Root Alignment
- * Finds the project root by searching upwards for the '.agent' marker directory.
+ * Finds the project root by searching upwards for the '.agent' marker directory or 'AGENTS.md'.
  */
 export function findProjectRoot(startDir = process.cwd()) {
     let current = path.resolve(startDir);
     while (current !== path.parse(current).root) {
-        if (fs.existsSync(path.join(current, '.agent'))) {
+        if (fs.existsSync(path.join(current, '.agent')) || fs.existsSync(path.join(current, 'AGENTS.md'))) {
             return current;
         }
         current = path.dirname(current);
     }
-    // Fallback if marker not found
-    return path.resolve(startDir);
+    // AGENTS.md §N: Zero-Fallback
+    ProtocolError.crash(
+        `Project root not found (missing AGENTS.md or .agent). Searched up from: ${startDir}`,
+        "Ensure you are running from within the repository."
+    );
 }
 
-const PROJECT_ROOT = findProjectRoot();
+export const PROJECT_ROOT = findProjectRoot();
 const cache = new Map();
 
 /**

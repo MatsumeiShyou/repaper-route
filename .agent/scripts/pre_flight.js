@@ -11,7 +11,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { getSession, captureGovSnapshot } from './session_manager.js';
-import { readJsonStrict, findProjectRoot } from './lib/gov_loader.js';
+import { readJsonStrict, findProjectRoot, PROJECT_ROOT } from './lib/gov_loader.js';
 
 // §N Logic Binding: 'COMPLIANCE_LIMITS'
 // §N Logic Binding: 'HANDOFF_AUDIT'
@@ -24,7 +24,7 @@ if (process.platform === 'win32') {
 
 // --- Path Constants ---
 // AGENTS.md §P: Dynamic Root Alignment (Rev 4.1 Sync)
-const PROJECT_ROOT = findProjectRoot();
+// PROJECT_ROOT is now imported from gov_loader.js as a constant.
 const SCRIPTS_DIR = path.join(PROJECT_ROOT, '.agent', 'scripts');
 const TASK_MD_PATH = path.join(PROJECT_ROOT, 'task.md');
 const RULES_PATH = path.join(PROJECT_ROOT, '.agent', 'config', 'governance_rules.json');

@@ -3,9 +3,9 @@
 ## 1. Technical Debt (技術的負債)
 *解決すべき技術的課題、リファクタリング対象*
 
-- [ ] **[Path Fragility] 統治ツールのパス脆性**: 依然として `process.cwd()` に依存しているスクリプトが存在し、ワークスペース内での実行が不安定。
-- [ ] **[Supabase Sync] インフラ統合**: ルートと `apps/repaper-route` の `supabase/` フォルダの完全な一本化と環境変数の同期。
-- [ ] **[Type Boundary] 循環参照の懸念**: `features/logic` と `features/board` 間での型定義の重複および依存関係の整理。
+- [x] **[Path Fragility] 統治ツールのパス解決**: `gov_loader.js` の強化と各スクリプトでの `PROJECT_ROOT` SSOT化により解決。
+- [ ] **[Supabase Sync] インフラ統括**: ルートと `apps/repaper-route` の `supabase/` フォルダの完全な一本化と環境変数の同期。
+- [ ] **[AuthAdapter Integration] 全社標準 Staff スキーマ準拠**: `AuthAdapter.ts` を修正し、旧 profile 形式から Staff スキーマへ完全移行。
 - [ ] **[Git Hooks Sync]**: `husky` がモノレポ構造を正しく認識し、全ワークスペースの `lint-staged` をトリガーできているかの検証。
 
 ## 2. Future Roadmap (将来構想)

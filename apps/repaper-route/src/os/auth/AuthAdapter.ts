@@ -144,7 +144,7 @@ export class AuthAdapter {
         last_synced_at: new Date().toISOString(),
         device_mode: rawStaff.device_mode || undefined,
         vehicle_info: rawStaff.vehicle_info || undefined,
-        permissions: this.derivePermissions(role)
+        permissions: this.derivePermissions(role, rawStaff.can_edit_board)
       };
 
       // 正常に取得できたらキャッシュを更新 (Fire-and-forget)
@@ -166,20 +166,28 @@ export class AuthAdapter {
   }
 
   /**
-   * ロールから物理権限を導出する。 (F-SSOT 準拠)
+   * ロールとDBの物理フラグから権限を導出する。 (F-SSOT 準拠)
+   * DB の can_edit_board が NULL でない場合はそれを最優先し、NULL の場合はロールのデフォルト値を使用する。
+   * ただし admin ロールは常にフルアクセスを保証する（安全装置）。
    */
-  private derivePermissions(role: StaffRole): StaffPermissions {
-    switch (role) {
-      case 'admin':
-        return { can_edit_board: true, can_manage_master: true, can_edit_past_records: true };
-      case 'manager':
-        return { can_edit_board: true, can_manage_master: true, can_edit_past_records: false };
-      case 'staff':
-        return { can_edit_board: true, can_manage_master: false, can_edit_past_records: false };
-      case 'driver':
-      default:
-        return { can_edit_board: false, can_manage_master: false, can_edit_past_records: false };
+  private derivePermissions(role: StaffRole, dbCanEditBoard: boolean | null): StaffPermissions {
+    // 1. 管理特権（いかなるDB設定よりも優先）
+    if (role === 'admin') {
+      return { can_edit_board: true, can_manage_master: true, can_edit_past_records: true };
     }
+
+    // 2. 基本権限の導出（ロールベースのデフォルト）
+    const defaults: StaffPermissions = {
+      can_edit_board: role === 'manager' || role === 'staff',
+      can_manage_master: role === 'manager',
+      can_edit_past_records: false
+    };
+
+    // 3. DB 物理フラグによる上書き（SSOT）
+    return {
+      ...defaults,
+      can_edit_board: dbCanEditBoard !== null ? dbCanEditBoard : defaults.can_edit_board
+    };
   }
 
   /**
@@ -242,7 +250,7 @@ export class AuthAdapter {
           last_synced_at: new Date().toISOString(),
           device_mode: s.device_mode || undefined,
           vehicle_info: s.vehicle_info || undefined,
-          permissions: this.derivePermissions(role)
+          permissions: this.derivePermissions(role, s.can_edit_board)
         };
       });
 
