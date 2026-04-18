@@ -1,4 +1,5 @@
 import { LogicJob, LogicVehicle, ConstraintViolation, LogicResult, PointAccessPermission } from '../types';
+import { StaffPermissions } from '../../os/auth/types';
 
 /**
  * 決定論的制約エンジン V2 (Constraint Engine)
@@ -8,11 +9,45 @@ export const checkConstraints = (
     vehicle: LogicVehicle,
     jobs: LogicJob[],
     driverId?: string,
-    pointPermissions?: PointAccessPermission[]
+    pointPermissions?: PointAccessPermission[],
+    permissions?: StaffPermissions,
+    today?: string
 ): LogicResult => {
     const violations: ConstraintViolation[] = [];
     const reasons: string[] = [];
     let score = 100;
+
+    // ─────────────────────────────────────────────────
+    // [L0: Edit Lock] - 編集権限および過去ロック
+    // ─────────────────────────────────────────────────
+    if (permissions) {
+        // 1. 全体編集権限
+        if (permissions.can_edit_board === false) {
+            violations.push({
+                tier: 'L1',
+                type: '編集権限なし',
+                message: '配車盤の編集権限がありません',
+                currentValue: 'false',
+                limitValue: 'true'
+            });
+            reasons.push('【不可】配車盤の編集権限がありません');
+        }
+
+        // 2. 過去ロック (バッファなし厳格運用)
+        if (today && permissions.can_edit_past_records === false) {
+            const hasPastEdit = jobs.some(j => j.targetDate < today);
+            if (hasPastEdit) {
+                violations.push({
+                    tier: 'L1',
+                    type: '過去データ編集制限',
+                    message: `過去データの編集は許可されていません (本日: ${today})`,
+                    currentValue: 'PAST_EDIT',
+                    limitValue: 'FUTURE_OR_PRESENT'
+                });
+                reasons.push('【不可】過去データの編集権限がありません');
+            }
+        }
+    }
 
     // ─────────────────────────────────────────────────
     // [L1: Hard Lock] - 物理的に不可能な配置

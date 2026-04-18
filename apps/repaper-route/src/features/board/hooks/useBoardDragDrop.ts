@@ -4,6 +4,7 @@ import { BoardJob, BoardDriver, BoardSplit } from '../../../types';
 import { timeToMinutes, minutesToTime, calculateTimeFromY } from '../logic/timeUtils';
 import { calculateCollision, checkVehicleCompatibility } from '../logic/collision';
 import { CELL_HEIGHT_PX } from '../logic/constants';
+import { useAuth } from '../../../contexts/AuthProvider';
 
 export interface DragDropState {
     draggingJobId: string | null;
@@ -29,6 +30,8 @@ export const useBoardDragDrop = (
     createProposal: ((state: any) => void) | null = null,
     onExceptionRequest?: (job: BoardJob, proposedState: any) => void // Phase 12: Exception Logging
 ) => {
+    const { staff } = useAuth();
+    const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
     const calculateDropTargetRef = (pointerX: number, relativeY: number, targetJobId: string) => {
         const targetJob = jobs.find(j => j.id === targetJobId) || pendingJobs.find(j => j.id === targetJobId);
@@ -58,7 +61,10 @@ export const useBoardDragDrop = (
             ignoreJobId: targetJobId,
             existingJobs: jobs,
             splits: splits,
-            drivers: drivers // 追加
+            drivers: drivers,
+            permissions: staff?.permissions,
+            today,
+            targetDate: (targetJob as any).date // BoardJob が持つ日付
         });
 
         const isVehicleError = checkVehicleCompatibility(

@@ -70,6 +70,8 @@ export interface BoardDriver {
     course: string;
     color: string;
     vehicleCallsign?: string; // Added for display parity with JS
+    vehicleNumber?: string;   // LogicBase 用に追加
+    max_payload?: number;     // 物理同期用追加
 }
 
 export interface BoardSplit {
@@ -123,6 +125,9 @@ export interface AppUser {
 // Master Data Types
 export interface MasterVehicle {
     id: string;
+    number: string;
+    callsign?: string;
+    max_payload?: number; // 物理同期用追加
     name?: string;
 }
 
@@ -132,7 +137,10 @@ export interface MasterCustomer {
     name: string;
     display_name?: string;
     furigana?: string;
+    address?: string;
     area?: string;
+    latitude?: number;  // 物理同期用追加 (view_master_points.latitude)
+    longitude?: number; // 物理同期用追加 (view_master_points.longitude)
     company_phone?: string;
     manager_phone?: string;
     recurrence_pattern?: string;

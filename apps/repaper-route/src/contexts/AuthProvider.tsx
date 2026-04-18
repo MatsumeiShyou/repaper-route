@@ -32,7 +32,7 @@ interface AuthProviderProps {
 }
 
 // [SINGLETON] 初期セッション解決プロセスの二重実行（Token Reuse）を防止
-let initialSessionPromise: Promise<{ session: Session | null; error: any }> | null = null;
+let initialSessionPromise: Promise<any> | null = null;
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [staff, setStaff] = useState<Staff | null>(null);
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isResolving.current = true;
 
         if (!session?.user) {
-            console.log('[AuthProvider] No session user, setting UNUATHENTICATED');
+            console.log('[AuthProvider] No session user, setting UNAUTHENTICATED');
             setStaff(null);
             setStatus('UNAUTHENTICATED');
             isResolving.current = false;
@@ -125,7 +125,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
 
             try {
-                const { data: { session }, error } = await initialSessionPromise;
+                const result = await initialSessionPromise;
+                const session = result?.data?.session || null;
+                const error = result?.error || null;
+
                 if (isCancelled) return;
                 
                 if (error) {

@@ -2,6 +2,8 @@ import { BoardJob, BoardSplit, BoardDriver } from '../../../types';
 import { checkConstraints } from '../../logic/core/ConstraintEngine';
 import { calculateScore } from '../../logic/score/ScoringEngine';
 import { LogicJob, LogicVehicle, PointAccessPermission } from '../../logic/types';
+import { resolveVehicleSpec } from '../../logic/core/VehicleSpecManifest';
+import { StaffPermissions } from '../../os/auth/types';
 import { timeToMinutes } from './timeUtils';
 
 interface CollisionCheckParams {
@@ -15,6 +17,10 @@ interface CollisionCheckParams {
     drivers?: BoardDriver[];
     // Phase D: 入場制限ルール（省略可 = 制約なし）
     pointPermissions?: PointAccessPermission[];
+    // Phase 6: 編集権限ガード用
+    permissions?: StaffPermissions;
+    today?: string;
+    targetDate?: string;
 }
 
 export const calculateCollision = ({
@@ -24,7 +30,10 @@ export const calculateCollision = ({
     ignoreJobId,
     existingJobs,
     drivers = [],
-    pointPermissions = []
+    pointPermissions = [],
+    permissions,
+    today,
+    targetDate
 }: CollisionCheckParams) => {
     // 1. 物理的な重なりチェック & 救済ロジック
     const otherJobs = existingJobs.filter(j => j.driverId === proposedDriverId && j.id !== ignoreJobId);
@@ -78,23 +87,47 @@ export const calculateCollision = ({
     };
 
     if (driver) {
+        const vehicleSpec = resolveVehicleSpec(
+            driver.id,
+            (driver as any).vehicleNumber,
+            driver.vehicleCallsign,
+            (driver as any).max_payload
+        );
+
         const logicVehicle: LogicVehicle = {
             id: driver.id,
             name: driver.name,
-            capacityWeight: 4000,
+            capacityWeight: vehicleSpec.capacityWeight,
             startLocation: { lat: 35.44, lng: 139.36 }
         };
 
-        const logicJobs: LogicJob[] = jobsInCol.map(j => ({
-            id: j.id,
-            weight: 500,
-            durationMinutes: j.duration,
-            location: { lat: 35.44, lng: 139.36 },
-            pointId: (j as any).pointId,
-            targetDate: '2024-01-01'
-        }));
+        // ドラッグ中の案件自体の情報を取得
+        const targetJob = existingJobs.find(j => j.id === ignoreJobId);
 
-        const checkRes = checkConstraints(logicVehicle, logicJobs, driver.id, pointPermissions);
+        // 既存の案件 + ドラッグ中の案件をシミュレーション
+        const logicJobs: LogicJob[] = [
+            ...jobsInCol.map(j => ({
+                id: j.id,
+                weight: (j as any).weight_kg || 0,
+                durationMinutes: j.duration,
+                location: { lat: 35.44, lng: 139.36 },
+                pointId: (j as any).pointId,
+                targetDate: targetDate || '2024-01-01',
+                // 既存案件の時間をパースして注入（多段遅延判定用）
+                actualStartTime: j.startTime || j.timeConstraint || undefined
+            })),
+            ...(targetJob ? [{
+                id: targetJob.id,
+                weight: (targetJob as any).weight_kg || 0,
+                durationMinutes: proposedDuration, // リサイズ中の場合も考慮
+                location: { lat: 35.44, lng: 139.36 },
+                pointId: (targetJob as any).pointId,
+                targetDate: targetDate || '2024-01-01',
+                actualStartTime: `${Math.floor(proposedStartMin / 60).toString().padStart(2, '0')}:${(proposedStartMin % 60).toString().padStart(2, '0')}`
+            }] : [])
+        ];
+
+        const checkRes = checkConstraints(logicVehicle, logicJobs, driver.id, pointPermissions, permissions, today);
         const scoreRes = calculateScore(logicJobs);
 
         constraintResult = {

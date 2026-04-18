@@ -37,7 +37,7 @@ export interface ConstraintViolation {
 export interface PointAccessPermission {
     id: string;
     point_id: string;   // master_collection_points.id
-    driver_id: string;  // profiles.id
+    driver_id: string;  // staffs.id
     vehicle_id: string; // vehicles.id
     note?: string;
     is_active: boolean;

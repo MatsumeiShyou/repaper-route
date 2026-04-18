@@ -19,12 +19,6 @@ export class AuthAdapter {
 
   private constructor() {
     this.setupAuthListener();
-    // [DIAGNOSTIC] LocalStorage のキーをすべて出力し、パージ漏れを可視化
-    const keys = Object.keys(localStorage);
-    console.log('[AuthAdapter] Current LocalStorage keys:', keys);
-    if (keys.some(k => k.includes('sb-') || k.includes('supabase'))) {
-      console.warn('[AuthAdapter] PERSISTENT GHOST DETECTED: Supabase related keys still exist in storage.');
-    }
   }
   
   private setupAuthListener() {
@@ -113,7 +107,6 @@ export class AuthAdapter {
         .single();
         
       const { data: staff, error } = await Promise.race([queryPromise, timeoutPromise]);
-      console.log('[AuthAdapter] DB Fetch completed. result:', staff ? 'found' : 'not found', 'error:', error);
 
       if (error || !staff) {
         console.warn('[AuthAdapter] Staff record not found or inaccessible for UID:', session.user.id, 'Error:', error);
@@ -144,14 +137,12 @@ export class AuthAdapter {
         last_synced_at: new Date().toISOString(),
         device_mode: rawStaff.device_mode || undefined,
         vehicle_info: rawStaff.vehicle_info || undefined,
-        permissions: this.derivePermissions(role, rawStaff.can_edit_board)
+        permissions: this.derivePermissions(role, {
+          can_edit_board: rawStaff.can_edit_board ?? undefined
+        })
       };
 
-      // 正常に取得できたらキャッシュを更新 (Fire-and-forget)
-      console.log('[AuthAdapter] Updating IDB cache for staff:', resolvedStaff.name);
-      authStore.saveStaff(resolvedStaff).then(() => {
-          console.log('[AuthAdapter] IDB cache update success');
-      }).catch(e => console.error('[AuthAdapter] Cache save failed:', e));
+      authStore.saveStaff(resolvedStaff).catch(e => console.error('[AuthAdapter] Cache save failed:', e));
 
       return resolvedStaff;
     } catch (error) {
@@ -165,29 +156,36 @@ export class AuthAdapter {
     }
   }
 
-  /**
-   * ロールとDBの物理フラグから権限を導出する。 (F-SSOT 準拠)
-   * DB の can_edit_board が NULL でない場合はそれを最優先し、NULL の場合はロールのデフォルト値を使用する。
-   * ただし admin ロールは常にフルアクセスを保証する（安全装置）。
-   */
-  private derivePermissions(role: StaffRole, dbCanEditBoard: boolean | null): StaffPermissions {
-    // 1. 管理特権（いかなるDB設定よりも優先）
-    if (role === 'admin') {
-      return { can_edit_board: true, can_manage_master: true, can_edit_past_records: true };
+   /**
+    * ロールから物理権限を導出する。 (F-SSOT 準拠)
+    * @param role スタッフのロール
+    * @param overrides DB上の個別フラグによる上書き（SSOT）
+    */
+  private derivePermissions(role: StaffRole, overrides?: Partial<StaffPermissions>): StaffPermissions {
+    let base: StaffPermissions;
+    switch (role) {
+      case 'admin':
+        base = { can_edit_board: true, can_manage_master: true, can_edit_past_records: true };
+        break;
+      case 'manager':
+        base = { can_edit_board: true, can_manage_master: true, can_edit_past_records: false };
+        break;
+      case 'staff':
+        base = { can_edit_board: true, can_manage_master: false, can_edit_past_records: false };
+        break;
+      case 'driver':
+      default:
+        base = { can_edit_board: false, can_manage_master: false, can_edit_past_records: false };
+        break;
     }
 
-    // 2. 基本権限の導出（ロールベースのデフォルト）
-    const defaults: StaffPermissions = {
-      can_edit_board: role === 'manager' || role === 'staff',
-      can_manage_master: role === 'manager',
-      can_edit_past_records: false
-    };
-
-    // 3. DB 物理フラグによる上書き（SSOT）
+    // DB上のフラグを SSOT として優先適用
     return {
-      ...defaults,
-      can_edit_board: dbCanEditBoard !== null ? dbCanEditBoard : defaults.can_edit_board
-    };
+      ...base,
+      ...Object.fromEntries(
+        Object.entries(overrides || {}).filter(([_, v]) => v !== undefined)
+      )
+    } as StaffPermissions;
   }
 
   /**
@@ -250,7 +248,9 @@ export class AuthAdapter {
           last_synced_at: new Date().toISOString(),
           device_mode: s.device_mode || undefined,
           vehicle_info: s.vehicle_info || undefined,
-          permissions: this.derivePermissions(role, s.can_edit_board)
+          permissions: this.derivePermissions(role, {
+            can_edit_board: s.can_edit_board ?? undefined
+          })
         };
       });
 

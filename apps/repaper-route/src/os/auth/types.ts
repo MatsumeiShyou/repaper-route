@@ -1,6 +1,17 @@
-import { Database } from '../../types/database.types';
 
-export type StaffRow = Database['public']['Tables']['staffs']['Row'];
+
+/** staffs テーブルの物理構造定義（論理的に固定） */
+export type StaffRow = {
+  id: string;
+  name: string;
+  role: string | null;
+  allowed_apps: any; // jsonb
+  can_edit_board: boolean | null;
+  device_mode: string | null;
+  vehicle_info: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
 export type StaffRole = 'admin' | 'driver' | 'staff' | 'manager';
 
 /** 本アプリケーションの DXOS 識別子 */

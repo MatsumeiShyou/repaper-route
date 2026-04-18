@@ -982,12 +982,12 @@ function PointAccessSection({ pointId }: { pointId: string }) {
         if (!isOpen) return;
         // 入場制限一覧の取得
         supabase.from('point_access_permissions')
-            .select('*, profile:profiles(id, name:raw_user_meta_data->name), vehicle:vehicles(id, callsign, number)')
+            .select('*, profile:staffs(id, name), vehicle:vehicles(id, callsign, number)')
             .eq('point_id', pointId).eq('is_active', true)
             .then(({ data }) => setPermissions(data || []));
-        // ドライバー一覧
-        supabase.from('profiles').select('id, raw_user_meta_data').then(({ data }) =>
-            setDrivers((data || []).map((d: any) => ({ id: d.id, name: d.raw_user_meta_data?.name || d.id })))
+        // スタッフ（旧ドライバー）一覧
+        supabase.from('staffs').select('id, name').then(({ data }) =>
+            setDrivers((data || []).map((d: any) => ({ id: d.id, name: d.name || d.id })))
         );
         // 車両一覧
         supabase.from('vehicles').select('id, number, callsign').then(({ data }) =>
@@ -1006,7 +1006,7 @@ function PointAccessSection({ pointId }: { pointId: string }) {
         setNewDriverId(''); setNewVehicleId('');
         // 再取得
         const { data } = await (supabase.from('point_access_permissions') as any)
-            .select('*, profile:profiles(id, raw_user_meta_data), vehicle:vehicles(id, callsign, number)')
+            .select('*, profile:staffs(id, name), vehicle:vehicles(id, callsign, number)')
             .eq('point_id', pointId).eq('is_active', true);
         setPermissions(data || []);
         setSaving(false);
@@ -1053,12 +1053,12 @@ function PointAccessSection({ pointId }: { pointId: string }) {
                     {permissions.length > 0 && (
                         <div className="space-y-2">
                             {permissions.map((p: any) => {
-                                const driverName = p.profile?.raw_user_meta_data?.name || p.driver_id;
+                                const staffName = p.profile?.name || p.driver_id;
                                 const vehicleLabel = p.vehicle ? `${p.vehicle.number}（${p.vehicle.callsign || ''}）` : p.vehicle_id;
                                 return (
                                     <div key={p.id} className="flex items-center justify-between gap-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg">
                                         <div className="text-sm">
-                                            <span className="font-bold text-slate-700 dark:text-slate-200">{driverName}</span>
+                                            <span className="font-bold text-slate-700 dark:text-slate-200">{staffName}</span>
                                             <span className="text-slate-400 mx-2">→</span>
                                             <span className="font-mono text-red-700 dark:text-red-300 font-bold">{vehicleLabel}</span>
                                             <span className="ml-2 text-xs text-red-600">必須</span>

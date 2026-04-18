@@ -20,7 +20,11 @@ export interface BoardState {
 export const useBoardData = (user: Staff | null, currentDateKey: string, isInteracting: boolean = false) => {
     const currentUserId = user?.id;
 
-    const { drivers: masterDrivers, customers: masterPoints } = useMasterData();
+    const { 
+        drivers: masterDrivers, 
+        customers: masterPoints,
+        vehicles: masterVehicles 
+    } = useMasterData();
     const { showNotification } = useNotification();
 
     const getDefaultDrivers = useCallback(() => ['A', 'B', 'C', 'D', 'E'].map(courseName => ({
@@ -54,13 +58,29 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [history, setHistory] = useState<BoardHistory>({ past: [], future: [] });
 
-    // Sync remote data to local state
+    // Sync remote data to local state with Physical Hydration
     useEffect(() => {
         if (remoteData && history.past.length === 0 && !isInteracting) {
-            setState(remoteData);
+            // 車両マスタのスペックを BoardDriver に結合 (物理回帰)
+            const enrichedDrivers = (remoteData.drivers || []).map((driver: BoardDriver) => {
+                const mv = masterVehicles.find(v => 
+                    v.callsign === driver.vehicleCallsign || 
+                    v.number === (driver as any).vehicleNumber
+                );
+                return {
+                    ...driver,
+                    max_payload: mv?.max_payload,
+                    vehicleNumber: mv?.number || (driver as any).vehicleNumber
+                };
+            });
+
+            setState({
+                ...remoteData,
+                drivers: enrichedDrivers
+            });
             setIsDataLoaded(true);
         }
-    }, [remoteData, history.past.length, isInteracting]);
+    }, [remoteData, history.past.length, isInteracting, masterVehicles]);
 
     // Handle sync errors
     useEffect(() => {
