@@ -1,4 +1,4 @@
-﻿# ADR-0011: Defer AI Implementation and Prioritize Logical Calculation
+# ADR-0011: Defer AI Implementation and Prioritize Logical Calculation
 
 * **Status**: Accepted
 * **Date**: 2026-04-18

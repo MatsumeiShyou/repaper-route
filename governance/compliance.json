@@ -1,4 +1,4 @@
-﻿{
+{
     "risk_tiers": {
         "T1": {
             "description": "Low risk, fast path",

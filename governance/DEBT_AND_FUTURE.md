@@ -1,4 +1,4 @@
-﻿# Technical Debt & Future Roadmap (RePaper Route)
+# Technical Debt & Future Roadmap (RePaper Route)
 
 ## 1. Technical Debt (謚陦鍋噪雋蛯ｵ)
 *隗｣豎ｺ縺吶∋縺肴橿陦鍋噪隱ｲ鬘後√Μ繝輔ぃ繧ｯ繧ｿ繝ｪ繝ｳ繧ｰ蟇ｾ雎｡*

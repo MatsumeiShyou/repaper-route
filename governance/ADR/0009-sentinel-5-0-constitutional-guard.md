@@ -1,4 +1,4 @@
-﻿# ADR 0009: Sentinel 5.0 (Constitutional Guard) 縺ｮ蟆主・
+# ADR 0009: Sentinel 5.0 (Constitutional Guard) 縺ｮ蟆主・
 
 ## 繧ｹ繝・・繧ｿ繧ｹ
 謇ｿ隱肴ｸ医∩ (Approved) - 2026-03-08

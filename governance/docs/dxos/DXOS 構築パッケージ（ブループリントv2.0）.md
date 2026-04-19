@@ -1,4 +1,4 @@
-﻿# ***DXOS Construction Package (Blueprint / Production Ready v2.0)***
+# ***DXOS Construction Package (Blueprint / Production Ready v2.0)***
 
 *This document contains the **complete source code and instructions** to deploy the TBNY DXOS governance system into any project.*
 

@@ -1,4 +1,4 @@
-﻿---
+---
 description: 邨ｱ豐ｻ繝ｬ繧､繝､繝ｼ縺ｮ蠑ｷ蛻ｶ驕ｩ逕ｨ (Governance Enforcement)
 ---
 

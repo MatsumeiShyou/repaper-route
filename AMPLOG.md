@@ -1,4 +1,4 @@
-﻿# AMPLOG [TEST]
+# AMPLOG [TEST]
 | Date | Task | Status |
 | :--- | :--- | :--- |
 | 2026-03-08 | High-Efficiency Transition | [K-6] |

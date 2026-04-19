@@ -1,4 +1,4 @@
-﻿# RePaper Route - Task Archive (螳御ｺ・ち繧ｹ繧ｯ螻･豁ｴ)
+# RePaper Route - Task Archive (螳御ｺ・ち繧ｹ繧ｯ螻･豁ｴ)
 
 縺薙・繝輔ぃ繧､繝ｫ縺ｯ螳御ｺ・＠縺溘ヵ繧ｧ繝ｼ繧ｺ繝ｻ繧ｿ繧ｹ繧ｯ繧剃ｿ晉ｮ｡縺吶ｋ豁ｴ蜿ｲ鬢ｨ縺ｧ縺吶・
 

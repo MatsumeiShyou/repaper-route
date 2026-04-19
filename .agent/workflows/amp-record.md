@@ -1,4 +1,4 @@
-﻿---
+---
 description: AMP (雉・肇螟画峩逕ｳ隲・ 縺ｮ謇ｿ隱崎ｨ倬鹸繧・AMPLOG.jsonl 縺ｫ閾ｪ蜍戊ｿｽ蜉縺吶ｋ・・3 螟画峩譎ゅ・縺ｿ・・---
 
 > [!IMPORTANT]

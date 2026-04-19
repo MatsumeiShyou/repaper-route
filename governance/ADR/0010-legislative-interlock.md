@@ -1,4 +1,4 @@
-﻿# ADR 0010: Legislative Interlock (Sentinel 5.1)
+# ADR 0010: Legislative Interlock (Sentinel 5.1)
 
 ## Context
 Sentinel 5.0 (Constitutional Guard) 縺ｫ繧医ｊ縲∝ｮ溯｣・ヵ繧ｧ繝ｼ繧ｺ縺ｧ縺ｮ繝ｫ繝ｼ繝ｫ螟画峩縺ｯ驕ｮ譁ｭ縺輔ｌ縺溘′縲∫ｫ区ｳ輔ヵ繧ｧ繝ｼ繧ｺ・・EGISLATION繝｢繝ｼ繝会ｼ峨↓縺翫＞縺ｦ縲、DR 縺ｮ菴懈・繧・AMP 縺ｸ縺ｮ蛻ｻ蜊ｰ繧貞､ｱ蠢ｵ縺励◆縺ｾ縺ｾ縲後↑縺怜ｴｩ縺励阪↓諞ｲ豕輔′螟画峩縺輔ｌ繧九Μ繧ｹ繧ｯ縺梧ｮ九▲縺ｦ縺・◆縲・

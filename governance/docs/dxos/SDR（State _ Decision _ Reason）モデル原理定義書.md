@@ -1,4 +1,4 @@
-﻿# **SDR・・tate / Decision / Reason・峨Δ繝・Ν蜴溽炊螳夂ｾｩ譖ｸ**
+# **SDR・・tate / Decision / Reason・峨Δ繝・Ν蜴溽炊螳夂ｾｩ譖ｸ**
 
 ## **蠎乗枚・售DR繝｢繝・Ν縺ｨ縺ｯ菴輔°・・hy・・*
 

@@ -1,4 +1,4 @@
-﻿# Walkthrough - [Task Name / Sentinel Version]
+# Walkthrough - [Task Name / Sentinel Version]
 
 ## 1. 謌先棡
 [螳溯｣・・菫ｮ豁｣縺輔ｌ縺滓ｩ溯・縲√ヵ繧｡繧､繝ｫ縲√Ο繧ｸ繝・け縺ｮ迚ｩ逅・噪荳隕ｧ]

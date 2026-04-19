@@ -1,4 +1,4 @@
-﻿# Schema History
+# Schema History
 
 繝・・繧ｿ繝吶・繧ｹ縺翫ｈ縺ｳ讒矩螳夂ｾｩ縺ｮ螟画峩螻･豁ｴ繧定ｨ倬鹸縺吶ｋ縲・
 

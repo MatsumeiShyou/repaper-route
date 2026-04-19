@@ -1,4 +1,4 @@
-﻿{
+{
     "analyzer": {
         "max_problem_decomposition": 5,
         "min_hypothesis_count": 2,

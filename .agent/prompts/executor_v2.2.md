@@ -1,4 +1,4 @@
-﻿# [TBNY DXOS / CAP v2.2 : EXECUTOR PROTOCOL]
+# [TBNY DXOS / CAP v2.2 : EXECUTOR PROTOCOL]
 
 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 笆 1. Execution Layer

@@ -1,4 +1,4 @@
-﻿# Walkthrough Template (Governance Upgrade v6.0)
+# Walkthrough Template (Governance Upgrade v6.0)
 
 ## 1. 謌先棡
 - [ ] 迚ｩ逅・噪縺ｪ螟画峩轤ｹ縺ｮ荳隕ｧ繧偵％縺薙↓險倩ｿｰ縺帙ｈ縲・

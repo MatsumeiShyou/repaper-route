@@ -1,4 +1,4 @@
-﻿# ADR-004: Analyzer/Executor Role Separation (CAP v2.2)
+# ADR-004: Analyzer/Executor Role Separation (CAP v2.2)
 
 ## Status
 Proposed (2026-03-08)

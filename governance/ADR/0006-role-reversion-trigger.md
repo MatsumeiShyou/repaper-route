@@ -1,4 +1,4 @@
-﻿# ADR-0006: Role Reversion Trigger (蠖ｹ蜑ｲ閾ｪ蜍暮・遘ｻ縺ｮ鄒ｩ蜍吝喧)
+# ADR-0006: Role Reversion Trigger (蠖ｹ蜑ｲ閾ｪ蜍暮・遘ｻ縺ｮ鄒ｩ蜍吝喧)
 
 - **Status**: Accepted
 - **Date**: 2026-03-08

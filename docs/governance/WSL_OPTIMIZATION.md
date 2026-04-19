@@ -1,4 +1,4 @@
-﻿# Windows & WSL2 譛驕ｩ蛹悶・繝九Η繧｢繝ｫ (DevContainer 遘ｻ陦檎畑)
+# Windows & WSL2 譛驕ｩ蛹悶・繝九Η繧｢繝ｫ (DevContainer 遘ｻ陦檎畑)
 
 DevContainer 迺ｰ蠅・ｒ 16GB 繝｡繝｢繝ｪ縺ｮ Windows 繝槭す繝ｳ縺ｧ蠢ｫ驕ｩ縺ｫ蜍穂ｽ懊＆縺帙ｋ縺溘ａ縺ｫ縺ｯ縲仝SL2 (Vmmem) 縺ｮ繝｡繝｢繝ｪ蛻ｶ髯舌→閾ｪ蜍戊ｵｷ蜍輔・蛛懈ｭ｢繝ｩ繧､繝輔し繧､繧ｯ繝ｫ縺ｮ邂｡逅・′蠢・医〒縺吶・
 

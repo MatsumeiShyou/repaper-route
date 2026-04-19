@@ -1,4 +1,4 @@
-﻿# ADR 0005: 閾ｪ蜍募渚譏繝励Ο繝医さ繝ｫ (Reflecting-by-Default) 縺ｮ蟆主・
+# ADR 0005: 閾ｪ蜍募渚譏繝励Ο繝医さ繝ｫ (Reflecting-by-Default) 縺ｮ蟆主・
 
 ## 繧ｹ繝・・繧ｿ繧ｹ
 謇ｿ隱肴ｸ医∩ / 螳溯｣・ｸｭ

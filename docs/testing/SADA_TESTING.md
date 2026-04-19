@@ -1,4 +1,4 @@
-﻿# SADA Testing Guide (Semantic-Aware Delta Assertion)
+# SADA Testing Guide (Semantic-Aware Delta Assertion)
 
 ## 讎りｦ・(Overview)
 **SADA (Semantic-Aware Delta Assertion) 繝・せ繝・* 縺ｯ縲、I縺ｫ繧医ｋDOM髢｢騾｣繝・せ繝医・縲後ヨ繝ｼ繧ｯ繝ｳ豸郁ｲｻ蜑頑ｸ帙阪→縲梧､懆ｨｼ蛻ｶ蠎ｦ縺ｮ蜷台ｸ翫阪ｒ荳｡遶九☆繧九◆繧√↓險ｭ險医＆繧後◆縲∵悽繝励Ο繧ｸ繧ｧ繧ｯ繝医↓縺翫￠繧・*譛蜆ｪ蜈医・繝・せ繝医い繝ｼ繧ｭ繝・け繝√Ε**縺ｧ縺吶・

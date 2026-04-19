@@ -1,4 +1,4 @@
-﻿# ADR-[ID]: [Title]
+# ADR-[ID]: [Title]
 
 * **Status**: [Draft | Proposed | Accepted | Deprecated | Superseded]
 * **Date**: [YYYY-MM-DD]

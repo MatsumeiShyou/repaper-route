@@ -1,4 +1,4 @@
-﻿# Recurrence Analyzer Protocol v1.0
+# Recurrence Analyzer Protocol v1.0
 
 ## Role
 Antigravity 髢狗匱Agent・域里蟄倥・蠖ｹ蜑ｲ螳夂ｾｩ繧堤ｶ呎価・・

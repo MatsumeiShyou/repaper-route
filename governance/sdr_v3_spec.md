@@ -1,4 +1,4 @@
-﻿# SDR-v3 Unified Logic Output Specification
+# SDR-v3 Unified Logic Output Specification
 
 ## 1. Overview
 SDR-v3 縺ｯ縲∝ｾ捺擂縺ｮ蛻・梵・・DR・峨→諤晁・ぎ繝舌リ繝ｳ繧ｹ・・AP v3.0・峨ｒ邨ｱ蜷医＠縺溘悟ｮ悟・隲也炊蜃ｺ蜉幄ｦ乗ｼ縲阪〒縺吶ゅお繝ｼ繧ｸ繧ｧ繝ｳ繝医′縲轡ecision縲阪ｒ蜃ｺ蜉帙☆繧矩圀縺ｫ鄒ｩ蜍吩ｻ倥￠繧峨ｌ縺ｾ縺吶・

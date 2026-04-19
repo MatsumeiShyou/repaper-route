@@ -1,4 +1,4 @@
-﻿# ADR-0001: 邨ｱ豐ｻ讒矩縺ｮ螟夜Κ蛹悶→繝・・繧ｿ鬧・虚蝙句喧 (Transition to GaC)
+# ADR-0001: 邨ｱ豐ｻ讒矩縺ｮ螟夜Κ蛹悶→繝・・繧ｿ鬧・虚蝙句喧 (Transition to GaC)
 
 * **Status**: Accepted
 * **Date**: 2026-03-08

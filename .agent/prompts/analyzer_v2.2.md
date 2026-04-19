@@ -1,4 +1,4 @@
-﻿# [TBNY DXOS / CAP v2.2 : ANALYZER PROTOCOL]
+# [TBNY DXOS / CAP v2.2 : ANALYZER PROTOCOL]
 
 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 笆 1. Governance Layer
