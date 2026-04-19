@@ -1,6 +1,6 @@
 # Walkthrough - Sanctuary Iron Lock Implementation
 
-AIの本質적欠陥（成功バイアス）を物理的に封鎖し、統治の整合性を自動強制する「Sanctuary Iron Lock (PSP)」の実装が完了しました。
+AIの本質的欠陥（成功バイアス）を物理的に封鎖し、統治の整合性を自動強制する「Sanctuary Iron Lock (PSP)」の実装が完了しました。
 
 ## 1. 成果 (Deliverables)
 - **証跡生成システム**: `closure_gate.js` が Git 状態に紐付いたワンタイムコードを発行。
@@ -14,7 +14,7 @@ AIの本質적欠陥（成功バイアス）を物理的に封鎖し、統治の
 
 ## 3. 証跡 (Evidence Code)
 > [!IMPORTANT]
-> **[GATE-SEAL: GSEAL-88DF5E2-2327F663513B]**
+> **[GATE-SEAL: GSEAL-B8696B5-AA8882C2B087]**
 
 ## 4. 反映 (Reflect)
 - `npm run done` によりローカルコミット完了。
