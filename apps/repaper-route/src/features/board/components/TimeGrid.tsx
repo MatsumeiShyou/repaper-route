@@ -19,6 +19,36 @@ interface TimeGridProps {
     isCellOccupied: (driverId: string, time: string) => boolean;
 }
 
+const MemoizedColumn = React.memo(({ driver, selectedTime, onCellClick, onCellDoubleClick, colRef }: any) => {
+    return (
+        <div
+            ref={colRef}
+            style={{ width: '180px', minWidth: '180px', flexShrink: 0, borderRight: '1px solid #e2e8f0', position: 'relative', backgroundColor: 'white' }}
+        >
+            {TIME_SLOTS.map(time => {
+                const isSelected = selectedTime === time;
+                return (
+                    <div
+                        key={time}
+                        onClick={(e) => onCellClick(driver.id, time, e)}
+                        onDoubleClick={() => onCellDoubleClick(driver.id, time)}
+                        style={{
+                            height: `${BOARD_CONSTANTS.SLOT_HEIGHT_PX}px`,
+                            borderBottom: time.endsWith(':45') ? '1.5px solid #f59e0b' : '1.5px solid #f1f5f9',
+                            backgroundColor: isSelected ? '#eff6ff' : 'transparent',
+                            cursor: 'pointer',
+                            transition: 'all 0.1s ease-out'
+                        }}
+                        className={isSelected ? 'ring-2 ring-blue-500 ring-inset z-10' : ''}
+                    />
+                );
+            })}
+        </div>
+    );
+}, (prevProps, nextProps) => {
+    // 選択されたセルが変化した場合のみ、そのカラムを再レンダリングする
+    return prevProps.selectedTime === nextProps.selectedTime;
+});
 
 export const TimeGrid: React.FC<TimeGridProps> = ({
     drivers,
@@ -82,33 +112,16 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
             </div>
 
 
-            {/* Columns */}
+            {/* Indexed Columns (Memoized) */}
             {drivers.map(driver => (
-                <div
+                <MemoizedColumn
                     key={driver.id}
-                    ref={el => { if (driverColRefs.current) driverColRefs.current[driver.id] = el; }}
-                    style={{ width: '180px', minWidth: '180px', flexShrink: 0, borderRight: '1px solid #e2e8f0', position: 'relative', backgroundColor: 'white' }}
-                >
-                    {TIME_SLOTS.map(time => {
-                        const isSelected = selectedCell?.driverId === driver.id && selectedCell?.time === time;
-                        return (
-                            <div
-                                key={time}
-                                onClick={(e) => onCellClick(driver.id, time, e)}
-                                onDoubleClick={() => onCellDoubleClick(driver.id, time)}
-
-                                style={{
-                                    height: `${BOARD_CONSTANTS.SLOT_HEIGHT_PX}px`,
-                                    borderBottom: time.endsWith(':45') ? '1.5px solid #f59e0b' : '1.5px solid #f1f5f9',
-                                    backgroundColor: isSelected ? '#eff6ff' : 'transparent',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.1s ease-out'
-                                }}
-                                className={isSelected ? 'ring-2 ring-blue-500 ring-inset z-10' : ''}
-                            />
-                        );
-                    })}
-                </div>
+                    driver={driver}
+                    selectedTime={selectedCell?.driverId === driver.id ? selectedCell.time : null}
+                    onCellClick={onCellClick}
+                    onCellDoubleClick={onCellDoubleClick}
+                    colRef={(el: HTMLElement | null) => { if (driverColRefs.current) driverColRefs.current[driver.id] = el; }}
+                />
             ))}
         </div>
     );

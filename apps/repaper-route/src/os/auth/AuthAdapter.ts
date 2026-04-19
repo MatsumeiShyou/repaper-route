@@ -94,22 +94,40 @@ export class AuthAdapter {
         throw new NotAuthenticatedError();
       }
 
-      // staffs テーブルから市民情報を取得
-      console.log('[AuthAdapter] Fetching staff record from DB for UID:', session.user.id);
+      console.log('[AuthAdapter] >>> Native fetch(staffs) EXECUTE START');
       
-      const timeoutPromise = new Promise<any>((_, reject) => {
-        setTimeout(() => reject(new Error('TIMEOUT_DB_FETCH')), 5000);
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const url = `${supabaseUrl}/rest/v1/staffs?auth_uid=eq.${session.user.id}&select=*`;
+      
+      const queryPromise = fetch(url, {
+          method: 'GET',
+          headers: {
+              'apikey': anonKey,
+              'Authorization': `Bearer ${session.access_token}`,
+              // single() 相当（1件のみ取得しオブジェクトとして返す）
+              'Accept': 'application/vnd.pgrst.object+json'
+          }
+      }).then(async (res) => {
+          if (!res.ok) {
+              const text = await res.text();
+              throw new Error(`DB Fetch failed: ${res.status} ${text}`);
+          }
+          const data = await res.json();
+          console.log('[AuthAdapter] <<< Native fetch(staffs) EXECUTE END', data);
+          return { data, error: null };
+      }).catch(err => {
+          return { data: null, error: err };
       });
-      const queryPromise = supabase
-        .from('staffs')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
         
+      const timeoutPromise = new Promise<any>((_, reject) => {
+        setTimeout(() => reject(new Error('TIMEOUT_DB_FETCH')), 15000);
+      });
+      
       const { data: staff, error } = await Promise.race([queryPromise, timeoutPromise]);
 
       if (error || !staff) {
-        console.warn('[AuthAdapter] Staff record not found or inaccessible for UID:', session.user.id, 'Error:', error);
+        console.warn('[AuthAdapter] Staff record not found by auth_uid. Error:', error);
         const cached = await this.recoverFromCache(session.user.id);
         if (cached) return cached;
         throw new StaffNotFoundError();
@@ -123,9 +141,11 @@ export class AuthAdapter {
       
       const role = (rawStaff.role || 'staff') as StaffRole;
 
-      // 権限検証: allowed_apps にこのアプリが含まれているか
-      if (!apps.includes(DXOS_APP_ID)) {
-        console.error(`[AuthAdapter] Forbidden: No permission for ${DXOS_APP_ID}`);
+      // 権限検証: allowed_apps に管理者用またはドライバー用の権限が含まれているか
+      const hasPermission = apps.includes('repaper-route-admin') || apps.includes('repaper-route-driver');
+      
+      if (!hasPermission) {
+        console.error(`[AuthAdapter] Forbidden: No permission for repaper-route modules. Found:`, apps);
         throw new AppAccessDeniedError(DXOS_APP_ID);
       }
 

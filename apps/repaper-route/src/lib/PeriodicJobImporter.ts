@@ -1,4 +1,4 @@
-import { supabase } from './supabase/client';
+import { nativeSupabaseFetch } from './supabase/nativeFetch';
 import { Database } from '../types/database.types';
 
 type MasterPoint = Database['public']['Tables']['master_collection_points']['Row'];
@@ -14,11 +14,10 @@ export const PeriodicJobImporter = {
      * @returns 該当するマスタ案件の配列
      */
     fetchPointsByDate: async (date: Date): Promise<MasterPoint[]> => {
-        const { data, error } = await supabase
-            .from('master_collection_points')
-            .select('*')
-            .eq('is_active', true)
-            .order('display_name', { ascending: true });
+        const { data, error } = await nativeSupabaseFetch(
+            'master_collection_points', 
+            'select=*&is_active=eq.true&order=display_name.asc'
+        );
 
         if (error) {
             console.error('[PeriodicJobImporter] 案件取得に失敗しました:', error);

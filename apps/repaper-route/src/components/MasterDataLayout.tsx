@@ -16,6 +16,7 @@ import {
     Clock
 } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
+import { nativeSupabaseFetch } from '../lib/supabase/nativeFetch';
 import useMasterCRUD from '../hooks/useMasterCRUD';
 import { Modal } from './Modal';
 import { MasterSchema, MasterColumn, MASTER_SCHEMAS } from '../config/masterSchema';
@@ -173,11 +174,12 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         if (schema.viewName !== schema.rpcTableName) {
             try {
                 setIsDeepFetching(true);
-                const { data: detail, error: fetchErr } = await supabase
-                    .from(schema.rpcTableName as any)
-                    .select('*')
-                    .eq(schema.primaryKey, item[schema.primaryKey])
-                    .single();
+                const { data: results, error: fetchErr } = await nativeSupabaseFetch(
+                    schema.rpcTableName as string,
+                    `select=*&${schema.primaryKey}=eq.${item[schema.primaryKey]}`
+                );
+                
+                const detail = results?.[0];
                 
                 if (!fetchErr && detail) {
                     setEditingItem(detail);

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    base: '/repaper-route/',
     envDir: '../../',
     plugins: [
         react(),
@@ -43,7 +44,7 @@ export default defineConfig({
     },
     server: {
         host: true,
-        port: 5173,
+        port: 5174,
         strictPort: true,
         watch: {
             usePolling: true,

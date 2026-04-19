@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase/client';
+import { nativeSupabaseFetch } from '../lib/supabase/nativeFetch';
+
 import { MasterSchema } from '../config/masterSchema';
 import { invalidateMasterCache } from '../features/board/hooks/useMasterData';
 import { serializeMasterData } from '../utils/serialization';
@@ -16,9 +18,10 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
     const refresh = useCallback(async () => {
         try {
             setLoading(true);
-            const { data: res, error: err } = await supabase
-                .from(schema.viewName as unknown as any) // suppress type error dynamically
-                .select('*');
+            const { data: res, error: err } = await nativeSupabaseFetch(
+                schema.viewName as string,
+                'select=*'
+            );
 
             if (err) throw err;
             setData((res as unknown as T[]) || []);

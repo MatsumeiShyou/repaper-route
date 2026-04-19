@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../lib/supabase/client';
+import { nativeSupabaseFetch } from '../lib/supabase/nativeFetch';
 import { MasterVehicle, MasterCustomer, MasterItem, CustomerItemDefault } from '../types';
 
 interface MasterData {
@@ -30,30 +30,27 @@ export const MasterDataProvider: React.FC<{ children: ReactNode }> = ({ children
     const fetchAll = async () => {
         setIsLoading(true);
         try {
-            const [d, v, c, i, cid] = await Promise.all([
-                supabase.from('drivers').select('*').order('display_order', { ascending: true }),
-                supabase.from('vehicles').select('*').order('id'),
-                supabase.from('view_master_points').select('*').order('id'),
-                supabase.from('master_items').select('*').order('display_order'),
-                supabase.from('customer_item_defaults').select('*')
+            // supabase.from のデッドロックを避けるため、全て nativeSupabaseFetch で並列取得する
+            const [dRes, vRes, cRes, iRes, cidRes] = await Promise.all([
+                nativeSupabaseFetch('drivers', 'select=*&order=display_order.asc'),
+                nativeSupabaseFetch('vehicles', 'select=*&order=id.asc'),
+                nativeSupabaseFetch('view_master_points', 'select=*&order=id.asc'),
+                nativeSupabaseFetch('master_items', 'select=*&order=display_order.asc'),
+                nativeSupabaseFetch('customer_item_defaults', 'select=*')
             ]);
 
-            const processedDrivers = (d.data || []).map((driver: any) => ({
+            const processedDrivers = (dRes.data || []).map((driver: any) => ({
                 ...driver,
                 defaultCourse: driver.default_course || driver.defaultCourse,
                 defaultVehicle: driver.default_vehicle || driver.defaultVehicle
             }));
 
-            const processedCustomers: MasterCustomer[] = (c.data || []).map((point: any) => ({
-                ...point,
-            }));
-
             setData({
                 drivers: processedDrivers,
-                vehicles: (v.data || []) as unknown as MasterVehicle[],
-                customers: processedCustomers,
-                items: (i.data || []) as MasterItem[],
-                customerItemDefaults: (cid.data || []) as unknown as CustomerItemDefault[]
+                vehicles: (vRes.data || []) as unknown as MasterVehicle[],
+                customers: (cRes.data || []) as MasterCustomer[],
+                items: (iRes.data || []) as MasterItem[],
+                customerItemDefaults: (cidRes.data || []) as unknown as CustomerItemDefault[]
             });
         } catch (error) {
             console.error('Master data fetch error:', error);

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase/client';
+import { nativeSupabaseFetch } from '../../../lib/supabase/nativeFetch';
+
 import { BoardState } from './useBoardData';
 import { BoardJob, BoardDriver, BoardSplit } from '../../../types';
 import { boardStore } from '../../../lib/idb/boardStore';
@@ -81,7 +83,7 @@ export const useDataSync = (
 
             // [Phase 3-2: Merge strategy - DB is still primary source of truth for now]
             const [routesRes, masterPoints] = await Promise.all([
-                supabase.from('routes').select('*').eq('date', date).maybeSingle(),
+                nativeSupabaseFetch('routes', `select=*&date=eq.${date}`),
                 PeriodicJobImporter.fetchPointsByDate(new Date(date))
             ]);
 
@@ -113,7 +115,15 @@ export const useDataSync = (
                 }
             });
 
-            const routeData = routesRes.data;
+            const routeData = (routesRes.data as any[])?.[0] || null;
+
+            // === 診断ログ：データ消失の追跡 ===
+            console.log(`[useDataSync] routeData found: ${!!routeData}`);
+            if (routeData) {
+                console.log(`[useDataSync] routeData.pending count: ${Array.isArray(routeData.pending) ? routeData.pending.length : 'NOT_ARRAY'}`);
+                console.log(`[useDataSync] routeData.jobs count: ${Array.isArray(routeData.jobs) ? routeData.jobs.length : 'NOT_ARRAY'}`);
+            }
+            console.log(`[useDataSync] autoImportedJobs count: ${autoImportedJobs.length}`);
 
             if (routeData) {
                 // Data Upgrade / Re-mapping Logic (Self-Healing)
@@ -123,14 +133,15 @@ export const useDataSync = (
                 const upgradedSavedPending = savedPending.map((j: any) => JobAdapter.mapToBoardJob(j));
                 const upgradedSavedJobs = savedJobs.map((j: any) => JobAdapter.mapToBoardJob(j));
 
+                console.log(`[useDataSync] upgradedSavedPending: ${upgradedSavedPending.length}, upgradedSavedJobs: ${upgradedSavedJobs.length}`);
+
                 const existingLocationIds = new Set(
                     [...upgradedSavedJobs, ...upgradedSavedPending]
                         .map(j => j.location_id)
                         .filter(Boolean) 
                 );
 
-                // 【超精密浄化タスク 2-1】物理的遮断 (Physical Isolation)
-                // DBに残っているテンプレート由来の不純物(UUID)を、未配車リストから完全に排除する。
+                /* 【超精密浄化タスク 2-1】一時無効化（データ消失の原因調査）
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
                 const filteredPending = upgradedSavedPending.filter(j => !uuidRegex.test(j.id));
                 const isolatedCount = upgradedSavedPending.length - filteredPending.length;
@@ -138,7 +149,8 @@ export const useDataSync = (
                 if (isolatedCount > 0) {
                     console.info(`[Purification-Complete] Isolated and removed ${isolatedCount} ghost jobs from pending list registry.`);
                 }
-
+                */
+                const filteredPending = upgradedSavedPending; // フィルタなしで全件取得
                 const mergedPendingJobs = [...filteredPending];
                 autoImportedJobs.forEach(job => {
                     if (!job.location_id || !existingLocationIds.has(job.location_id)) {
@@ -146,6 +158,8 @@ export const useDataSync = (
                         if (job.location_id) existingLocationIds.add(job.location_id);
                     }
                 });
+
+                console.log(`[useDataSync] FINAL mergedPendingJobs: ${mergedPendingJobs.length}`);
 
                 const newState: BoardState = {
                     drivers: Array.isArray(routeData.drivers) && (routeData.drivers as any[]).length > 0

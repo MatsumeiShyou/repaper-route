@@ -3,8 +3,7 @@ import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider, useAuth } from './contexts/AuthProvider'
 import { InteractionProvider } from './contexts/InteractionContext'
 import { MasterDataProvider } from './contexts/MasterDataContext'
-import { ProfilePortal } from './components/ProfilePortal'
-import { ShieldAlert, Database, RefreshCcw } from 'lucide-react'
+import { ShieldAlert, Database, RefreshCcw, Truck } from 'lucide-react'
 import { AdminLayout } from './components/AdminLayout'
 import BoardCanvas from './features/board/BoardCanvas'
 import MasterDriverList from './features/admin/MasterDriverList.tsx'
@@ -76,12 +75,21 @@ function AppContent() {
         return <SplashScreen />
     }
 
-    // 2. 未ログイン
-    if (status === 'UNAUTHENTICATED' || !staff) {
-        return <ProfilePortal />
+    // 2. 未登録（市民ではない）
+    if (status === 'NOT_REGISTERED') {
+        return <UnregisteredScreen />
     }
 
-    // 3. 権限不足（LOCKED）
+    // 3. 未認証（OSのポータルへリダイレクト）
+    if (status === 'UNAUTHENTICATED' || !staff) {
+        // [Micro-Frontend] 未認証の場合は、アプリ固有のログイン画面を出さず親OSへ強制帰還
+        if (typeof window !== 'undefined') {
+            window.location.href = '/'
+        }
+        return null; // リダイレクト完了まで何も描画しない
+    }
+
+    // 4. 権限不足（LOCKED）
     if (status === 'LOCKED') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
@@ -98,30 +106,59 @@ function AppContent() {
                         </span>
                     </p>
                     <button 
-                        onClick={() => window.location.reload()}
+                        onClick={() => window.location.href = '/'}
                         className="w-full h-12 bg-slate-800 hover:bg-slate-700 text-white text-xs font-black rounded-xl transition-all"
                     >
-                        再読み込み
+                        ポータルへ戻る
                     </button>
                 </div>
             </div>
         )
     }
 
-    // 4. 許可済み（AUTHENTICATED）
+    // 5. 許可済み（AUTHENTICATED）
     const canAccessView = (view: string) => {
+        if (!staff) return false;
         const p = staff.permissions;
-        if (p.can_manage_master) return true; // Manager/Admin
-        if (view === 'board') return true;    // All staff can see board
+        const role = staff.role;
+
+        // 管理者・マネージャーは全画面OK
+        if (p.can_manage_master || role === 'admin' || role === 'manager') return true;
+
+        // ドライバーの場合：master_ で始まる画面は一律拒絶
+        if (role === 'driver' && view.startsWith('master_')) return false;
+
+        // デフォルト：board は全員OK
+        if (view === 'board') return true;
+
+        // それ以外（個別設定などがあればここに追加）
         return false;
     };
 
     const renderView = () => {
-        const targetView = canAccessView(activeView) ? activeView : 'board';
+        // 現在の権限で許可されていないビューが指定された場合は 'board' へフォールバック
+        const isAllowed = canAccessView(activeView);
+        const targetView = isAllowed ? activeView : 'board';
+
+        if (!isAllowed && activeView !== 'board') {
+            console.warn(`[App] Access denied for view: ${activeView}. Falling back to board.`);
+        }
 
         switch (targetView) {
             case 'board':
                 return <BoardCanvas />;
+            case 'driver_mode':
+                // 将来的にドライバー専用のシンプル画面を作る場合はここに追加
+                return (
+                    <div className="h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 p-10 text-center">
+                        <Truck size={64} className="mb-6 opacity-20 text-emerald-600" />
+                        <h2 className="text-xl font-black text-slate-800 mb-2">ドライバー専用モード</h2>
+                        <p className="text-sm opacity-60">
+                            現在、ドライバー向け専用画面を準備中です。<br />
+                            左側のメニューから「配車ボード」を確認できます。
+                        </p>
+                    </div>
+                );
             case 'master_drivers':
                 return <MasterDriverList />;
             case 'master_vehicles':
