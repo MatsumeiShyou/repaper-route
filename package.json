@@ -1,60 +1,61 @@
 {
-    "name": "repaper-route",
-    "version": "1.0.0",
-    "workspaces": [
-        "apps/repaper-route"
-    ],
-    "private": true,
-    "type": "module",
-    "engines": {
-        "node": ">=20.0.0",
-        "npm": ">=10.0.0"
-    },
-    "scripts": {
-        "dev": "npm run dev -w apps/repaper-route",
-        "prebuild": "npm run type-check",
-        "build": "npm run build -w apps/repaper-route",
-        "lint": "npm run lint -w apps/repaper-route",
-        "type-check": "npm run type-check -w apps/repaper-route",
-        "preview": "npm run preview -w apps/repaper-route",
-        "test": "npm run test -w apps/repaper-route",
-        "test:logic": "npm run test:logic -w apps/repaper-route",
-        "test:ui": "npm run test:ui -w apps/repaper-route",
-        "test:coverage": "npm run test:coverage -w apps/repaper-route",
-        "governance:check": "powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run.ps1 .agent/scripts/check_seal.js",
-        "governance:audit": "powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run.ps1 .agent/scripts/reflect.js",
-        "governance:preflight": "powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run.ps1 .agent/scripts/pre_flight.js",
-        "governance:closure": "node .agent/scripts/closure_gate.js",
-        "done": "node .agent/scripts/closure_gate.js --reflect",
-        "prepare": "husky install",
-        "storybook": "npm run storybook -w apps/repaper-route",
-        "build-storybook": "npm run build-storybook -w apps/repaper-route",
-        "supabase": "supabase",
-        "db:diff": "supabase db diff",
-        "db:push": "supabase db push",
-        "gen:types": "supabase gen types typescript --project-id mjaoolcjjlxwstlpdgrg > apps/repaper-route/src/types/database.types.ts",
-        "auth:init": "node scripts/auth-init.js"
-    },
-    "devDependencies": {
-        "@eslint/js": "^9.0.0",
-        "@playwright/test": "^1.58.2",
-        "autoprefixer": "^10.4.16",
-        "dotenv": "^17.3.1",
-        "eslint": "^9.0.0",
-        "globals": "^15.0.0",
-        "husky": "^8.0.3",
-        "npm-run-all": "^4.1.5",
-        "openai": "^6.24.0",
-        "postcss": "^8.4.32",
-        "supabase": "^2.76.7",
-        "tailwindcss": "^3.4.0",
-        "typescript": "^5.9.3",
-        "typescript-eslint": "^8.55.0",
-        "vite": "^6.0.0",
-        "vite-plugin-pwa": "^0.21.1",
-        "vitest": "^4.0.18"
-    },
-    "dependencies": {
-        "pg": "^8.20.0"
-    }
+  "name": "repaper-route",
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/repaper-route"
+  ],
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "npm run dev -w apps/repaper-route",
+    "prebuild": "npm run type-check",
+    "build": "npm run build -w apps/repaper-route",
+    "lint": "npm run lint -w apps/repaper-route",
+    "type-check": "npm run type-check -w apps/repaper-route",
+    "preview": "npm run preview -w apps/repaper-route",
+    "test": "npm run test -w apps/repaper-route",
+    "test:logic": "npm run test:logic -w apps/repaper-route",
+    "test:ui": "npm run test:ui -w apps/repaper-route",
+    "test:coverage": "npm run test:coverage -w apps/repaper-route",
+    "governance:check": "powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run.ps1 .agent/scripts/check_seal.js",
+    "governance:audit": "powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run.ps1 .agent/scripts/reflect.js",
+    "governance:preflight": "powershell -NoProfile -ExecutionPolicy Bypass -File .agent/run.ps1 .agent/scripts/pre_flight.js",
+    "governance:closure": "node .agent/scripts/closure_gate.js",
+    "done": "node .agent/scripts/closure_gate.js --reflect",
+    "prepare": "husky install",
+    "storybook": "npm run storybook -w apps/repaper-route",
+    "build-storybook": "npm run build-storybook -w apps/repaper-route",
+    "supabase": "supabase",
+    "db:diff": "supabase db diff",
+    "db:push": "supabase db push",
+    "gen:types": "supabase gen types typescript --project-id mjaoolcjjlxwstlpdgrg > apps/repaper-route/src/types/database.types.ts",
+    "auth:init": "node scripts/auth-init.js",
+    "setup-governance": "node .agent/scripts/setup_gate.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@playwright/test": "^1.58.2",
+    "autoprefixer": "^10.4.16",
+    "dotenv": "^17.3.1",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "husky": "^8.0.3",
+    "npm-run-all": "^4.1.5",
+    "openai": "^6.24.0",
+    "postcss": "^8.4.32",
+    "supabase": "^2.76.7",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.55.0",
+    "vite": "^6.0.0",
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "pg": "^8.20.0"
+  }
 }

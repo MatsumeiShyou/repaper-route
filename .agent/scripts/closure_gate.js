@@ -147,18 +147,59 @@ function verifySessionDesync() {
     Log.success('Session Alignment OK.');
 }
 
+function generateEvidenceCode() {
+    const head = runCommand('git rev-parse --short HEAD', true) || 'no-head';
+    const session = getActiveTier();
+    const ts = Math.floor(Date.now() / 1000).toString(16);
+    const data = `${head}-${session}-${ts}`;
+    const hash = crypto.createHash('sha256').update(data).digest('hex').slice(0, 12);
+    return `GSEAL-${head}-${hash}`.toUpperCase();
+}
+
+function saveSeal(code) {
+    const sealDir = join(process.cwd(), '.agent', 'session');
+    if (!existsSync(sealDir)) fs.mkdirSync(sealDir, { recursive: true });
+    
+    const sealPath = join(sealDir, 'gate_success.json');
+    const head = runCommand('git rev-parse HEAD', true);
+    
+    writeFileSync(sealPath, JSON.stringify({
+        code,
+        head,
+        timestamp: new Date().toISOString(),
+        status: 'VALID'
+    }, null, 2));
+}
+
+function clearSeal() {
+    const sealPath = join(process.cwd(), '.agent', 'session', 'gate_success.json');
+    if (existsSync(sealPath)) {
+        try { fs.unlinkSync(sealPath); } catch (e) {}
+    }
+}
+
 function main() {
     process.on('exit', () => { if (!completionFlag) incrementRetryCount('Aborted'); });
 
     const tier = getActiveTier();
     Log.info(`Closure Started (Tier: ${tier})...`);
 
-    verifySessionDesync();
-    verifyConstitutionalIntegrity();
-    verifyLegislativeInterlock();
-    verifyClosureStandard();
-    verifyUIQuality();
-    checkExpiredDebt();
+    try {
+        verifySessionDesync();
+        verifyConstitutionalIntegrity();
+        verifyLegislativeInterlock();
+        verifyClosureStandard();
+        verifyUIQuality();
+        checkExpiredDebt();
+    } catch (err) {
+        clearSeal();
+        Log.error('GOVERNANCE CHECK FAILED');
+        if (err.message) console.error(`   [VIOLATION]: ${err.message}`);
+        process.exit(1);
+    }
+
+    const evidenceCode = generateEvidenceCode();
+    saveSeal(evidenceCode);
 
     if (REFLECT_FLAG) {
         Log.info('Reflecting changes...');
@@ -172,6 +213,9 @@ function main() {
 
     completionFlag = true;
     resetRetryCount();
+    console.log(`\n✨ ========================================== ✨`);
+    console.log(`   [GATE-SEAL: ${evidenceCode}]`);
+    console.log(`✨ ========================================== ✨\n`);
     Log.success('100pt Sealed.');
     process.exit(0);
 }
