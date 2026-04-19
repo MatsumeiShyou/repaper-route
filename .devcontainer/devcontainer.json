@@ -1,4 +1,4 @@
-{
+﻿{
     "name": "RePaper Route (100-pt Eco-Architecture)",
     "build": {
         "dockerfile": "Dockerfile",

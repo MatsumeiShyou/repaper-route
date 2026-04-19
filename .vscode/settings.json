@@ -1,4 +1,4 @@
-{
+﻿{
     "accessibility.voice.speechLanguage": "ja-JP",
     "eslint.workingDirectories": [
         { "pattern": "apps/*" },

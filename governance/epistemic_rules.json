@@ -1,43 +1,43 @@
-{
+﻿{
     "REQUIRED_MARKERS": [
         {
             "id": "LAYER_SEPARATION",
-            "name": "層の分離",
+            "name": "螻､縺ｮ蛻・屬",
             "patterns": [
-                "[確認済み事実]",
+                "[遒ｺ隱肴ｸ医∩莠句ｮ歉",
                 "[Fact]",
                 "[Confirmed Fact]",
-                "[合理的推論]",
+                "[蜷育炊逧・耳隲望",
                 "[Reasoning]",
-                "[仮説・推測]",
+                "[莉ｮ隱ｬ繝ｻ謗ｨ貂ｬ]",
                 "[Hypothesis]",
-                "[不明点]",
+                "[荳肴・轤ｹ]",
                 "[Unknown]"
             ],
             "minMatch": 1,
-            "description": "出力に含まれる情報を4層（事実/推論/仮説/不明点）で明示すること"
+            "description": "蜃ｺ蜉帙↓蜷ｫ縺ｾ繧後ｋ諠・ｱ繧・螻､・井ｺ句ｮ・謗ｨ隲・莉ｮ隱ｬ/荳肴・轤ｹ・峨〒譏守､ｺ縺吶ｋ縺薙→"
         },
         {
             "id": "SELF_CRITICISM",
-            "name": "二段階批判フェーズ",
+            "name": "莠梧ｮｵ髫取音蛻､繝輔ぉ繝ｼ繧ｺ",
             "patterns": [
-                "[自己批判]",
+                "[閾ｪ蟾ｱ謇ｹ蛻､]",
                 "[Self-Criticism]",
                 "[Criticism]"
             ],
             "minMatch": 1,
-            "description": "分析を提示した後、同一出力内で推測・仮定・飛躍を自己批判する段階を設けること"
+            "description": "蛻・梵繧呈署遉ｺ縺励◆蠕後∝酔荳蜃ｺ蜉帛・縺ｧ謗ｨ貂ｬ繝ｻ莉ｮ螳壹・鬟幄ｺ阪ｒ閾ｪ蟾ｱ謇ｹ蛻､縺吶ｋ谿ｵ髫弱ｒ險ｭ縺代ｋ縺薙→"
         },
         {
             "id": "CONFIDENCE_DISCLOSURE",
-            "name": "最低確信度の自己開示",
+            "name": "譛菴守｢ｺ菫｡蠎ｦ縺ｮ閾ｪ蟾ｱ髢狗､ｺ",
             "patterns": [
-                "[最低確信度項目]",
+                "[譛菴守｢ｺ菫｡蠎ｦ鬆・岼]",
                 "[Low Confidence Item]",
                 "[Low Confidence Area]"
             ],
             "minMatch": 1,
-            "description": "高リスク分析の末尾に、最も自信がない部分を1つ以上開示すること"
+            "description": "鬮倥Μ繧ｹ繧ｯ蛻・梵縺ｮ譛ｫ蟆ｾ縺ｫ縲∵怙繧り・菫｡縺後↑縺・Κ蛻・ｒ1縺､莉･荳企幕遉ｺ縺吶ｋ縺薙→"
         }
     ]
 }

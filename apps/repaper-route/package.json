@@ -1,4 +1,4 @@
-{
+﻿{
     "name": "@repaper-route/app",
     "version": "1.0.0",
     "private": true,
@@ -74,3 +74,4 @@
         "vitest": "^4.0.18"
     }
 }
+

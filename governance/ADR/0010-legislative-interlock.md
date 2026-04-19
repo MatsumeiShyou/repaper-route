@@ -1,17 +1,18 @@
-# ADR 0010: Legislative Interlock (Sentinel 5.1)
+﻿# ADR 0010: Legislative Interlock (Sentinel 5.1)
 
 ## Context
-Sentinel 5.0 (Constitutional Guard) により、実装フェーズでのルール変更は遮断されたが、立法フェーズ（LEGISLATIONモード）において、ADR の作成や AMP への刻印を失念したまま「なし崩し」に憲法が変更されるリスクが残っていた。
+Sentinel 5.0 (Constitutional Guard) 縺ｫ繧医ｊ縲∝ｮ溯｣・ヵ繧ｧ繝ｼ繧ｺ縺ｧ縺ｮ繝ｫ繝ｼ繝ｫ螟画峩縺ｯ驕ｮ譁ｭ縺輔ｌ縺溘′縲∫ｫ区ｳ輔ヵ繧ｧ繝ｼ繧ｺ・・EGISLATION繝｢繝ｼ繝会ｼ峨↓縺翫＞縺ｦ縲、DR 縺ｮ菴懈・繧・AMP 縺ｸ縺ｮ蛻ｻ蜊ｰ繧貞､ｱ蠢ｵ縺励◆縺ｾ縺ｾ縲後↑縺怜ｴｩ縺励阪↓諞ｲ豕輔′螟画峩縺輔ｌ繧九Μ繧ｹ繧ｯ縺梧ｮ九▲縺ｦ縺・◆縲・
 
 ## Decision
-統治資産（AGENTS.md, governance/, .agent/scripts/）が変更された際、以下の 3 条件が物理的に満たされていない場合、反映（git push / npm run done）をハードロックする仕組みを `closure_gate.js` に実装する。
+邨ｱ豐ｻ雉・肇・・GENTS.md, governance/, .agent/scripts/・峨′螟画峩縺輔ｌ縺滄圀縲∽ｻ･荳九・ 3 譚｡莉ｶ縺檎黄逅・噪縺ｫ貅縺溘＆繧後※縺・↑縺・ｴ蜷医∝渚譏・・it push / npm run done・峨ｒ繝上・繝峨Ο繝・け縺吶ｋ莉慕ｵ・∩繧・`closure_gate.js` 縺ｫ螳溯｣・☆繧九・
 
-1.  **ADR 作成**: `governance/ADR/` 配下に新規ファイルがあり、`Status: Approved` または `ステータス: 承認済み` が含まれていること。
-2.  **AMP 紐付け**: `AMPLOG.jsonl` の最新エントリーに ADR 参照（`adr_ref`）が含まれており、かつ出力印（`PW: ｙ`）があること。
-3.  **プラン整合性**: `implementation_plan_*.md` が更新されており、内容に `立法`, `Legislation`, または `ADR` の検討キーワードが含まれていること。
+1.  **ADR 菴懈・**: `governance/ADR/` 驟堺ｸ九↓譁ｰ隕上ヵ繧｡繧､繝ｫ縺後≠繧翫～Status: Approved` 縺ｾ縺溘・ `繧ｹ繝・・繧ｿ繧ｹ: 謇ｿ隱肴ｸ医∩` 縺悟性縺ｾ繧後※縺・ｋ縺薙→縲・
+2.  **AMP 邏蝉ｻ倥￠**: `AMPLOG.jsonl` 縺ｮ譛譁ｰ繧ｨ繝ｳ繝医Μ繝ｼ縺ｫ ADR 蜿ら・・・adr_ref`・峨′蜷ｫ縺ｾ繧後※縺翫ｊ縲√°縺､蜃ｺ蜉帛魂・・PW: ・兪・峨′縺ゅｋ縺薙→縲・
+3.  **繝励Λ繝ｳ謨ｴ蜷域ｧ**: `implementation_plan_*.md` 縺梧峩譁ｰ縺輔ｌ縺ｦ縺翫ｊ縲∝・螳ｹ縺ｫ `遶区ｳ描, `Legislation`, 縺ｾ縺溘・ `ADR` 縺ｮ讀懆ｨ弱く繝ｼ繝ｯ繝ｼ繝峨′蜷ｫ縺ｾ繧後※縺・ｋ縺薙→縲・
 
 STATUS: Approved
 
 ## Consequences
-- AI は統治資産を変更する際、設計（ADR/Plan）と承認（AMP）を同時に行わなければならず、ガバナンスの形骸化が完全に防止される。
-- 立法プロトコルの不備は `DEADLOCK_REPORT` として出力され、透明性が確保される。
+- AI 縺ｯ邨ｱ豐ｻ雉・肇繧貞､画峩縺吶ｋ髫帙∬ｨｭ險茨ｼ・DR/Plan・峨→謇ｿ隱搾ｼ・MP・峨ｒ蜷梧凾縺ｫ陦後ｏ縺ｪ縺代ｌ縺ｰ縺ｪ繧峨★縲√ぎ繝舌リ繝ｳ繧ｹ縺ｮ蠖｢鬪ｸ蛹悶′螳悟・縺ｫ髦ｲ豁｢縺輔ｌ繧九・
+- 遶区ｳ輔・繝ｭ繝医さ繝ｫ縺ｮ荳榊ｙ縺ｯ `DEADLOCK_REPORT` 縺ｨ縺励※蜃ｺ蜉帙＆繧後・乗・諤ｧ縺檎｢ｺ菫昴＆繧後ｋ縲・
+

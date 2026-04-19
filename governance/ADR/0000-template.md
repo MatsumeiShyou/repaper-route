@@ -1,4 +1,4 @@
-# ADR-[ID]: [Title]
+﻿# ADR-[ID]: [Title]
 
 * **Status**: [Draft | Proposed | Accepted | Deprecated | Superseded]
 * **Date**: [YYYY-MM-DD]
@@ -24,3 +24,4 @@ Chosen option: "[Option X]", because [Justification].
 
 ## Validation Plan
 * [How will we verify this decision stays effective?]
+

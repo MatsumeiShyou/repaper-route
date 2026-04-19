@@ -1,182 +1,183 @@
-# RePaper Route - Task Archive (完了タスク履歴)
+﻿# RePaper Route - Task Archive (螳御ｺ・ち繧ｹ繧ｯ螻･豁ｴ)
 
-このファイルは完了したフェーズ・タスクを保管する歴史館です。
+縺薙・繝輔ぃ繧､繝ｫ縺ｯ螳御ｺ・＠縺溘ヵ繧ｧ繝ｼ繧ｺ繝ｻ繧ｿ繧ｹ繧ｯ繧剃ｿ晉ｮ｡縺吶ｋ豁ｴ蜿ｲ鬢ｨ縺ｧ縺吶・
 
 ---
 
-## フェーズ 1: 脱・仮初め (De-mocking) - 完了
-- [x] **Core Auth**: `App.jsx` / `AdminDashboard.jsx` のモック認証を撤廃し、正規フローへ移行 + profilesテーブル作成完了
-- [x] **Board Data**: `BoardCanvas.jsx` の初期データロードを正規リポジトリ経由に変更
-- [x] **GAS Link**: `gasApi.js` の実URL接続設定とTODO消化
+## 繝輔ぉ繝ｼ繧ｺ 1: 閼ｱ繝ｻ莉ｮ蛻昴ａ (De-mocking) - 螳御ｺ・
+- [x] **Core Auth**: `App.jsx` / `AdminDashboard.jsx` 縺ｮ繝｢繝・け隱崎ｨｼ繧呈彫蟒・＠縲∵ｭ｣隕上ヵ繝ｭ繝ｼ縺ｸ遘ｻ陦・+ profiles繝・・繝悶Ν菴懈・螳御ｺ・
+- [x] **Board Data**: `BoardCanvas.jsx` 縺ｮ蛻晄悄繝・・繧ｿ繝ｭ繝ｼ繝峨ｒ豁｣隕上Μ繝昴ず繝医Μ邨檎罰縺ｫ螟画峩
+- [x] **GAS Link**: `gasApi.js` 縺ｮ螳欟RL謗･邯夊ｨｭ螳壹→TODO豸亥喧
 
-## フェーズ 1.5: スキーマ最適化 (Schema Optimization) - 完了
-- [x] **Schema Unification**: 3つのSQLファイルを統合し、実行順序を明確化
-- [x] **Verification Enhancement**: 検証スクリプトに profiles テーブル確認を追加
+## 繝輔ぉ繝ｼ繧ｺ 1.5: 繧ｹ繧ｭ繝ｼ繝樊怙驕ｩ蛹・(Schema Optimization) - 螳御ｺ・
+- [x] **Schema Unification**: 3縺､縺ｮSQL繝輔ぃ繧､繝ｫ繧堤ｵｱ蜷医＠縲∝ｮ溯｡碁・ｺ上ｒ譏守｢ｺ蛹・
+- [x] **Verification Enhancement**: 讀懆ｨｼ繧ｹ繧ｯ繝ｪ繝励ヨ縺ｫ profiles 繝・・繝悶Ν遒ｺ隱阪ｒ霑ｽ蜉
 
-## フェーズ 2.5: 実構造反映 (Actual Schema Reflection) - 完了
-- [x] **Schema Investigation**: Supabase実構造の完全調査(9テーブル確認)
-- [x] **Schema Creation**: supabase_schema_actual.sql 作成(冪等性対応、簡潔な構造、履歴コメント付き)
-- [x] **Routes Table Addition**: 配車計画保存用routesテーブル追加
-- [x] **Verification Update**: supabase_schema_verification.sql をPhase 2.5対応に更新
-- [x] **Application Verification**: ブラウザ動作確認完了(物理的証拠:スクリーンショット)
-- [x] **Project Cleanup**: 不要ファイル削除、試作品を_archived/prototypes/へ移動
+## 繝輔ぉ繝ｼ繧ｺ 2.5: 螳滓ｧ矩蜿肴丐 (Actual Schema Reflection) - 螳御ｺ・
+- [x] **Schema Investigation**: Supabase螳滓ｧ矩縺ｮ螳悟・隱ｿ譟ｻ(9繝・・繝悶Ν遒ｺ隱・
+- [x] **Schema Creation**: supabase_schema_actual.sql 菴懈・(蜀ｪ遲画ｧ蟇ｾ蠢懊∫ｰ｡貎斐↑讒矩縲∝ｱ･豁ｴ繧ｳ繝｡繝ｳ繝井ｻ倥″)
+- [x] **Routes Table Addition**: 驟崎ｻ願ｨ育判菫晏ｭ倡畑routes繝・・繝悶Ν霑ｽ蜉
+- [x] **Verification Update**: supabase_schema_verification.sql 繧単hase 2.5蟇ｾ蠢懊↓譖ｴ譁ｰ
+- [x] **Application Verification**: 繝悶Λ繧ｦ繧ｶ蜍穂ｽ懃｢ｺ隱榊ｮ御ｺ・迚ｩ逅・噪險ｼ諡:繧ｹ繧ｯ繝ｪ繝ｼ繝ｳ繧ｷ繝ｧ繝・ヨ)
+- [x] **Project Cleanup**: 荳崎ｦ√ヵ繧｡繧､繝ｫ蜑企勁縲∬ｩｦ菴懷刀繧胆archived/prototypes/縺ｸ遘ｻ蜍・
 
-## フェーズ 2: 機能強化 (Enhancement) - 完了
-- [x] **Concurrency**: 配車盤の編集競合防止ロジック実装
-  - [x] Project hygiene: .gitignore最適化、ログファイル削除
-  - [x] Implementation plan作成: Optimistic Locking設計
-  - [x] BoardCanvas.jsx: localUpdatedAt State追加
-  - [x] BoardCanvas.jsx: 初期化時タイムスタンプ記録
-  - [x] BoardCanvas.jsx: Real-time購読の競合検知ロジック
-  - [x] BoardCanvas.jsx: 保存時の競合検出・リロード処理
-  - [x] Manual verification: 3シナリオ検証
+## 繝輔ぉ繝ｼ繧ｺ 2: 讖溯・蠑ｷ蛹・(Enhancement) - 螳御ｺ・
+- [x] **Concurrency**: 驟崎ｻ顔乢縺ｮ邱ｨ髮・ｫｶ蜷磯亟豁｢繝ｭ繧ｸ繝・け螳溯｣・
+  - [x] Project hygiene: .gitignore譛驕ｩ蛹悶√Ο繧ｰ繝輔ぃ繧､繝ｫ蜑企勁
+  - [x] Implementation plan菴懈・: Optimistic Locking險ｭ險・
+  - [x] BoardCanvas.jsx: localUpdatedAt State霑ｽ蜉
+  - [x] BoardCanvas.jsx: 蛻晄悄蛹匁凾繧ｿ繧､繝繧ｹ繧ｿ繝ｳ繝苓ｨ倬鹸
+  - [x] BoardCanvas.jsx: Real-time雉ｼ隱ｭ縺ｮ遶ｶ蜷域､懃衍繝ｭ繧ｸ繝・け
+  - [x] BoardCanvas.jsx: 菫晏ｭ俶凾縺ｮ遶ｶ蜷域､懷・繝ｻ繝ｪ繝ｭ繝ｼ繝牙・逅・
+  - [x] Manual verification: 3繧ｷ繝翫Μ繧ｪ讀懆ｨｼ
 
-## フェーズ 2.2: 排他的編集ロック (Exclusive Edit Lock - Option E) - 完了
-- [x] **Edit Lock Mechanism**: 編集権トークン + 15分タイムアウト実装
-  - [x] Schema: routesテーブルに3カラム追加 (edit_locked_by, edit_locked_at, last_activity_at)
-  - [x] SCHEMA_HISTORY.md更新
-  - [x] Migration SQLファイル作成
-  - [x] Supabase migration実行
-  - [x] BoardCanvas: ロック取得ロジック実装
-  - [x] BoardCanvas: タイムアウト判定(15分)
-  - [x] BoardCanvas: ハートビート(1分ごとのアクティビティ更新)
-  - [x] BoardCanvas: ロック解放ロジック
-  - [x] Real-time: ロック状態の購読・通知
-  - [x] UI: 編集モード/閲覧モード切替
-  - [x] UI: 編集中ユーザー表示
-  - [x] Manual verification: 緊急変更シナリオ検証
+## 繝輔ぉ繝ｼ繧ｺ 2.2: 謗剃ｻ也噪邱ｨ髮・Ο繝・け (Exclusive Edit Lock - Option E) - 螳御ｺ・
+- [x] **Edit Lock Mechanism**: 邱ｨ髮・ｨｩ繝医・繧ｯ繝ｳ + 15蛻・ち繧､繝繧｢繧ｦ繝亥ｮ溯｣・
+  - [x] Schema: routes繝・・繝悶Ν縺ｫ3繧ｫ繝ｩ繝霑ｽ蜉 (edit_locked_by, edit_locked_at, last_activity_at)
+  - [x] SCHEMA_HISTORY.md譖ｴ譁ｰ
+  - [x] Migration SQL繝輔ぃ繧､繝ｫ菴懈・
+  - [x] Supabase migration螳溯｡・
+  - [x] BoardCanvas: 繝ｭ繝・け蜿門ｾ励Ο繧ｸ繝・け螳溯｣・
+  - [x] BoardCanvas: 繧ｿ繧､繝繧｢繧ｦ繝亥愛螳・15蛻・
+  - [x] BoardCanvas: 繝上・繝医ン繝ｼ繝・1蛻・＃縺ｨ縺ｮ繧｢繧ｯ繝・ぅ繝薙ユ繧｣譖ｴ譁ｰ)
+  - [x] BoardCanvas: 繝ｭ繝・け隗｣謾ｾ繝ｭ繧ｸ繝・け
+  - [x] Real-time: 繝ｭ繝・け迥ｶ諷九・雉ｼ隱ｭ繝ｻ騾夂衍
+  - [x] UI: 邱ｨ髮・Δ繝ｼ繝・髢ｲ隕ｧ繝｢繝ｼ繝牙・譖ｿ
+  - [x] UI: 邱ｨ髮・ｸｭ繝ｦ繝ｼ繧ｶ繝ｼ陦ｨ遉ｺ
+  - [x] Manual verification: 邱頑･螟画峩繧ｷ繝翫Μ繧ｪ讀懆ｨｼ
 
-## フェーズ 2.3: 編集権限制御 (Edit Permission Control - RBAC) - 完了
-- [x] **Permission Management**: 特定ユーザーのみ編集可能にする権限制御
-  - [x] Implementation plan作成
-  - [x] Schema: profilesテーブルにcan_edit_boardカラム追加
-  - [x] Migration SQLファイル作成 (supabase_migration_phase2.3.sql)
-  - [x] Supabase migration実行
-  - [x] BoardCanvas: canEditBoard State追加
-  - [x] BoardCanvas: 初期化時に権限取得
-  - [x] BoardCanvas: requestEditLock内で権限チェック
-  - [x] UI: 権限なしユーザー向け表示(閲覧専用バッジ)
-  - [x] User matching fix: currentUserId修正 (admin1に変更)
-  - [x] Query fix: .eq('id')に変更
-  - [x] Manual verification: 権限あり/なしユーザーテスト
+## 繝輔ぉ繝ｼ繧ｺ 2.3: 邱ｨ髮・ｨｩ髯仙宛蠕｡ (Edit Permission Control - RBAC) - 螳御ｺ・
+- [x] **Permission Management**: 迚ｹ螳壹Θ繝ｼ繧ｶ繝ｼ縺ｮ縺ｿ邱ｨ髮・庄閭ｽ縺ｫ縺吶ｋ讓ｩ髯仙宛蠕｡
+  - [x] Implementation plan菴懈・
+  - [x] Schema: profiles繝・・繝悶Ν縺ｫcan_edit_board繧ｫ繝ｩ繝霑ｽ蜉
+  - [x] Migration SQL繝輔ぃ繧､繝ｫ菴懈・ (supabase_migration_phase2.3.sql)
+  - [x] Supabase migration螳溯｡・
+  - [x] BoardCanvas: canEditBoard State霑ｽ蜉
+  - [x] BoardCanvas: 蛻晄悄蛹匁凾縺ｫ讓ｩ髯仙叙蠕・
+  - [x] BoardCanvas: requestEditLock蜀・〒讓ｩ髯舌メ繧ｧ繝・け
+  - [x] UI: 讓ｩ髯舌↑縺励Θ繝ｼ繧ｶ繝ｼ蜷代￠陦ｨ遉ｺ(髢ｲ隕ｧ蟆ら畑繝舌ャ繧ｸ)
+  - [x] User matching fix: currentUserId菫ｮ豁｣ (admin1縺ｫ螟画峩)
+  - [x] Query fix: .eq('id')縺ｫ螟画峩
+  - [x] Manual verification: 讓ｩ髯舌≠繧・縺ｪ縺励Θ繝ｼ繧ｶ繝ｼ繝・せ繝・
 
-## フェーズ 3.1: 未配車リストバケット改良 - 完了
-- [x] **Pending Jobs Bucket Improvement**: 定期/スポット明確化
-  - [x] BoardCanvas: フィルタータブ変更 (すべて/定期/スポット)
-  - [x] BoardCanvas: フィルタリングロジック修正
-  - [x] Manual verification: バケット表示確認
+## 繝輔ぉ繝ｼ繧ｺ 3.1: 譛ｪ驟崎ｻ翫Μ繧ｹ繝医ヰ繧ｱ繝・ヨ謾ｹ濶ｯ - 螳御ｺ・
+- [x] **Pending Jobs Bucket Improvement**: 螳壽悄/繧ｹ繝昴ャ繝域・遒ｺ蛹・
+  - [x] BoardCanvas: 繝輔ぅ繝ｫ繧ｿ繝ｼ繧ｿ繝門､画峩 (縺吶∋縺ｦ/螳壽悄/繧ｹ繝昴ャ繝・
+  - [x] BoardCanvas: 繝輔ぅ繝ｫ繧ｿ繝ｪ繝ｳ繧ｰ繝ｭ繧ｸ繝・け菫ｮ豁｣
+  - [x] Manual verification: 繝舌こ繝・ヨ陦ｨ遉ｺ遒ｺ隱・
 
-## フェーズ 3.2: バケットシステム再設計 (Blueprint v2.1) - 完了
-- [x] **4-Bucket System**: 制約ベースの分類システム
-  - [x] BoardCanvas: タブ変更 (全て/スポット/時間指定/特殊案件)
-  - [x] BoardCanvas: フィルタリングロジック更新
-  - [x] データモデル: is_spot, time_constraint, task_type カラム追加
-  - [x] Migration SQL作成
-  - [x] Migration SQL実行 (User Manual)
-  - [x] Manual verification: 4バケット表示確認
+## 繝輔ぉ繝ｼ繧ｺ 3.2: 繝舌こ繝・ヨ繧ｷ繧ｹ繝・Β蜀崎ｨｭ險・(Blueprint v2.1) - 螳御ｺ・
+- [x] **4-Bucket System**: 蛻ｶ邏・・繝ｼ繧ｹ縺ｮ蛻・｡槭す繧ｹ繝・Β
+  - [x] BoardCanvas: 繧ｿ繝門､画峩 (蜈ｨ縺ｦ/繧ｹ繝昴ャ繝・譎る俣謖・ｮ・迚ｹ谿頑｡井ｻｶ)
+  - [x] BoardCanvas: 繝輔ぅ繝ｫ繧ｿ繝ｪ繝ｳ繧ｰ繝ｭ繧ｸ繝・け譖ｴ譁ｰ
+  - [x] 繝・・繧ｿ繝｢繝・Ν: is_spot, time_constraint, task_type 繧ｫ繝ｩ繝霑ｽ蜉
+  - [x] Migration SQL菴懈・
+  - [x] Migration SQL螳溯｡・(User Manual)
+  - [x] Manual verification: 4繝舌こ繝・ヨ陦ｨ遉ｺ遒ｺ隱・
 
-## フェーズ 3.3: 制約検証ロジック (Yellow Warning) - 完了
-- [x] **Constraint Logic**: 時間制約違反の検知と警告
-  - [x] BoardCanvas: `validateTimeConstraint` 実装
-  - [x] BoardCanvas: ドロップ時に検証実行 & 警告表示
-  - [x] UI: Warning Notification (黄色トースト) 対応
-  - [x] Manual verification: 違反時の警告動作確認
-  - [x] Manual verification: 違反時のブロック確認
+## 繝輔ぉ繝ｼ繧ｺ 3.3: 蛻ｶ邏・､懆ｨｼ繝ｭ繧ｸ繝・け (Yellow Warning) - 螳御ｺ・
+- [x] **Constraint Logic**: 譎る俣蛻ｶ邏・＆蜿阪・讀懃衍縺ｨ隴ｦ蜻・
+  - [x] BoardCanvas: `validateTimeConstraint` 螳溯｣・
+  - [x] BoardCanvas: 繝峨Ο繝・・譎ゅ↓讀懆ｨｼ螳溯｡・& 隴ｦ蜻願｡ｨ遉ｺ
+  - [x] UI: Warning Notification (鮟・牡繝医・繧ｹ繝・ 蟇ｾ蠢・
+  - [x] Manual verification: 驕募渚譎ゅ・隴ｦ蜻雁虚菴懃｢ｺ隱・
+  - [x] Manual verification: 驕募渚譎ゅ・繝悶Ο繝・け遒ｺ隱・
 
-## フェーズ 3.5: 制約検証ロジック (Reason Input) - 完了
-- [x] **Reason Input UI**: 警告時の理由入力ダイアログ
-  - [x] UI: `ReasonModal` コンポーネント実装
-  - [x] BoardCanvas: Yellow Warning時にモーダル表示
-  - [x] Logic: 理由付きで配置を実行する処理
-  - [x] Manual verification: 理由入力フローの確認
+## 繝輔ぉ繝ｼ繧ｺ 3.5: 蛻ｶ邏・､懆ｨｼ繝ｭ繧ｸ繝・け (Reason Input) - 螳御ｺ・
+- [x] **Reason Input UI**: 隴ｦ蜻頑凾縺ｮ逅・罰蜈･蜉帙ム繧､繧｢繝ｭ繧ｰ
+  - [x] UI: `ReasonModal` 繧ｳ繝ｳ繝昴・繝阪Φ繝亥ｮ溯｣・
+  - [x] BoardCanvas: Yellow Warning譎ゅ↓繝｢繝ｼ繝繝ｫ陦ｨ遉ｺ
+  - [x] Logic: 逅・罰莉倥″縺ｧ驟咲ｽｮ繧貞ｮ溯｡後☆繧句・逅・
+  - [x] Manual verification: 逅・罰蜈･蜉帙ヵ繝ｭ繝ｼ縺ｮ遒ｺ隱・
 
-## フェーズ 3.X: マスタデータ正規化 (Master Data Normalization - Simple) - 完了
-- [x] **Schema Definition**: `customers`, `vehicles` テーブル作成
-- [x] **Data Migration**: 初期データ投入
-- [x] **Code Refactoring**: `BoardCanvas.jsx` 等のマスタ参照をDB経由に変更
-- [x] **Manual verification**: マスタデータが正しく読み込まれるか確認
+## 繝輔ぉ繝ｼ繧ｺ 3.X: 繝槭せ繧ｿ繝・・繧ｿ豁｣隕丞喧 (Master Data Normalization - Simple) - 螳御ｺ・
+- [x] **Schema Definition**: `customers`, `vehicles` 繝・・繝悶Ν菴懈・
+- [x] **Data Migration**: 蛻晄悄繝・・繧ｿ謚募・
+- [x] **Code Refactoring**: `BoardCanvas.jsx` 遲峨・繝槭せ繧ｿ蜿ら・繧奪B邨檎罰縺ｫ螟画峩
+- [x] **Manual verification**: 繝槭せ繧ｿ繝・・繧ｿ縺梧ｭ｣縺励￥隱ｭ縺ｿ霎ｼ縺ｾ繧後ｋ縺狗｢ｺ隱・
 
-## フェーズ 4.0: SDRアーキテクチャ移行 (SDR Migration) - 完了
-- [x] **SDR Schema Implementation**: `manual_sdr_migration_full.sql` 作成完了 (一時停止: CLI設定へ移行)
-- [x] **Master Data Migration**: `customers` -> `master_collection_points` 移行 (Remote既存確認済み)
-- [x] **Application Adapter**: `useMasterData` をSDR対応版へ更新
-- [x] **Proposal Flow**: コード実装完了 (DBテーブル作成済み、CLI環境整備完了)
+## 繝輔ぉ繝ｼ繧ｺ 4.0: SDR繧｢繝ｼ繧ｭ繝・け繝√Ε遘ｻ陦・(SDR Migration) - 螳御ｺ・
+- [x] **SDR Schema Implementation**: `manual_sdr_migration_full.sql` 菴懈・螳御ｺ・(荳譎ょ●豁｢: CLI險ｭ螳壹∈遘ｻ陦・
+- [x] **Master Data Migration**: `customers` -> `master_collection_points` 遘ｻ陦・(Remote譌｢蟄倡｢ｺ隱肴ｸ医∩)
+- [x] **Application Adapter**: `useMasterData` 繧担DR蟇ｾ蠢懃沿縺ｸ譖ｴ譁ｰ
+- [x] **Proposal Flow**: 繧ｳ繝ｼ繝牙ｮ溯｣・ｮ御ｺ・(DB繝・・繝悶Ν菴懈・貂医∩縲，LI迺ｰ蠅・紛蛯吝ｮ御ｺ・
 
-## フェーズ 4.1: CLI環境構築 (CLI Configuration) - 完了
-- [x] **CLI Authentication**: Supabaseへログイン
-- [x] **Project Link**: リモートプロジェクトとリンク (`mjaoolcjjlxwstlpdgrg`)
-- [x] **Migration Execution**: CLI経由でSDRマイグレーションを適用 (PGRST205解消)
+## 繝輔ぉ繝ｼ繧ｺ 4.1: CLI迺ｰ蠅・ｧ狗ｯ・(CLI Configuration) - 螳御ｺ・
+- [x] **CLI Authentication**: Supabase縺ｸ繝ｭ繧ｰ繧､繝ｳ
+- [x] **Project Link**: 繝ｪ繝｢繝ｼ繝医・繝ｭ繧ｸ繧ｧ繧ｯ繝医→繝ｪ繝ｳ繧ｯ (`mjaoolcjjlxwstlpdgrg`)
+- [x] **Migration Execution**: CLI邨檎罰縺ｧSDR繝槭う繧ｰ繝ｬ繝ｼ繧ｷ繝ｧ繝ｳ繧帝←逕ｨ (PGRST205隗｣豸・
 
-## フェーズ 4.2: 承認フローUI実装 (Approval Flow UI) - 完了
-- [x] **SDR Dashboard**: 提案・決定ログを閲覧できる管理画面の実装
-  - [x] UI: `SDRDashboard.jsx` 作成 (Proposals & Decisions Tabs)
-  - [x] Logic: `useSDR.js` フック作成 (Fetch & Supabase Subscription)
-  - [x] Action: 手動承認/却下ボタンの実装 (Pending提案用)
-- [x] **Integration**: 管理メニューへのリンク追加
-- [x] **Environment Fix**: CLIとアプリのプロジェクト不整合を解消し、`mjaool...` で統一。
+## 繝輔ぉ繝ｼ繧ｺ 4.2: 謇ｿ隱阪ヵ繝ｭ繝ｼUI螳溯｣・(Approval Flow UI) - 螳御ｺ・
+- [x] **SDR Dashboard**: 謠先｡医・豎ｺ螳壹Ο繧ｰ繧帝夢隕ｧ縺ｧ縺阪ｋ邂｡逅・判髱｢縺ｮ螳溯｣・
+  - [x] UI: `SDRDashboard.jsx` 菴懈・ (Proposals & Decisions Tabs)
+  - [x] Logic: `useSDR.js` 繝輔ャ繧ｯ菴懈・ (Fetch & Supabase Subscription)
+  - [x] Action: 謇句虚謇ｿ隱・蜊ｴ荳九・繧ｿ繝ｳ縺ｮ螳溯｣・(Pending謠先｡育畑)
+- [x] **Integration**: 邂｡逅・Γ繝九Η繝ｼ縺ｸ縺ｮ繝ｪ繝ｳ繧ｯ霑ｽ蜉
+- [x] **Environment Fix**: CLI縺ｨ繧｢繝励Μ縺ｮ繝励Ο繧ｸ繧ｧ繧ｯ繝井ｸ肴紛蜷医ｒ隗｣豸医＠縲～mjaool...` 縺ｧ邨ｱ荳縲・
 
-## フェーズ 4.3: UI日本語化 (Localization) - 完了
-- [x] **SDR Dashboard**: 提案・決定ログ画面の日本語化
-  - [x] Labels: テーブルヘッダー、ボタン、ステータスバッジの日本語化
-  - [x] Messages: ローディング、エラー、空状態メッセージの日本語化
-  - [x] Date Format: 日時表示のJST/ロケール対応 (`toLocaleString('ja-JP')`)
+## 繝輔ぉ繝ｼ繧ｺ 4.3: UI譌･譛ｬ隱槫喧 (Localization) - 螳御ｺ・
+- [x] **SDR Dashboard**: 謠先｡医・豎ｺ螳壹Ο繧ｰ逕ｻ髱｢縺ｮ譌･譛ｬ隱槫喧
+  - [x] Labels: 繝・・繝悶Ν繝倥ャ繝繝ｼ縲√・繧ｿ繝ｳ縲√せ繝・・繧ｿ繧ｹ繝舌ャ繧ｸ縺ｮ譌･譛ｬ隱槫喧
+  - [x] Messages: 繝ｭ繝ｼ繝・ぅ繝ｳ繧ｰ縲√お繝ｩ繝ｼ縲∫ｩｺ迥ｶ諷九Γ繝・そ繝ｼ繧ｸ縺ｮ譌･譛ｬ隱槫喧
+  - [x] Date Format: 譌･譎り｡ｨ遉ｺ縺ｮJST/繝ｭ繧ｱ繝ｼ繝ｫ蟇ｾ蠢・(`toLocaleString('ja-JP')`)
 
-## フェーズ 5.5: 構造改革 (Architecture Refactoring) - 完了
-- [x] **Component Split**: `BoardCanvas.jsx` (1600行) の分割
-  - [x] Logic Extraction: `useBoardData` フックの作成 (Supabase/Local Sync)
-  - [x] UI Extraction: `DriverColumn`, `TimeGrid`, `JobCard` コンポーネント化
-  - [x] Drag Logic: `useBoardDragDrop` フックへの分離
-- [x] **Type Definition**: 主要データ型 (Job, Driver, Split) のJSDoc/TypeScript定義整備
+## 繝輔ぉ繝ｼ繧ｺ 5.5: 讒矩謾ｹ髱ｩ (Architecture Refactoring) - 螳御ｺ・
+- [x] **Component Split**: `BoardCanvas.jsx` (1600陦・ 縺ｮ蛻・牡
+  - [x] Logic Extraction: `useBoardData` 繝輔ャ繧ｯ縺ｮ菴懈・ (Supabase/Local Sync)
+  - [x] UI Extraction: `DriverColumn`, `TimeGrid`, `JobCard` 繧ｳ繝ｳ繝昴・繝阪Φ繝亥喧
+  - [x] Drag Logic: `useBoardDragDrop` 繝輔ャ繧ｯ縺ｸ縺ｮ蛻・屬
+- [x] **Type Definition**: 荳ｻ隕√ョ繝ｼ繧ｿ蝙・(Job, Driver, Split) 縺ｮJSDoc/TypeScript螳夂ｾｩ謨ｴ蛯・
 
-## フェーズ 6: 複数品目管理 (Multi-Item Management) - 完了
-- [x] **Data Modeling**: 概念データモデル設計 (ER図)
-  - [x] Plan Formulation: `implementation_plan.md` 更新
-  - [x] Schema Design: `master_items`, `customer_item_defaults` テーブル設計
-  - [x] Migration: SQLファイル作成
-- [x] **UI Prototyping**: 複数品目入力・表示UIのモックアップ作成
-  - [x] Logic Update: `useMasterData` hook 拡張
-  - [x] Logic Update: `useBoardData` / `proposalLogic` 拡張
-  - [x] UI Update: `BoardModals.jsx` (Job Edit) に品目管理機能追加
-- [x] **DB Implementation**: `job_items` (JSONB) 統合とデータ永続化
+## 繝輔ぉ繝ｼ繧ｺ 6: 隍・焚蜩∫岼邂｡逅・(Multi-Item Management) - 螳御ｺ・
+- [x] **Data Modeling**: 讎ょｿｵ繝・・繧ｿ繝｢繝・Ν險ｭ險・(ER蝗ｳ)
+  - [x] Plan Formulation: `implementation_plan.md` 譖ｴ譁ｰ
+  - [x] Schema Design: `master_items`, `customer_item_defaults` 繝・・繝悶Ν險ｭ險・
+  - [x] Migration: SQL繝輔ぃ繧､繝ｫ菴懈・
+- [x] **UI Prototyping**: 隍・焚蜩∫岼蜈･蜉帙・陦ｨ遉ｺUI縺ｮ繝｢繝・け繧｢繝・・菴懈・
+  - [x] Logic Update: `useMasterData` hook 諡｡蠑ｵ
+  - [x] Logic Update: `useBoardData` / `proposalLogic` 諡｡蠑ｵ
+  - [x] UI Update: `BoardModals.jsx` (Job Edit) 縺ｫ蜩∫岼邂｡逅・ｩ溯・霑ｽ蜉
+- [x] **DB Implementation**: `job_items` (JSONB) 邨ｱ蜷医→繝・・繧ｿ豌ｸ邯壼喧
 
-## フェーズ 6.5: データ移行 (Data Migration) - 完了
-- [x] **CSV Import**: 既存マスタデータの取り込み
-  - [x] Scripting: 変換スクリプト作成 (`generate_import_sql.js`)
-  - [x] SQL Generation: インポート用SQL生成
-  - [x] Schema Correction: 未定義テーブル作成とFK修正 (114000, 114500)
-  - [x] Execution: Supabaseへの適用 (121000)
-  - [x] Verification: データ件数確認完了 (`verify_import.js`)
-  - [x] Vehicles Seed: 車両マスタ5件投入 (`122000`)
-  - [x] Drivers Seed: ドライバーマスタ11件投入 (`160000`)
+## 繝輔ぉ繝ｼ繧ｺ 6.5: 繝・・繧ｿ遘ｻ陦・(Data Migration) - 螳御ｺ・
+- [x] **CSV Import**: 譌｢蟄倥・繧ｹ繧ｿ繝・・繧ｿ縺ｮ蜿悶ｊ霎ｼ縺ｿ
+  - [x] Scripting: 螟画鋤繧ｹ繧ｯ繝ｪ繝励ヨ菴懈・ (`generate_import_sql.js`)
+  - [x] SQL Generation: 繧､繝ｳ繝昴・繝育畑SQL逕滓・
+  - [x] Schema Correction: 譛ｪ螳夂ｾｩ繝・・繝悶Ν菴懈・縺ｨFK菫ｮ豁｣ (114000, 114500)
+  - [x] Execution: Supabase縺ｸ縺ｮ驕ｩ逕ｨ (121000)
+  - [x] Verification: 繝・・繧ｿ莉ｶ謨ｰ遒ｺ隱榊ｮ御ｺ・(`verify_import.js`)
+  - [x] Vehicles Seed: 霆贋ｸ｡繝槭せ繧ｿ5莉ｶ謚募・ (`122000`)
+  - [x] Drivers Seed: 繝峨Λ繧､繝舌・繝槭せ繧ｿ11莉ｶ謚募・ (`160000`)
 
-## フェーズ 7: コース別配車管理 (Course-Based Dispatch) - 完了
-- [x] **Course Column Model**: コース主体カラムへのモデル移行
-  - [x] Logic: `useBoardData.js` 初期化ロジック変更 (Default A-E Courses)
-  - [x] UI: `DriverHeader.jsx` コース名強調・担当者割当表示への変更
-  - [x] UI: `BoardModals.jsx` ヘッダー編集モーダルのDriver/Vehicle選択UI化
-  - [x] Feature: コース追加・削除機能の実装
+## 繝輔ぉ繝ｼ繧ｺ 7: 繧ｳ繝ｼ繧ｹ蛻･驟崎ｻ顔ｮ｡逅・(Course-Based Dispatch) - 螳御ｺ・
+- [x] **Course Column Model**: 繧ｳ繝ｼ繧ｹ荳ｻ菴薙き繝ｩ繝縺ｸ縺ｮ繝｢繝・Ν遘ｻ陦・
+  - [x] Logic: `useBoardData.js` 蛻晄悄蛹悶Ο繧ｸ繝・け螟画峩 (Default A-E Courses)
+  - [x] UI: `DriverHeader.jsx` 繧ｳ繝ｼ繧ｹ蜷榊ｼｷ隱ｿ繝ｻ諡・ｽ楢・牡蠖楢｡ｨ遉ｺ縺ｸ縺ｮ螟画峩
+  - [x] UI: `BoardModals.jsx` 繝倥ャ繝繝ｼ邱ｨ髮・Δ繝ｼ繝繝ｫ縺ｮDriver/Vehicle驕ｸ謚朸I蛹・
+  - [x] Feature: 繧ｳ繝ｼ繧ｹ霑ｽ蜉繝ｻ蜑企勁讖溯・縺ｮ螳溯｣・
 
-## フェーズ 8: UI基本動作の洗練 (UI Refinement) - 完了
-- [x] **Job Creation Hook**: 盤上ダブルクリックで「案件追加」モーダルを開く
-- [x] **Phase 6 Verification Support**: モーダルに顧客選択を追加し、デフォルト品目を自動入力
-- [x] **Drag & Drop Tuning**: 列間移動のロジック検証完了 (Unit Tests Pass)
-- [x] **Automated Verification**: Headless統合テストによる動作保証 (Vitest)
+## 繝輔ぉ繝ｼ繧ｺ 8: UI蝓ｺ譛ｬ蜍穂ｽ懊・豢礼ｷｴ (UI Refinement) - 螳御ｺ・
+- [x] **Job Creation Hook**: 逶､荳翫ム繝悶Ν繧ｯ繝ｪ繝・け縺ｧ縲梧｡井ｻｶ霑ｽ蜉縲阪Δ繝ｼ繝繝ｫ繧帝幕縺・
+- [x] **Phase 6 Verification Support**: 繝｢繝ｼ繝繝ｫ縺ｫ鬘ｧ螳｢驕ｸ謚槭ｒ霑ｽ蜉縺励√ョ繝輔か繝ｫ繝亥刀逶ｮ繧定・蜍募・蜉・
+- [x] **Drag & Drop Tuning**: 蛻鈴俣遘ｻ蜍輔・繝ｭ繧ｸ繝・け讀懆ｨｼ螳御ｺ・(Unit Tests Pass)
+- [x] **Automated Verification**: Headless邨ｱ蜷医ユ繧ｹ繝医↓繧医ｋ蜍穂ｽ應ｿ晁ｨｼ (Vitest)
 
-## フェーズ 9: Business OS統一規格への完全移行 (Strict Compliance) - 完了
-- [x] **SDR Schema Implementation**: `migration_report.md` に基づくテーブル・RPC作成
-- [x] **RLS Enforcement**: `routes` テーブルへの直接書き込み禁止設定
-- [x] **Frontend Migration**: `useBoardData.js` の保存処理をRPC経由に変更
-- [x] **Verification**: Driver権限で直接書き込みが失敗し、RPC経由のみ成功することを確認
+## 繝輔ぉ繝ｼ繧ｺ 9: Business OS邨ｱ荳隕乗ｼ縺ｸ縺ｮ螳悟・遘ｻ陦・(Strict Compliance) - 螳御ｺ・
+- [x] **SDR Schema Implementation**: `migration_report.md` 縺ｫ蝓ｺ縺･縺上ユ繝ｼ繝悶Ν繝ｻRPC菴懈・
+- [x] **RLS Enforcement**: `routes` 繝・・繝悶Ν縺ｸ縺ｮ逶ｴ謗･譖ｸ縺崎ｾｼ縺ｿ遖∵ｭ｢險ｭ螳・
+- [x] **Frontend Migration**: `useBoardData.js` 縺ｮ菫晏ｭ伜・逅・ｒRPC邨檎罰縺ｫ螟画峩
+- [x] **Verification**: Driver讓ｩ髯舌〒逶ｴ謗･譖ｸ縺崎ｾｼ縺ｿ縺悟､ｱ謨励＠縲ヽPC邨檎罰縺ｮ縺ｿ謌仙粥縺吶ｋ縺薙→繧堤｢ｺ隱・
 
-## フェーズ 10: UI改善 & 認証負債の解消 (UI & Auth Polish) - 完了
-- [x] **Pending Job Sidebar Redesign**: 未配車リストを右側オーバーレイ化し、レイアウト崩れ防止と操作性を向上
-- [x] **Auth Refactor**: `AuthContext` 導入により、ハードコードされたIDを排除し、監査ログの整合性を確保
-  - [x] `AuthContext` / `useAuth` 実装
-  - [x] `App.jsx`, `BoardCanvas.jsx`, `AdminDashboard.jsx` の改修
-  - [x] 動作検証完了
+## 繝輔ぉ繝ｼ繧ｺ 10: UI謾ｹ蝟・& 隱崎ｨｼ雋蛯ｵ縺ｮ隗｣豸・(UI & Auth Polish) - 螳御ｺ・
+- [x] **Pending Job Sidebar Redesign**: 譛ｪ驟崎ｻ翫Μ繧ｹ繝医ｒ蜿ｳ蛛ｴ繧ｪ繝ｼ繝舌・繝ｬ繧､蛹悶＠縲√Ξ繧､繧｢繧ｦ繝亥ｴｩ繧碁亟豁｢縺ｨ謫堺ｽ懈ｧ繧貞髄荳・
+- [x] **Auth Refactor**: `AuthContext` 蟆主・縺ｫ繧医ｊ縲√ワ繝ｼ繝峨さ繝ｼ繝峨＆繧後◆ID繧呈賜髯､縺励∫屮譟ｻ繝ｭ繧ｰ縺ｮ謨ｴ蜷域ｧ繧堤｢ｺ菫・
+  - [x] `AuthContext` / `useAuth` 螳溯｣・
+  - [x] `App.jsx`, `BoardCanvas.jsx`, `AdminDashboard.jsx` 縺ｮ謾ｹ菫ｮ
+  - [x] 蜍穂ｽ懈､懆ｨｼ螳御ｺ・
 
-## フェーズ 11: 安定化とバグ修正 (Stabilization & Bug Fixes) - 完了
-- [x] **Data Visibility Diagnosis**: `debug_app_query.cjs` を実行。データは存在するが、`drivers` クエリ失敗 (400) により画面が機能不全と判明。
-- [x] **Drivers Fix**: `drivers` テーブルに `display_order` カラムを追加 (Manual SQL) し、`useMasterData.js` の正規ソートを復元
-- [x] **Assignment Functionality Test**: 未配車リストから配車盤への割り当て動作確認 (Verified via Browser Subagent)
-- [x] **Save Button Implementation**: ヘッダーに保存ボタンを追加し、データ永続化を可能にする
+## 繝輔ぉ繝ｼ繧ｺ 11: 螳牙ｮ壼喧縺ｨ繝舌げ菫ｮ豁｣ (Stabilization & Bug Fixes) - 螳御ｺ・
+- [x] **Data Visibility Diagnosis**: `debug_app_query.cjs` 繧貞ｮ溯｡後ゅョ繝ｼ繧ｿ縺ｯ蟄伜惠縺吶ｋ縺後～drivers` 繧ｯ繧ｨ繝ｪ螟ｱ謨・(400) 縺ｫ繧医ｊ逕ｻ髱｢縺梧ｩ溯・荳榊・縺ｨ蛻､譏弱・
+- [x] **Drivers Fix**: `drivers` 繝・・繝悶Ν縺ｫ `display_order` 繧ｫ繝ｩ繝繧定ｿｽ蜉 (Manual SQL) 縺励～useMasterData.js` 縺ｮ豁｣隕上た繝ｼ繝医ｒ蠕ｩ蜈・
+- [x] **Assignment Functionality Test**: 譛ｪ驟崎ｻ翫Μ繧ｹ繝医°繧蛾・霆顔乢縺ｸ縺ｮ蜑ｲ繧雁ｽ薙※蜍穂ｽ懃｢ｺ隱・(Verified via Browser Subagent)
+- [x] **Save Button Implementation**: 繝倥ャ繝繝ｼ縺ｫ菫晏ｭ倥・繧ｿ繝ｳ繧定ｿｽ蜉縺励√ョ繝ｼ繧ｿ豌ｸ邯壼喧繧貞庄閭ｽ縺ｫ縺吶ｋ
+

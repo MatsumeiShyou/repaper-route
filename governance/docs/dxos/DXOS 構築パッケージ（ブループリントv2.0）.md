@@ -1,8 +1,8 @@
-# ***DXOS Construction Package (Blueprint / Production Ready v2.0)***
+﻿# ***DXOS Construction Package (Blueprint / Production Ready v2.0)***
 
 *This document contains the **complete source code and instructions** to deploy the TBNY DXOS governance system into any project.*
 
-## ***📦 Core Assets***
+## ***逃 Core Assets***
 
 ### *1\. The Constitution (AGENTS.md)*
 
@@ -17,7 +17,7 @@
 ***\#\# \# Execution Gates (Strict Compliance)***  
 *Implement the following gates immediately before any change action (commit, etc.):*  
 *1\. \[cite\_start\]**\*\*Pre-flight\*\***: Execute \`node .agent/scripts/pre\_flight.js\`.*  
-*2\. \[cite\_start\]**\*\*Seal\*\***: Execute \`node .agent/scripts/check\_seal.js\` and match Password "ｙ" (Fullwidth).*  
+*2\. \[cite\_start\]**\*\*Seal\*\***: Execute \`node .agent/scripts/check\_seal.js\` and match Password "・・ (Fullwidth).*  
 *3\. \[cite\_start\]**\*\*Audit\*\***: Self-audit with \`node .agent/scripts/reflect.js\` every cycle.*  
 ***\#\# \# Operation Protocols***  
 *1\. **\*\*Immutable Migration\*\***:*  
@@ -46,11 +46,11 @@
    *const lines \= content.split('\\n').filter(l \=\> l.trim().length \> 0);*  
    *const lastLine \= lines\[lines.length \- 1\];*  
     
-   *if (\!lastLine.includes('承認 (PW: ｙ)')) {*  
-       *console.error('❌ Seal verification failed. Approval required.');*  
+   *if (\!lastLine.includes('謇ｿ隱・(PW: ・・')) {*  
+       *console.error('笶・Seal verification failed. Approval required.');*  
        *process.exit(1);*  
    *}*  
-   *console.log('✅ Seal verified.');*  
+   *console.log('笨・Seal verified.');*  
    *process.exit(0);*  
 *} catch (e) {*  
    *process.exit(1);*  
@@ -58,12 +58,12 @@
 ***.agent/scripts/pre\_flight.js***  
 *javascript*  
 *const { execSync } \= require('child\_process');*  
-*console.log('🛫 Initiating Pre-flight Checks...');*  
+*console.log('岫 Initiating Pre-flight Checks...');*  
 *try {*  
    *execSync('node .agent/scripts/check\_seal.js', { stdio: 'inherit' });*  
-   *console.log('✅ All systems go.');*  
+   *console.log('笨・All systems go.');*  
 *} catch (e) {*  
-   *console.error('🔥 Pre-flight failed. Aborting.');*  
+   *console.error('櫨 Pre-flight failed. Aborting.');*  
    *process.exit(1);*  
 *}*
 
@@ -95,32 +95,32 @@
 ***`governance.md`** (The Core Loop)*  
 *markdown*  
 *\---*  
-*description: 統治レイヤーの強制適用 (Governance Enforcement)*  
+*description: 邨ｱ豐ｻ繝ｬ繧､繝､繝ｼ縺ｮ蠑ｷ蛻ｶ驕ｩ逕ｨ (Governance Enforcement)*  
 *\---*  
-*1\. **\*\*Rule Ingestion\*\***: プロジェクトルートの \`AGENTS.md\` を読み込み、統治ルールを内面化せよ。*  
-*2\. **\*\*Compliance Check\*\***: 直前のユーザー指示が \`Master Rules\` (特に不可侵原則・承認ルール) に適合しているか厳密に照査せよ。*  
-*3\. **\*\*Status Reporting\*\***: ルール違反がない場合のみ、タスクを開始せよ。ルール違反がある場合、タスクを停止しわかりやすく理由を説明し、解決案を提示せよ。*  
+*1\. **\*\*Rule Ingestion\*\***: 繝励Ο繧ｸ繧ｧ繧ｯ繝医Ν繝ｼ繝医・ \`AGENTS.md\` 繧定ｪｭ縺ｿ霎ｼ縺ｿ縲∫ｵｱ豐ｻ繝ｫ繝ｼ繝ｫ繧貞・髱｢蛹悶○繧医・  
+*2\. **\*\*Compliance Check\*\***: 逶ｴ蜑阪・繝ｦ繝ｼ繧ｶ繝ｼ謖・､ｺ縺・\`Master Rules\` (迚ｹ縺ｫ荳榊庄萓ｵ蜴溷援繝ｻ謇ｿ隱阪Ν繝ｼ繝ｫ) 縺ｫ驕ｩ蜷医＠縺ｦ縺・ｋ縺句宍蟇・↓辣ｧ譟ｻ縺帙ｈ縲・  
+*3\. **\*\*Status Reporting\*\***: 繝ｫ繝ｼ繝ｫ驕募渚縺後↑縺・ｴ蜷医・縺ｿ縲√ち繧ｹ繧ｯ繧帝幕蟋九○繧医ゅΝ繝ｼ繝ｫ驕募渚縺後≠繧句ｴ蜷医√ち繧ｹ繧ｯ繧貞●豁｢縺励ｏ縺九ｊ繧・☆縺冗炊逕ｱ繧定ｪｬ譏弱＠縲∬ｧ｣豎ｺ譯医ｒ謠千､ｺ縺帙ｈ縲・  
 ***`amp-record.md`** (Asset Protection)*  
 *markdown*  
 *\---*  
-*description: AMP (資産変更申請) の承認記録を AMPLOG.md に自動追加する*  
+*description: AMP (雉・肇螟画峩逕ｳ隲・ 縺ｮ謇ｿ隱崎ｨ倬鹸繧・AMPLOG.md 縺ｫ閾ｪ蜍戊ｿｽ蜉縺吶ｋ*  
 *\---*  
 *// turbo-all*  
-*1\. **\*\*AMP情報の収集\*\***: ユーザーに Title, Scope, Impact を確認。*  
-*2\. **\*\*記録\*\***: \`node .agent/scripts/record\_amp.js ...\`*  
-*3\. **\*\*Seal検証\*\***: \`node .agent/scripts/check\_seal.js\`*  
+*1\. **\*\*AMP諠・ｱ縺ｮ蜿朱寔\*\***: 繝ｦ繝ｼ繧ｶ繝ｼ縺ｫ Title, Scope, Impact 繧堤｢ｺ隱阪・  
+*2\. **\*\*險倬鹸\*\***: \`node .agent/scripts/record\_amp.js ...\`*  
+*3\. **\*\*Seal讀懆ｨｼ\*\***: \`node .agent/scripts/check\_seal.js\`*  
 ***`push.md`** (Safe Deployment)*  
 *markdown*  
 *\---*  
-*description: 自動コミット＆プッシュ（要承認PW）*  
+*description: 閾ｪ蜍輔さ繝溘ャ繝茨ｼ・・繝・す繝･・郁ｦ∵価隱恒W・・  
 *\---*  
-*1\. **\*\*変更解析\*\***: コミットメッセージを生成。*  
-*2\. **\*\*承認PW\*\***: \`ｙ\` の入力を要求。*  
-*3\. **\*\*実行\*\***: \`git commit ...; git push\`*  
+*1\. **\*\*螟画峩隗｣譫申*\***: 繧ｳ繝溘ャ繝医Γ繝・そ繝ｼ繧ｸ繧堤函謌舌・  
+*2\. **\*\*謇ｿ隱恒W\*\***: \`・兔` 縺ｮ蜈･蜉帙ｒ隕∵ｱゅ・  
+*3\. **\*\*螳溯｡圭*\***: \`git commit ...; git push\`*  
 ***`start.md`** (Standard Start)*  
 *markdown*  
 *\---*  
-*description: アプリを起動する*  
+*description: 繧｢繝励Μ繧定ｵｷ蜍輔☆繧・  
 *\---*  
 *// turbo*  
 *1\. \`npm run dev\`*
@@ -140,7 +140,7 @@
 *}*  
 *export const supabase \= createClient(supabaseUrl, supabaseAnonKey);*
 
-## ***🤖 Installation Manual (Context-Aware Architect Mode)***
+## ***､・Installation Manual (Context-Aware Architect Mode)***
 
 *To install this DXOS into a new project, give the target AI agent the following instruction.*  
 ***Initialization Command:***  
@@ -155,8 +155,8 @@
 
 *Based on your audit, select one of the following strategies:*
 
-* ***🟢 Strategy A (Fresh Start)**: If Greenfield. Deploy full standard suite.*  
-* ***🟡 Strategy B (Evolution/Merge)**: If Brownfield.*  
+* ***泙 Strategy A (Fresh Start)**: If Greenfield. Deploy full standard suite.*  
+* ***泯 Strategy B (Evolution/Merge)**: If Brownfield.*  
   * *Do NOT overwrite existing `AGENTS.md` but append DXOS protocols as an 'Amendment'.*  
   * *Add `governance:*` scripts to `package.json` without deleting existing scripts.*  
   * ***Workflows (Advanced Conflict Resolution)**:*  
@@ -167,7 +167,7 @@
       * *Save the DXOS version (`push.md`) as is.*  
       * ***CRITICAL**: In Phase 3 (PROPOSE), explicitly notify the user: "Found existing workflow 'deployment.md' that may overlap with standard 'push.md'. Both are kept, please review."*  
   * *Create `.agent/scripts` (if collision, use `_dxos_scripts` and update paths).*  
-* ***🔴 Strategy C (Hard Reset)**: If the user explicitly requested a full override.*  
+* ***閥 Strategy C (Hard Reset)**: If the user explicitly requested a full override.*  
   * *Move conflicting files to `_legacy_archive_{date}/`.*  
   * *Deploy standard suite.*
 
@@ -178,7 +178,7 @@
 * *List the files you will create or modify.*  
 * ***Highlight any workflow conflicts** and how you handled them (e.g., "Saved as push.dxos.md").*  
 * *Explain why you chose this strategy (SDR).*  
-* ***Wait for the user's explicit approval ('ｙ') before executing Phase 4\.***
+* ***Wait for the user's explicit approval ('・・) before executing Phase 4\.***
 
 ### *Phase 4: EXECUTE (Only after approval)*
 
@@ -193,4 +193,5 @@
 ---
 
 *Generated from RePaper Route on 2026-02-15 (v2.0 Full-Stack).*
+
 

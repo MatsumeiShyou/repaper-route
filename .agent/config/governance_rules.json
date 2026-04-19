@@ -1,8 +1,8 @@
-{
+﻿{
     "version": "5.0",
     "tierDefinition": {
         "T1": {
-            "label": "低リスク（即実行・事後報告）",
+            "label": "菴弱Μ繧ｹ繧ｯ・亥叉螳溯｡後・莠句ｾ悟ｱ蜻奇ｼ・,
             "filePatterns": [
                 "*.md",
                 "*.json",
@@ -19,7 +19,7 @@
             "requiresDebt": false
         },
         "T2": {
-            "label": "中リスク（自動検証による自律反復）",
+            "label": "荳ｭ繝ｪ繧ｹ繧ｯ・郁・蜍墓､懆ｨｼ縺ｫ繧医ｋ閾ｪ蠕句渚蠕ｩ・・,
             "filePatterns": [
                 "src/**/*.ts",
                 "src/**/*.tsx",
@@ -32,7 +32,7 @@
             "maxRetries": 3
         },
         "T3": {
-            "label": "高リスク（フルガバナンス・人間承認必須）",
+            "label": "鬮倥Μ繧ｹ繧ｯ・医ヵ繝ｫ繧ｬ繝舌リ繝ｳ繧ｹ繝ｻ莠ｺ髢捺価隱榊ｿ・茨ｼ・,
             "filePatterns": [
                 "supabase/migrations/**",
                 "AGENTS.md",
@@ -47,36 +47,36 @@
     "rules": [
         {
             "id": "H-1",
-            "name": "Windowsシェル互換性（&&禁止）",
-            "section": "AGENTS.md §H",
+            "name": "Windows繧ｷ繧ｧ繝ｫ莠呈鋤諤ｧ・・&遖∵ｭ｢・・,
+            "section": "AGENTS.md ﾂｧH",
             "pattern": " && ",
             "include": [
                 "package.json",
                 ".github/workflows/*.yml"
             ],
-            "message": "PowerShell 5.1互換性のため '&&' は使用不可です。';' 等で代替してください。"
+            "message": "PowerShell 5.1莠呈鋤諤ｧ縺ｮ縺溘ａ '&&' 縺ｯ菴ｿ逕ｨ荳榊庄縺ｧ縺吶・;' 遲峨〒莉｣譖ｿ縺励※縺上□縺輔＞縲・
         },
         {
             "id": "B-4",
-            "name": "AIロジック排除",
-            "section": "AGENTS.md §B-4",
+            "name": "AI繝ｭ繧ｸ繝・け謗帝勁",
+            "section": "AGENTS.md ﾂｧB-4",
             "pattern": "(TODO:|FIXME:).*AI",
             "include": [
                 "src/**/*.ts",
                 "src/**/*.tsx"
             ],
-            "message": "AIによる内部ロジック決定を示唆するTODOは禁止されています。決定論的アルゴリズムを明示してください。"
+            "message": "AI縺ｫ繧医ｋ蜀・Κ繝ｭ繧ｸ繝・け豎ｺ螳壹ｒ遉ｺ蜚・☆繧亀ODO縺ｯ遖∵ｭ｢縺輔ｌ縺ｦ縺・∪縺吶よｱｺ螳夊ｫ也噪繧｢繝ｫ繧ｴ繝ｪ繧ｺ繝繧呈・遉ｺ縺励※縺上□縺輔＞縲・
         },
         {
             "id": "LEGACY",
-            "name": "Legacy JS資産の隔離違反",
-            "section": "AGENTS.md §H",
+            "name": "Legacy JS雉・肇縺ｮ髫秘屬驕募渚",
+            "section": "AGENTS.md ﾂｧH",
             "pattern": "from ['\"].*(src-legacy-js/|Legacy JS).+['\"]",
             "include": [
                 "src/**/*.ts",
                 "src/**/*.tsx"
             ],
-            "message": "Legacy JS資産への直接参照は禁止されています。必要に応じてTSへ移行してください。"
+            "message": "Legacy JS雉・肇縺ｸ縺ｮ逶ｴ謗･蜿ら・縺ｯ遖∵ｭ｢縺輔ｌ縺ｦ縺・∪縺吶ょｿ・ｦ√↓蠢懊§縺ｦTS縺ｸ遘ｻ陦後＠縺ｦ縺上□縺輔＞縲・
         }
     ],
     "exemptPatterns": [

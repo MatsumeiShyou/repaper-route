@@ -1,4 +1,4 @@
-{
+﻿{
     "T3_seal_protocol": {
         "steps": [
             "npm run done"
@@ -6,7 +6,7 @@
         "required_artifacts": [
             "walkthrough.md"
         ],
-        "approval_token": "(PW: ｙ)"
+        "approval_token": "(PW: ・・"
     },
     "bypass_rules": {
         "extensions": [
@@ -26,12 +26,12 @@
     ],
     "design_intent": {
         "keywords": [
-            "計画",
-            "設計",
-            "再考",
-            "検討",
-            "構築",
-            "修正案",
+            "險育判",
+            "險ｭ險・,
+            "蜀崎・,
+            "讀懆ｨ・,
+            "讒狗ｯ・,
+            "菫ｮ豁｣譯・,
             "plan",
             "design",
             "refactor",

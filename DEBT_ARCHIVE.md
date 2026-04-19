@@ -9,7 +9,7 @@
 
 - [x] **Hardcoded Auth (BoardCanvas)** - 完了 (2026-02-11 Phase 10)
   - **現状**: `src/features/board/BoardCanvas.jsx` にて `const currentUserId = "admin1";` とハードコードされていた。
-  - **解決方法**: `AuthContext` 導入により `useAuth` フック経由で動적取得に変更済み。
+  - **解決方法**: `AuthContext` 導入により `useAuth` フック経由で動的取得に変更済み。
 
 - [x] **Hardcoded Auth (AdminDashboard)** - 完了 (2026-02-11 Phase 10)
   - **現状**: `src/features/admin/AdminDashboard.jsx` にて `admin_user: 'AdminUser'` とハードコードされていた。

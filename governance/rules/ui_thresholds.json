@@ -1,32 +1,32 @@
-{
+﻿{
   "version": "1.0.0",
-  "guidelines_ref": "PWAにおける高品質なアプリケーション構築とユーザビリティチェックリスト総集編Ⅲ.md",
+  "guidelines_ref": "PWA縺ｫ縺翫￠繧矩ｫ伜刀雉ｪ縺ｪ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ讒狗ｯ峨→繝ｦ繝ｼ繧ｶ繝薙Μ繝・ぅ繝√ぉ繝・け繝ｪ繧ｹ繝育ｷ城寔邱ｨ竇｢.md",
   "thresholds": {
     "VII-5-3": {
       "key": "min_tap_target_size",
       "value": 44,
       "unit": "px",
-      "description": "タップ/クリック可能なエリア（padding含む）の最小サイズ"
+      "description": "繧ｿ繝・・/繧ｯ繝ｪ繝・け蜿ｯ閭ｽ縺ｪ繧ｨ繝ｪ繧｢・・adding蜷ｫ繧・峨・譛蟆上し繧､繧ｺ"
     },
     "II-2": {
       "key": "required_next_image",
       "value": true,
-      "description": "画像表示における next/image コンポーネントの使用義務"
+      "description": "逕ｻ蜒剰｡ｨ遉ｺ縺ｫ縺翫￠繧・next/image 繧ｳ繝ｳ繝昴・繝阪Φ繝医・菴ｿ逕ｨ鄒ｩ蜍・
     },
     "III-2": {
       "key": "offline_fallback_enabled",
       "value": true,
-      "description": "ネットワークエラー時のカスタムオフラインページ表示"
+      "description": "繝阪ャ繝医Ρ繝ｼ繧ｯ繧ｨ繝ｩ繝ｼ譎ゅ・繧ｫ繧ｹ繧ｿ繝繧ｪ繝輔Λ繧､繝ｳ繝壹・繧ｸ陦ｨ遉ｺ"
     },
     "V-1": {
       "key": "semantic_elements_enforced",
       "value": true,
-      "description": "header, nav, main 等のセマンティックタグの使用義務"
+      "description": "header, nav, main 遲峨・繧ｻ繝槭Φ繝・ぅ繝・け繧ｿ繧ｰ縺ｮ菴ｿ逕ｨ鄒ｩ蜍・
     },
     "VII-8-8": {
       "key": "min_contrast_ratio",
       "value": 4.5,
-      "description": "テキストと背景の最小コントラスト比（WCAG AA）"
+      "description": "繝・く繧ｹ繝医→閭梧勹縺ｮ譛蟆上さ繝ｳ繝医Λ繧ｹ繝域ｯ費ｼ・CAG AA・・
     }
   },
   "enforcement": {
@@ -35,3 +35,4 @@
     "T3": "error"
   }
 }
+

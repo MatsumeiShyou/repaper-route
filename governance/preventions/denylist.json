@@ -1,9 +1,9 @@
-{
+﻿{
     "rules": [
         {
             "id": "root-script-block",
             "pattern": "^test_.*\\.js$|^temp_.*\\.js$",
-            "message": "ROOT DIRECTORY ERROR: 検証用スクリプト (*.js) がルートに残っています。物理削除してから反映してください。",
+            "message": "ROOT DIRECTORY ERROR: 讀懆ｨｼ逕ｨ繧ｹ繧ｯ繝ｪ繝励ヨ (*.js) 縺後Ν繝ｼ繝医↓谿九▲縺ｦ縺・∪縺吶ら黄逅・炎髯､縺励※縺九ｉ蜿肴丐縺励※縺上□縺輔＞縲・,
             "include": [
                 "./*"
             ]
@@ -11,7 +11,7 @@
         {
             "id": "f-ssot-imperative-sync",
             "pattern": "useEffect\\(\\(\\)\\s*=>\\s*\\{[\\s\\n]*set[A-Z][a-zA-Z]*\\(.*\\);?[\\s\\n]*\\},\\s*\\[.*\\]\\)",
-            "message": "F-SSOT VIOLATION: useEffect による命令的同期を検知しました。useState + useEffect を廃止し、useMemo による宣言的導出に置き換えてください。",
+            "message": "F-SSOT VIOLATION: useEffect 縺ｫ繧医ｋ蜻ｽ莉､逧・酔譛溘ｒ讀懃衍縺励∪縺励◆縲ＶseState + useEffect 繧貞ｻ・ｭ｢縺励「seMemo 縺ｫ繧医ｋ螳｣險逧・ｰ主・縺ｫ鄂ｮ縺肴鋤縺医※縺上□縺輔＞縲・,
             "include": [
                 "src/**/*.tsx",
                 "src/**/*.ts"
@@ -20,7 +20,7 @@
         {
             "id": "session-leakage",
             "pattern": "\\.agent/session/.*",
-            "message": "SESSION LEAKAGE: セッションディレクトリ内のファイルが Git 追跡対象に含まれています。`.gitignore` を確認し、`git rm --cached` で除外してください。一時的な診断ファイルはコミット前に物理削除が必要です。",
+            "message": "SESSION LEAKAGE: 繧ｻ繝・す繝ｧ繝ｳ繝・ぅ繝ｬ繧ｯ繝医Μ蜀・・繝輔ぃ繧､繝ｫ縺・Git 霑ｽ霍｡蟇ｾ雎｡縺ｫ蜷ｫ縺ｾ繧後※縺・∪縺吶Ａ.gitignore` 繧堤｢ｺ隱阪＠縲～git rm --cached` 縺ｧ髯､螟悶＠縺ｦ縺上□縺輔＞縲ゆｸ譎ら噪縺ｪ險ｺ譁ｭ繝輔ぃ繧､繝ｫ縺ｯ繧ｳ繝溘ャ繝亥燕縺ｫ迚ｩ逅・炎髯､縺悟ｿ・ｦ√〒縺吶・,
             "include": [
                 ".agent/session/**/*"
             ]
@@ -28,7 +28,7 @@
         {
             "id": "workflow-protection",
             "pattern": "\\.agent[\\\\/]workflows[\\\\/].*\\.md$",
-            "message": "WORKFLOW PROTECTION: ワークフローファイルの削除は禁止されています。誤削除の場合は git restore で復元してください。",
+            "message": "WORKFLOW PROTECTION: 繝ｯ繝ｼ繧ｯ繝輔Ο繝ｼ繝輔ぃ繧､繝ｫ縺ｮ蜑企勁縺ｯ遖∵ｭ｢縺輔ｌ縺ｦ縺・∪縺吶りｪ､蜑企勁縺ｮ蝣ｴ蜷医・ git restore 縺ｧ蠕ｩ蜈・＠縺ｦ縺上□縺輔＞縲・,
             "include": [
                 ".agent/workflows/*"
             ]

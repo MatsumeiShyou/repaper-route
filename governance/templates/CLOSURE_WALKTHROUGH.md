@@ -1,12 +1,13 @@
-# Walkthrough - [Task Name / Sentinel Version]
+﻿# Walkthrough - [Task Name / Sentinel Version]
 
-## 1. 成果
-[実装・修正された機能、ファイル、ロジックの物理的一覧]
+## 1. 謌先棡
+[螳溯｣・・菫ｮ豁｣縺輔ｌ縺滓ｩ溯・縲√ヵ繧｡繧､繝ｫ縲√Ο繧ｸ繝・け縺ｮ迚ｩ逅・噪荳隕ｧ]
 
-## 2. 検証
-[実行されたテストコマンド、ハッシュ、またはログによる証明]
+## 2. 讀懆ｨｼ
+[螳溯｡後＆繧後◆繝・せ繝医さ繝槭Φ繝峨√ワ繝・す繝･縲√∪縺溘・繝ｭ繧ｰ縺ｫ繧医ｋ險ｼ譏讃
 
-## 3. 反映
-[Reflecting-by-Default に基づく、GitHub への物理反映（Push）の完了宣言]
+## 3. 蜿肴丐
+[Reflecting-by-Default 縺ｫ蝓ｺ縺･縺上；itHub 縺ｸ縺ｮ迚ｩ逅・渚譏・・ush・峨・螳御ｺ・ｮ｣險]
 
 **[TASK_CLOSED]**
+
