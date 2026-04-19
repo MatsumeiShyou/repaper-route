@@ -238,6 +238,29 @@
             "logic_data_mapping": {
                 "THRESHOLD_RULES": "governance/rules/ui_thresholds.json"
             }
+        },
+        {
+            "id": "SCR-GATE-PUS",
+            "path": ".agent/scripts/push_gate.js",
+            "link_to_agents_md": "§3 G-54",
+            "purpose": "Physical Seal Protocol: Pre-push interlock gate",
+            "risk_score": 4,
+            "fix_required": "node .agent/scripts/push_gate.js",
+            "logic_data_mapping": {
+                "SEAL_VERIFICATION": ".agent/session/gate_success.json",
+                "WALKTHROUGH_AUDIT": "walkthrough.md"
+            }
+        },
+        {
+            "id": "SCR-UTIL-SET",
+            "path": ".agent/scripts/setup_gate.js",
+            "link_to_agents_md": "§G",
+            "purpose": "Sanctuary setup utility and hook deployer",
+            "risk_score": 3,
+            "fix_required": "npm run setup-governance",
+            "logic_data_mapping": {
+                "HOOK_DEPLOY": ".git/hooks/pre-push"
+            }
         }
     ],
     "protection_policy": {

@@ -14,7 +14,7 @@ AIの本質的欠陥（成功バイアス）を物理的に封鎖し、統治の
 
 ## 3. 証跡 (Evidence Code)
 > [!IMPORTANT]
-> **[GATE-SEAL: GSEAL-C7EE7A7-E16C181D865A]**
+> **[GATE-SEAL: GSEAL-3DE014B-5915B0F5B78A]**
 
 ## 4. 反映 (Reflect)
 - `npm run done` によりローカルコミット完了。
