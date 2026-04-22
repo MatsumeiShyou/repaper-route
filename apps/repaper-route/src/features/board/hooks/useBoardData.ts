@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase/client';
+import { nativeSupabaseFetch } from '../../../lib/supabase/nativeFetch';
 import { useMasterData } from './useMasterData';
 import { useNotification } from '../../../contexts/NotificationContext';
 import { isPastDayJST } from '../utils/dateUtils';
@@ -102,12 +103,12 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
     const [confirmedSnapshot, setConfirmedSnapshot] = useState<any>(null);
     
     useEffect(() => {
-        supabase.from('exception_reason_masters').select('*').eq('is_active', true).order('created_at', { ascending: true })
+        nativeSupabaseFetch('exception_reason_masters', 'select=*&is_active=eq.true&order=created_at.asc')
             .then(({ data }) => { if (data) setExceptionReasons(data as any); });
         
         if (currentDateKey) {
-            supabase.from('routes').select('confirmed_snapshot').eq('date', currentDateKey).maybeSingle()
-                .then(({ data }) => { if (data) setConfirmedSnapshot(data.confirmed_snapshot); });
+            nativeSupabaseFetch('routes', `select=confirmed_snapshot&date=eq.${currentDateKey}`)
+                .then(({ data }) => { if (data && (data as any)[0]) setConfirmedSnapshot((data as any)[0].confirmed_snapshot); });
         }
     }, [currentDateKey]);
 
@@ -171,7 +172,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                     last_activity_at: currentTime,
                     updated_at: currentTime
                 };
-                const { error: lockError } = await supabase.rpc('rpc_execute_board_update', {
+                const { error: lockError } = await nativeSupabaseFetch('rpc/rpc_execute_board_update', '', 'POST', {
                     p_date: currentDateKey,
                     p_new_state: {
                         ...updateData,
@@ -181,7 +182,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                     p_decision_type: 'LOCK_ACQUIRE',
                     p_reason: 'Acquiring edit lock',
                     p_user_id: currentUserId
-                } as any);
+                });
                 if (lockError) throw lockError;
                 setLockState({ userId: currentUserId || null, dateKey: currentDateKey });
             } else {
@@ -195,11 +196,11 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
     const releaseEditLock = useCallback(async () => {
         if (!editMode) return;
         try {
-            await (supabase.from('routes') as any).update({
+            await nativeSupabaseFetch('routes', `date=eq.${currentDateKey}&edit_locked_by=eq.${currentUserId || ''}`, 'PATCH', {
                 edit_locked_by: null,
                 edit_locked_at: null,
                 last_activity_at: null
-            }).eq('date', currentDateKey).eq('edit_locked_by', currentUserId || '');
+            });
             setLockState({ userId: null, dateKey: currentDateKey });
         } catch (e) {
             console.error("Release lock error:", e);
@@ -209,9 +210,9 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
     useEffect(() => {
         if (!editMode) return;
         const interval = setInterval(async () => {
-            await (supabase.from('routes') as any).update({
+            await nativeSupabaseFetch('routes', `date=eq.${currentDateKey}&edit_locked_by=eq.${currentUserId || ''}`, 'PATCH', {
                 last_activity_at: new Date().toISOString()
-            }).eq('date', currentDateKey).eq('edit_locked_by', currentUserId || '');
+            });
         }, 60000);
         return () => clearInterval(interval);
     }, [editMode, currentDateKey, currentUserId]);
@@ -227,7 +228,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
     const handleSave = async (reason = '一時保存') => {
         if (state.pendingJobs.length === 0 && state.jobs.length === 0) return;
         try {
-            const { error } = await supabase.rpc('rpc_execute_board_update', {
+            const { error } = await nativeSupabaseFetch('rpc/rpc_execute_board_update', '', 'POST', {
                 p_date: currentDateKey,
                 p_new_state: {
                     ...state,
@@ -240,7 +241,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                 p_reason: reason,
                 p_user_id: currentUserId,
                 p_client_meta: { source: 'useBoardData' }
-            } as any);
+            });
             if (error) throw error;
             setIsOffline(false);
             showNotification("一時保存しました", "success");
@@ -260,7 +261,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
         try {
             const confirmedJobs = state.jobs.map(j => ({ ...j, status: 'confirmed' as const }));
             const newState = { ...state, jobs: confirmedJobs };
-            const { error } = await supabase.rpc('rpc_execute_board_update', {
+            const { error } = await nativeSupabaseFetch('rpc/rpc_execute_board_update', '', 'POST', {
                 p_date: currentDateKey,
                 p_new_state: {
                     ...newState,
@@ -273,7 +274,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                 p_reason: reason,
                 p_user_id: currentUserId,
                 p_client_meta: { source: 'useBoardData' }
-            } as any);
+            });
             if (error) throw error;
             setState(newState);
             mutateCache(newState);
@@ -304,7 +305,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                 promote_requested: promoteRequested, actor_id: currentUserId
             }]);
             if (exceptionError) throw exceptionError;
-            await supabase.rpc('rpc_execute_board_update', {
+            await nativeSupabaseFetch('rpc/rpc_execute_board_update', '', 'POST', {
                 p_date: currentDateKey,
                 p_new_state: {
                     ...newState,
@@ -317,7 +318,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                 p_reason: reasonFreeText || reasonMasterId || 'Exception Change',
                 p_user_id: currentUserId,
                 p_client_meta: { source: 'useBoardData' }
-            } as any);
+            });
             setState(newState);
             mutateCache(newState);
             setHistory({ past: [], future: [] });

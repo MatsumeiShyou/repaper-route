@@ -196,6 +196,14 @@ export const useDataSync = (
     }, [date, dateKey, getDefaultDrivers]);
 
     useEffect(() => {
+        // [100pt 統治] 認証が完全に解決されていない状態（または DXOS からのトークンが未着の状態）での
+        // Channel 購読はデッドロックのリスクがあるため、最小限のガードを置く。
+        const hasAuthToken = !!localStorage.getItem('sb-mjaoolcjjlxwstlpdgrg-auth-token');
+        if (!hasAuthToken) {
+            console.warn('[useDataSync] No auth token found, delaying realtime subscription.');
+            return;
+        }
+
         fetchData();
         
         const channel = supabase.channel(`sync_${dateKey}`)
@@ -203,10 +211,15 @@ export const useDataSync = (
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'routes', filter: `date=eq.${date}` },
                 () => {
+                    console.log(`[useDataSync] Realtime change detected for ${dateKey}. Triggering fetchData(bypass).`);
                     fetchData(true); 
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'CHANNEL_ERROR') {
+                    console.error('[useDataSync] Realtime channel error. Board may be out of sync.');
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);

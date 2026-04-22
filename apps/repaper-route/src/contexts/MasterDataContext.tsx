@@ -34,7 +34,7 @@ export const MasterDataProvider: React.FC<{ children: ReactNode }> = ({ children
             const [dRes, vRes, cRes, iRes, cidRes] = await Promise.all([
                 nativeSupabaseFetch('drivers', 'select=*&order=display_order.asc'),
                 nativeSupabaseFetch('vehicles', 'select=*&order=id.asc'),
-                nativeSupabaseFetch('view_master_points', 'select=*&order=id.asc'),
+                nativeSupabaseFetch('master_collection_points', 'select=*&order=id.asc'),
                 nativeSupabaseFetch('master_items', 'select=*&order=display_order.asc'),
                 nativeSupabaseFetch('customer_item_defaults', 'select=*')
             ]);
@@ -60,6 +60,9 @@ export const MasterDataProvider: React.FC<{ children: ReactNode }> = ({ children
     };
 
     useEffect(() => {
+        // マウント時に一度取得。トークンがまだない場合でも、
+        // 公開マスタが取得できる可能性があるため実行するが、
+        // 失敗しても isLoading を false にしてハングを防止する。
         fetchAll();
     }, []);
 
