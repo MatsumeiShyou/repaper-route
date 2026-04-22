@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { nativeSupabaseFetch } from '../lib/supabase/nativeFetch';
 import { MasterVehicle, MasterCustomer, MasterItem, CustomerItemDefault } from '../types';
 
@@ -66,8 +66,14 @@ export const MasterDataProvider: React.FC<{ children: ReactNode }> = ({ children
         fetchAll();
     }, []);
 
+    const contextValue = useMemo(() => ({
+        ...data,
+        isLoading,
+        refresh: fetchAll
+    }), [data, isLoading]);
+
     return (
-        <MasterDataContext.Provider value={{ ...data, isLoading, refresh: fetchAll }}>
+        <MasterDataContext.Provider value={contextValue}>
             {children}
         </MasterDataContext.Provider>
     );

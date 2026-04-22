@@ -84,7 +84,8 @@ function AppContent() {
     if (status === 'UNAUTHENTICATED' || !staff) {
         // [Micro-Frontend] 未認証の場合は、アプリ固有のログイン画面を出さず親OSへ強制帰還
         if (typeof window !== 'undefined') {
-            window.location.href = '/'
+            // [Fix] Relative path '/' causes loop on same port (5174). Force return to Portal (5173).
+            window.location.href = window.location.origin.replace('5174', '5173')
         }
         return null; // リダイレクト完了まで何も描画しない
     }
