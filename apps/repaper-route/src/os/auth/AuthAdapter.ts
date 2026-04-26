@@ -98,7 +98,7 @@ export class AuthAdapter {
       
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const url = `${supabaseUrl}/rest/v1/staffs?auth_uid=eq.${session.user.id}&select=*`;
+      const url = `${supabaseUrl}/rest/v1/staffs?id=eq.${session.user.id}&select=*`;
       
       const queryPromise = fetch(url, {
           method: 'GET',
@@ -142,7 +142,7 @@ export class AuthAdapter {
       const role = (rawStaff.role || 'staff') as StaffRole;
 
       // 権限検証: allowed_apps に管理者用またはドライバー用の権限が含まれているか
-      const hasPermission = apps.includes('repaper-route-admin') || apps.includes('repaper-route-driver');
+      const hasPermission = apps.includes('repaper-route') || apps.includes('repaper-route-admin') || apps.includes('repaper-route-driver');
       
       if (!hasPermission) {
         console.error(`[AuthAdapter] Forbidden: No permission for repaper-route modules. Found:`, apps);

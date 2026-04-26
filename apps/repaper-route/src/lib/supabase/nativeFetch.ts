@@ -1,3 +1,5 @@
+import { supabase } from './client';
+
 export type NativeFetchMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
 export async function nativeSupabaseFetch<T = any>(
@@ -9,15 +11,26 @@ export async function nativeSupabaseFetch<T = any>(
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
-    // [過去の知見の復元] supabase.auth.getSession() は AuthProvider と競合しデッドロックを引き起こすため禁止。
-    // 親OS (DXOS) が管理する localStorage から直接トークンを拝借する完全バイパス方式を徹底する。
-    const rawStorage = localStorage.getItem('sb-mjaoolcjjlxwstlpdgrg-auth-token');
+    // [物理バイパス] getSession() が null を返す場合があるため、localStorage を直接走査してトークンを抽出する。
+    // キー形式: sb-[project-id]-auth-token
     let token = '';
-    if (rawStorage) {
-        try {
-            const parsed = JSON.parse(rawStorage);
-            token = parsed.access_token || '';
-        } catch(e) {}
+    try {
+        const storageKeys = Object.keys(localStorage);
+        const authKey = storageKeys.find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+        if (authKey) {
+            const raw = localStorage.getItem(authKey);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                token = parsed.access_token || '';
+                console.log(`[nativeSupabaseFetch] Token extracted from storage key: ${authKey}`);
+            }
+        } else {
+            // フォールバック: getSession() を試す
+            const { data } = await supabase.auth.getSession();
+            token = data.session?.access_token || '';
+        }
+    } catch (e) {
+        console.warn('[nativeSupabaseFetch] Failed to extract token from storage:', e);
     }
 
     // RPC の場合は URL 構造が変わる: /rest/v1/rpc/function_name

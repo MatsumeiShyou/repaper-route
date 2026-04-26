@@ -156,12 +156,12 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
         const currentTime = new Date().toISOString();
         const TIMEOUT_MS = 15 * 60 * 1000;
         try {
-            const { data: route, error: fetchError } = await supabase
-                .from('routes')
-                .select('edit_locked_by, edit_locked_at, last_activity_at')
-                .eq('date', currentDateKey)
-                .maybeSingle();
+            const { data: routeArr, error: fetchError } = await nativeSupabaseFetch(
+                'routes',
+                `select=edit_locked_by,edit_locked_at,last_activity_at&date=eq.${currentDateKey}`
+            );
             if (fetchError) throw fetchError;
+            const route = Array.isArray(routeArr) && routeArr.length > 0 ? (routeArr as any[])[0] : null;
             const isLockExpired = route?.last_activity_at &&
                 (Date.now() - new Date(route.last_activity_at as string).getTime()) > TIMEOUT_MS;
             if (!route?.edit_locked_by || isLockExpired || route.edit_locked_by === currentUserId) {
@@ -179,9 +179,11 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                         edit_locked_by: currentUserId,
                         edit_locked_at: currentTime
                     },
+                    p_ext_data: {},
                     p_decision_type: 'LOCK_ACQUIRE',
                     p_reason: 'Acquiring edit lock',
-                    p_user_id: currentUserId
+                    p_user_id: currentUserId,
+                    p_client_meta: { source: 'useBoardData' }
                 });
                 if (lockError) throw lockError;
                 setLockState({ userId: currentUserId || null, dateKey: currentDateKey });
