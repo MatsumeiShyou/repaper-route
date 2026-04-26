@@ -209,6 +209,7 @@ function main() {
     Log.info(`Closure Started (Tier: ${tier})...`);
 
     try {
+        runCommand('node .agent/scripts/lexicon_sync.js');
         verifySSOTScanMandate();
         verifySessionDesync();
         verifyConstitutionalIntegrity();

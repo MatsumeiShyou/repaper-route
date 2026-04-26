@@ -2,6 +2,7 @@
 
 > **[PLEDGE] 100点の物理証跡なき行動は即時Locker対象。**
 > **破壊的な一括削除コマンド（`git clean -fdX` 等）の実行を永久に禁止する。**
+> **[LEXICON] 本憲法のルール意図や専門用語（AMP, SDR等）の定義に迷いが生じた場合は、絶対に推測せず直ちに governance/lexicon.json を参照せよ。**
 
 ## 1. CORE DIRECTIVES (絶対律)
 - **[No Guessing]**: 推測実装禁止。事実(State)なき実装は即時終了せよ。
