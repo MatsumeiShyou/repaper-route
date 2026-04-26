@@ -99,6 +99,7 @@ npm run done
 - **Reasoning Budget (思考予算)**: 分解数（Min 5）、仮説案（Min 2）等の具体的数値を満たさない思考は、Sentinel 3.0 により物理的に遮断（Hard Crash）される。同タスク内での「再設計（Redesign）」回数も厳格に制限される。
 - **Evidence Binding (事実参照拘束)**: ステップ5（仮説）以降の全ての提案は、ステップ2/3で抽出された具体的事実（Fact）への明示的な参照タグ（例： `[Ref: Fact 2.1]` ）、または「高品質PWA総集編Ⅲ」の項目ID（例：[Ref: VII-1-7]）を含まなければならない。
 - **Token Budget (メモリ保護)**: セッションのリソースが憲法忘却閾値（80%）を超えた場合、エージェントは自律的に「思考の要約と整理（Consolidation）」を実行し、統治精度を維持する義務を負う。
+- **SSOT Scan Mandate (動的俯瞰)**: AgentはアーキテクチャやDB構造が不明な場合、必ず `npm run agent:scan --target=all` を実行してSSOT（最新の真実）を取得すること。これを怠った推測実装は統治違反とする。
 
 ---
 > [!IMPORTANT]
@@ -113,6 +114,7 @@ npm run done
 ### R. データベース整合性 (Strict SQL Sync)
 - **R-1 SQL Diff 強制**: スキーマ変更を伴う実装では、必ず `npx supabase db diff` を実行し、生成された SQL ファイルをコードと同一の AMP で提示せよ。
 - **R-2 履歴同期**: 変更内容は `SCHEMA_HISTORY.md` に即時記録し、物理的なスキーマ状態とドキュメントの乖離を零（Zero）に保て。
+- **R-3 Supabase Connection Manual 必読の絶対律**: DB接続不全を防ぐため、Supabase CLI 実行や直接接続（Pooler/直接）を試みる**前**に、必ず `knowledge/supabase_cli_ipv6_pooler_fix/artifacts/manual.md` を読み込み、最新の確実な接続手順とPooler URL取得手順を遵守せよ。これを無視した接続試行によるエラーは統治ロック対象とする。
 
 ### S. 推論と負債の管理 (SDR & Loan)
 - **S-1 SDR Append-only**: 過去の「事実（State）」を改ざん・上書きしてはならない。新たな観測事実は必ず「追記」し、判断の変遷を辿れるようにせよ。
