@@ -45,9 +45,6 @@ const MemoizedColumn = React.memo(({ driver, selectedTime, onCellClick, onCellDo
             })}
         </div>
     );
-}, (prevProps, nextProps) => {
-    // 選択されたセルが変化した場合のみ、そのカラムを再レンダリングする
-    return prevProps.selectedTime === nextProps.selectedTime;
 });
 
 export const TimeGrid: React.FC<TimeGridProps> = ({

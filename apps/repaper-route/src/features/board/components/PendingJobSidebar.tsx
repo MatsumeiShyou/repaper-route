@@ -88,7 +88,7 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {sortedPendingJobs.map(job => {
                     const colorTheme = getPendingJobColor(job.bucket);
-                    const isSelected = selectedCell && !selectedJobId;
+                    const isSelected = !!selectedCell;
 
                     return (
                         <div

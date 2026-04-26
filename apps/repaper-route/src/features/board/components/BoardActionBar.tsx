@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, CheckCircle, Database, Undo2, Redo2, Save, AlertTriangle, Clipboard } from 'lucide-react';
+import { Layers, CheckCircle, Database, Undo2, Redo2, Save, AlertTriangle, Clipboard, Cloud } from 'lucide-react';
 import { DateDisplay } from './DateDisplay';
 import { BoardJob } from '../../../types';
 
@@ -120,36 +120,20 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
                 )}
 
                 {hasEditRights && (
-                    <button
-                        onClick={() => {
-                            if (!validation.isValid) {
-                                const proceed = window.confirm(
-                                    `⚠️ ${validation.summary}\n\nこのまま一時保存しますか？`
-                                );
-                                if (!proceed) return;
-                            }
-
-                            if (validation.hasConfirmedChanges) {
-                                const proceed = window.confirm(
-                                    "⚠️ 確定済みの案件が含まれています。変更理由の入力が必要です。\n続行しますか？"
-                                );
-                                if (!proceed) return;
-                            }
-
-                            setIsSaveModalOpen(true);
-                        }}
-                        disabled={isSyncing}
-                        title="現在の配置を下書きとして保存します。後から自由に動かすことができます。"
-                        className={`px-4 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all
-                            ${isSyncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-600 hover:bg-green-100 shadow-sm'}
+                    <div
+                        className={`px-4 h-11 rounded-lg flex items-center gap-2 text-sm font-bold transition-all border
+                            ${isSyncing 
+                                ? 'bg-amber-50 border-amber-100 text-amber-600 animate-pulse' 
+                                : 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-sm'}
                         `}
+                        title={isSyncing ? "サーバーに同期中..." : "サーバーと同期済み（自動保存）"}
                     >
-                        <Save size={16} />
-                        {isSyncing ? '一時保存中...' : '一時保存'}
+                        {isSyncing ? <Cloud size={16} /> : <CheckCircle size={16} />}
+                        {isSyncing ? '同期中...' : '同期済み'}
                         {!validation.isValid && (
                             <AlertTriangle size={14} className="text-amber-500 ml-1" />
                         )}
-                    </button>
+                    </div>
                 )}
 
                 <button

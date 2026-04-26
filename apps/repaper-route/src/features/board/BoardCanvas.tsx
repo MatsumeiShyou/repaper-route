@@ -21,6 +21,8 @@ import { BoardActionBar } from './components/BoardActionBar';
 import { JobDetailPanel } from './components/JobDetailPanel';
 import { getJSTNow, formatDateKey } from './utils/dateUtils';
 import { AlertTriangle } from 'lucide-react';
+import { ExceptionChangeModal } from './components/ExceptionChangeModal';
+import { BoardTimeline } from './components/BoardTimeline';
 
 export default function BoardCanvas() {
     const { currentUser, isLoading: isAuthLoading } = useAuth();
@@ -47,7 +49,10 @@ export default function BoardCanvas() {
         editMode, canEditBoard, boardMode, isOutOfRange,
         handleSave, handleConfirmAll, recordHistory, undo, redo,
         assignPendingJob, unassignJob,
-        addColumn, showNotification
+        handleExceptionChange, exceptionReasons,
+        addColumn, showNotification,
+        actions, previewIndex, reconstructStateAt, resetTimeline,
+        recordAction
     } = useBoardData(currentUser, currentDateKey, isInteracting);
 
     // 【100pt 統治】自動還還 (Auto-Reset) ロジック
@@ -74,7 +79,9 @@ export default function BoardCanvas() {
         gridContainerRef,
         setJobs, setPendingJobs, setSplits,
         recordHistory,
-        setIsInteracting
+        setIsInteracting,
+        null, // createProposal (未使用)
+        (job, proposed) => handleDragExceptionRequest(job, proposed) // onExceptionRequest
     );
 
     // 2.5. Board Validation (Logic Base 全域連動)
@@ -107,30 +114,51 @@ export default function BoardCanvas() {
     const [headerEditTargetId, setHeaderEditTargetId] = useState<string | null>(null);
     const [auditJobId, setAuditJobId] = useState<string | null>(null);
 
+    // Exception Change State
+    const [isExceptionModalOpen, setIsExceptionModalOpen] = useState(false);
+    const [exceptionTarget, setExceptionTarget] = useState<{ job: BoardJob, type: 'MOVE' | 'REASSIGN' | 'CANCEL', proposedState?: any } | null>(null);
+
     const selectedDriverForEdit = headerEditTargetId
         ? drivers.find(d => d.id === headerEditTargetId) || null
         : null;
+
+    const selectedJob = useMemo(() => {
+        if (!selectedJobId) return null;
+        return validatedJobs.find(j => (j as any).id === selectedJobId) || 
+               jobs.find(j => (j as any).id === selectedJobId) || 
+               null;
+    }, [selectedJobId, validatedJobs, jobs]);
 
     // 4. Handlers
     const handleMouseDown = () => { };
 
     const handleSaveHeader = (updatedDriver: BoardDriver) => {
         setDrivers(prev => prev.map(d => d.id === headerEditTargetId ? updatedDriver : d));
-        recordHistory();
+        recordAction({
+            action_type: 'UPDATE_DRIVER',
+            payload: { driverId: updatedDriver.id, data: updatedDriver }
+        });
     };
 
     const handleDeleteHeader = () => {
         if (!headerEditTargetId) return;
         setDrivers(prev => prev.filter(d => d.id !== headerEditTargetId));
         setJobs(prev => prev.filter(j => j.driverId !== headerEditTargetId));
-        recordHistory();
+        recordAction({
+            action_type: 'DELETE_DRIVER',
+            payload: { driverId: headerEditTargetId }
+        });
     };
 
     const handleAddManualJob = (job: BoardJob, reason: string) => {
         if (!editMode) return;
         const jobWithReason: BoardJob = { ...job, creation_reason: reason };
         setJobs(prev => [...prev, jobWithReason]);
-        recordHistory();
+        recordAction({
+            action_type: 'ADD_JOB',
+            payload: { jobId: job.id, data: jobWithReason },
+            reason
+        });
         setSelectedCell(null);
         setIsAddJobModalOpen(false);
     };
@@ -143,24 +171,71 @@ export default function BoardCanvas() {
 
     const handleUnassignAndOpen = (id: string) => {
         unassignJob(id);
+        setSelectedJobId(null); // 返却時に選択を解除
         setIsSidebarOpen(true);
     };
 
     const handleUpdateJob = (jobId: string, updates: Partial<BoardJob>) => {
         if (!editMode) return;
         setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...updates } : j));
-        recordHistory();
+        recordAction({
+            action_type: 'UPDATE_JOB',
+            payload: { jobId, data: updates }
+        });
         showNotification("案件情報を更新しました", "success");
     };
 
-    const handleExceptionRequest = (jobId: string) => {
-        setAuditJobId(jobId);
+    const handleDragExceptionRequest = (job: BoardJob, proposedState: any) => {
+        setExceptionTarget({ job, type: 'MOVE', proposedState });
+        setIsExceptionModalOpen(true);
+    };
+
+    const handleExceptionRequest = (jobId: string, type: 'MOVE' | 'REASSIGN' | 'CANCEL') => {
+        const job = jobs.find(j => j.id === jobId);
+        if (!job) return;
+        setExceptionTarget({ job, type });
+        setIsExceptionModalOpen(true);
+    };
+
+    const handleConfirmException = (reasonMasterId: string | undefined, reasonFreeText: string) => {
+        if (!exceptionTarget) return;
+
+        handleExceptionChange(
+            exceptionTarget.job.id,
+            exceptionTarget.type,
+            exceptionTarget.proposedState || {}, // MOVEボタンからの場合は詳細パネル側で後続処理があるか、proposedStateなし
+            reasonMasterId,
+            reasonFreeText
+        );
+
+        setIsExceptionModalOpen(false);
+        setExceptionTarget(null);
+        setSelectedJobId(jobId); // 編集を続けるために選択を維持
+        showNotification("案件の確定を解除し、編集可能にしました", "success");
     };
 
     const openHeaderEdit = (driverId: string) => {
         setHeaderEditTargetId(driverId);
         setIsHeaderEditModalOpen(true);
     };
+
+    const handleCellClick = React.useCallback((driverId: string, time: string) => {
+        if (editMode) {
+            const isSame = selectedCell?.driverId === driverId && selectedCell?.time === time;
+            if (isSame) {
+                setIsAddJobModalOpen(true);
+            } else {
+                setSelectedCell({ driverId, time });
+                setSelectedJobId(null); // セル選択時に案件詳細を閉じる
+            }
+        }
+    }, [editMode, selectedCell, setIsAddJobModalOpen]);
+
+    const handleCellDoubleClick = React.useCallback((driverId: string, time: string) => {
+        if (editMode) {
+            setSelectedCell({ driverId, time });
+        }
+    }, [editMode]);
 
     if (isAuthLoading || !isDataLoaded || masterLoading) {
         return <BoardSkeleton />;
@@ -246,21 +321,8 @@ export default function BoardCanvas() {
                             dropPreview={dropPreview}
                             draggingJobId={draggingJobId}
                             draggingSplitId={draggingSplitId}
-                            onCellClick={(driverId: string, time: string) => {
-                                if (editMode) {
-                                    const isSame = selectedCell?.driverId === driverId && selectedCell?.time === time;
-                                    if (isSame) {
-                                        setIsAddJobModalOpen(true);
-                                    } else {
-                                        setSelectedCell({ driverId, time });
-                                    }
-                                }
-                            }}
-                            onCellDoubleClick={(driverId: string, time: string) => {
-                                if (editMode) {
-                                    setSelectedCell({ driverId, time });
-                                }
-                            }}
+                            onCellClick={handleCellClick}
+                            onCellDoubleClick={handleCellDoubleClick}
                             driverColRefs={driverColRefs}
                             isCellOccupied={() => false}
                         />
@@ -277,6 +339,7 @@ export default function BoardCanvas() {
                             onResizeStart={handleResizeStart}
                             onJobClick={(id) => {
                                 setSelectedJobId(id);
+                                setSelectedCell(null); // 案件詳細を開く時にセル選択を解除
                                 setIsSidebarOpen(false);
                             }}
                             onAuditClick={(id: string) => {
@@ -310,13 +373,13 @@ export default function BoardCanvas() {
                 <div
                     className={`
                         absolute top-0 right-0 h-full bg-white shadow-2xl z-[60] transform transition-transform duration-300 ease-in-out border-l border-gray-200
-                        ${selectedJobId ? 'translate-x-0' : 'translate-x-full'}
+                        ${selectedJobId && selectedJob ? 'translate-x-0' : 'translate-x-full'}
                     `}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {selectedJobId && (
+                    {selectedJob && (
                         <JobDetailPanel
-                            job={validatedJobs.find(j => (j as any).id === selectedJobId) || jobs.find(j => (j as any).id === selectedJobId)!}
+                            job={selectedJob}
                             drivers={drivers}
                             currentUser={currentUser}
                             canEdit={editMode}
@@ -389,6 +452,24 @@ export default function BoardCanvas() {
                     ]}
                 />
             )}
+            {isExceptionModalOpen && (
+                <ExceptionChangeModal
+                    isOpen={isExceptionModalOpen}
+                    onClose={() => {
+                        setIsExceptionModalOpen(false);
+                        setExceptionTarget(null);
+                    }}
+                    onConfirm={handleConfirmException}
+                    reasons={exceptionReasons}
+                />
+            )}
+
+            <BoardTimeline 
+                actions={actions}
+                previewIndex={previewIndex}
+                onSeek={reconstructStateAt}
+                onReset={resetTimeline}
+            />
         </div>
     );
 }

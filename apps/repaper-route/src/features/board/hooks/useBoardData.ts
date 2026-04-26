@@ -6,7 +6,8 @@ import { useNotification } from '../../../contexts/NotificationContext';
 import { isPastDayJST } from '../utils/dateUtils';
 import { useDataSync } from './useDataSync';
 import {
-    BoardJob, BoardDriver, BoardSplit, BoardHistory, ExceptionReasonMaster
+    BoardJob, BoardDriver, BoardSplit, BoardHistory, ExceptionReasonMaster,
+    BoardAction, BoardActionType
 } from '../../../types';
 import { Staff } from '../../../os/auth/types';
 
@@ -40,11 +41,14 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
     // ----------------------------------------
     // 2. Data Synchronization (Phase 3-2: SWR Layer)
     // ----------------------------------------
-    const { data: remoteData, isLoading: isSyncing, error: syncError, mutate: mutateCache } = useDataSync(
+    const { data: remoteData, isLoading: isInitialLoading, error: syncError, mutate: mutateCache } = useDataSync(
         currentDateKey, 
         getDefaultDrivers,
         user?.role
     );
+
+    const [isManualSyncing, setIsManualSyncing] = useState(false);
+    const isSyncing = isInitialLoading || isManualSyncing;
 
     // ----------------------------------------
     // 3. Unified Local State (SSOT)
@@ -101,7 +105,26 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
 
     const [exceptionReasons, setExceptionReasons] = useState<ExceptionReasonMaster[]>([]);
     const [confirmedSnapshot, setConfirmedSnapshot] = useState<any>(null);
-    
+    const [actions, setActions] = useState<BoardAction[]>([]);
+    const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+
+    // Fetch Actions for Timeline
+    useEffect(() => {
+        const fetchActions = async () => {
+            try {
+                const { data, error } = await nativeSupabaseFetch(
+                    'board_actions', 
+                    `date=eq.${currentDateKey}&order=created_at.asc`
+                );
+                if (error) throw error;
+                setActions(data as BoardAction[]);
+            } catch (err) {
+                console.error("Fetch actions error:", err);
+            }
+        };
+        fetchActions();
+    }, [currentDateKey]);
+
     useEffect(() => {
         nativeSupabaseFetch('exception_reason_masters', 'select=*&is_active=eq.true&order=created_at.asc')
             .then(({ data }) => { if (data) setExceptionReasons(data as any); });
@@ -150,6 +173,38 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
             future: []
         }));
     }, [state]);
+
+    // Phase 13: Action-based Event Sourcing
+    const recordAction = useCallback(async (action: Omit<BoardAction, 'date' | 'user_id'>, skipHistory = false) => {
+        if (!editMode || isPastDate) return;
+
+        setIsManualSyncing(true);
+        // 1. Optimistic Update (Record history for UI undo)
+        if (!skipHistory) recordHistory();
+
+        const fullAction: BoardAction = {
+            ...action,
+            date: currentDateKey,
+            user_id: currentUserId || undefined
+        };
+
+        try {
+            // 2. Atomic RPC sync
+            const { error } = await nativeSupabaseFetch('rpc/rpc_record_board_action', '', 'POST', {
+                p_date: currentDateKey,
+                p_action_type: fullAction.action_type,
+                p_payload: fullAction.payload,
+                p_reason: fullAction.reason
+            });
+            if (error) throw error;
+            setIsManualSyncing(false);
+        } catch (err) {
+            console.error("Action sync error:", err);
+            showNotification("同期エラーが発生しました。オフラインで継続します。", "warning");
+            setIsOffline(true);
+            setIsManualSyncing(false);
+        }
+    }, [editMode, isPastDate, currentDateKey, currentUserId, recordHistory, showNotification, setIsManualSyncing]);
 
     const requestEditLock = useCallback(async () => {
         if (!canEditBoard || isPastDate) return;
@@ -298,7 +353,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
         try {
             const targetJob = state.jobs.find(j => j.id === jobId);
             if (!targetJob) throw new Error("Job not found");
-            const updatedJobs = state.jobs.map(j => j.id === jobId ? { ...j, ...proposedState } : j);
+            const updatedJobs = state.jobs.map(j => j.id === jobId ? { ...j, ...proposedState, status: 'planned' as const } : j);
             const newState = { ...state, jobs: updatedJobs };
             const { error: exceptionError } = await supabase.from('board_exceptions').insert([{
                 route_date: currentDateKey, job_id: jobId, exception_type: exceptionType,
@@ -321,6 +376,15 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                 p_user_id: currentUserId,
                 p_client_meta: { source: 'useBoardData' }
             });
+            if (error) throw error;
+
+            // Phase 13: Also record as Action for timeline tracking
+            recordAction({
+                action_type: 'MOVE_JOB',
+                payload: { jobId, toColumnId: proposedState.driverId, data: proposedState },
+                reason: reasonFreeText || reasonMasterId
+            }, true);
+
             setState(newState);
             mutateCache(newState);
             setHistory({ past: [], future: [] });
@@ -350,20 +414,80 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
         });
     }, [editMode, state]);
 
+    // Phase 13: Time Machine Replay Logic
+    const reconstructStateAt = useCallback((index: number) => {
+        if (!remoteData || index < 0 || index > actions.length) return;
+        
+        // Start from base state (Remote data or Snapshot)
+        let newState: BoardState = JSON.parse(JSON.stringify(remoteData));
+        
+        // Apply actions up to the index
+        const actionsToApply = actions.slice(0, index);
+        actionsToApply.forEach(action => {
+            const { action_type, payload } = action;
+            switch (action_type) {
+                case 'MOVE_JOB':
+                    newState.jobs = newState.jobs.map(j => 
+                        j.id === payload.jobId ? { ...j, driverId: payload.toColumnId, startTime: payload.newTime || j.startTime } : j
+                    );
+                    break;
+                case 'UNASSIGN_JOB':
+                    const targetJob = newState.jobs.find(j => j.id === payload.jobId);
+                    if (targetJob) {
+                        newState.jobs = newState.jobs.filter(j => j.id !== payload.jobId);
+                        newState.pendingJobs.push({ ...targetJob, driverId: undefined, startTime: undefined });
+                    }
+                    break;
+                case 'ADD_COLUMN':
+                    if (payload.data) newState.drivers.push(payload.data);
+                    break;
+                case 'DELETE_COLUMN':
+                    newState.drivers = newState.drivers.filter(d => d.id !== payload.columnId);
+                    break;
+                case 'UPDATE_DRIVER':
+                    newState.drivers = newState.drivers.map(d => 
+                        d.id === payload.driverId ? { ...d, ...payload.data } : d
+                    );
+                    break;
+                case 'DELETE_DRIVER':
+                    newState.drivers = newState.drivers.filter(d => d.id !== payload.driverId);
+                    newState.jobs = newState.jobs.filter(j => j.driverId !== payload.driverId);
+                    break;
+                case 'ADD_JOB':
+                    if (payload.data) newState.jobs.push(payload.data);
+                    break;
+                case 'UPDATE_JOB':
+                    newState.jobs = newState.jobs.map(j => 
+                        j.id === payload.jobId ? { ...j, ...payload.data } : j
+                    );
+                    break;
+            }
+        });
+        
+        setState(newState);
+        setPreviewIndex(index);
+    }, [remoteData, actions]);
+
+    const resetTimeline = useCallback(() => {
+        setPreviewIndex(null);
+        if (remoteData) setState(remoteData);
+    }, [remoteData]);
+
     const addColumn = useCallback(() => {
         if (!editMode) return;
-        setState(prev => {
-            const newCourseName = String.fromCharCode(65 + prev.drivers.length);
-            const newColumn: BoardDriver = {
-                id: `course_${newCourseName}_${Date.now()}`,
-                name: `${newCourseName}コース`,
-                driverName: '未割当', currentVehicle: '未定', course: newCourseName,
-                color: 'bg-gray-50 border-gray-200'
-            };
-            return { ...prev, drivers: [...prev.drivers, newColumn] };
+        const newCourseName = String.fromCharCode(65 + state.drivers.length);
+        const newColumn: BoardDriver = {
+            id: `course_${newCourseName}_${Date.now()}`,
+            name: `${newCourseName}コース`,
+            driverName: '未割当', currentVehicle: '未定', course: newCourseName,
+            color: 'bg-gray-50 border-gray-200'
+        };
+        setState(prev => ({ ...prev, drivers: [...prev.drivers, newColumn] }));
+        recordAction({
+            action_type: 'ADD_COLUMN',
+            payload: { columnId: newColumn.id, data: newColumn }
         });
-        recordHistory();
-    }, [editMode, recordHistory]);
+    }, [editMode, state.drivers.length, recordAction]);
 
     const deleteColumn = useCallback((columnId: string) => {
         if (!editMode) return;
@@ -372,8 +496,11 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
             return;
         }
         setState(prev => ({ ...prev, drivers: prev.drivers.filter(d => d.id !== columnId) }));
-        recordHistory();
-    }, [editMode, state.jobs, recordHistory, showNotification]);
+        recordAction({
+            action_type: 'DELETE_COLUMN',
+            payload: { columnId }
+        });
+    }, [editMode, state.jobs, recordAction, showNotification]);
 
     const unassignJob = useCallback((jobId: string) => {
         if (!editMode) return;
@@ -396,8 +523,11 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                 timeConstraint: restoredTimeConstraint
             }]
         }));
-        recordHistory();
-    }, [editMode, state.jobs, masterPoints, recordHistory]);
+        recordAction({
+            action_type: 'UNASSIGN_JOB',
+            payload: { jobId }
+        });
+    }, [editMode, state.jobs, masterPoints, recordAction]);
 
     const assignPendingJob = useCallback((job: BoardJob, driverId: string, time: string) => {
         if (!editMode) return;
@@ -406,8 +536,28 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
             jobs: [...prev.jobs, { ...job, driverId, startTime: time }],
             pendingJobs: prev.pendingJobs.filter(j => j.id !== job.id)
         }));
-        recordHistory();
-    }, [editMode, recordHistory]);
+        recordAction({
+            action_type: 'MOVE_JOB',
+            payload: { jobId: job.id, toColumnId: driverId, newTime: time }
+        });
+    }, [editMode, recordAction]);
+
+    const moveJob = useCallback((jobId: string, toColumnId: string) => {
+        if (!editMode) return;
+        const job = state.jobs.find(j => j.id === jobId);
+        const fromColumnId = job?.driverId;
+
+        setState(prev => {
+            const updatedJobs = prev.jobs.map(j => 
+                j.id === jobId ? { ...j, driverId: toColumnId } : j
+            );
+            return { ...prev, jobs: updatedJobs };
+        });
+        recordAction({
+            action_type: 'MOVE_JOB',
+            payload: { jobId, fromColumnId, toColumnId }
+        });
+    }, [editMode, state.jobs, recordAction]);
 
     return {
         masterDrivers,
@@ -422,6 +572,8 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
         handleExceptionChange, exceptionReasons, confirmedSnapshot,
         assignPendingJob, unassignJob,
         history, recordHistory, undo, redo,
+        actions, previewIndex, reconstructStateAt, resetTimeline,
+        recordAction,
         addColumn, deleteColumn
     };
 };

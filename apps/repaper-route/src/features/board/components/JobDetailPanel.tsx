@@ -345,7 +345,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
                                             <div className="p-2 bg-slate-100 rounded-lg group-hover:bg-slate-200 transition-colors text-slate-500">
                                                 <ArrowRightLeft size={14} />
                                             </div>
-                                            <span className="uppercase tracking-widest leading-none">案件の場所を移動</span>
+                                            <span className="uppercase tracking-widest leading-none text-[10px]">確定を解除して編集（例外申請）</span>
                                         </div>
                                     </button>
                             )}

@@ -114,6 +114,40 @@ export interface BoardHistory {
     future: BoardHistoryEntry[];
 }
 
+// Time Machine / Event Sourcing Types
+export type BoardActionType = 
+    | 'MOVE_JOB' 
+    | 'UPDATE_TIME' 
+    | 'REASSIGN_DRIVER' 
+    | 'DELETE_COLUMN' 
+    | 'ADD_COLUMN'
+    | 'UNASSIGN_JOB'
+    | 'RESET_TIMELINE'
+    | 'UPDATE_DRIVER'
+    | 'DELETE_DRIVER'
+    | 'ADD_JOB'
+    | 'UPDATE_JOB';
+
+export interface BoardAction {
+    id?: string;
+    date: string;
+    user_id?: string;
+    action_type: BoardActionType;
+    payload: {
+        jobId?: string;
+        driverId?: string;
+        columnId?: string;
+        fromColumnId?: string;
+        toColumnId?: string;
+        newTime?: string;
+        prevTime?: string;
+        data?: any; // For complex snapshots
+        milestoneName?: string; // For CONFIRM (as named milestone)
+    };
+    reason?: string;
+    created_at?: string;
+}
+
 export interface AppUser {
     id: string;
     name: string;
