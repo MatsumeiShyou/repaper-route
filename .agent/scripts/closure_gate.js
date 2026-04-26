@@ -178,6 +178,30 @@ function clearSeal() {
     }
 }
 
+function verifySSOTScanMandate() {
+    Log.info('Checking SSOT Scan Mandate (Sentinel 5.6)...');
+    const ssotFile = join(process.cwd(), '.agent', '.ssot_scanned');
+    
+    if (!existsSync(ssotFile)) {
+        Log.error('FATAL: SSOT Scan Mandate violated.');
+        console.error('[ERROR] 構造的強制：推測実装を防ぐため、タスク完遂前に必ず最新の真実(SSOT)を観測する必要があります。');
+        console.error('[ACTION REQUIRED] 直ちに `npm run agent:scan --target=all` を実行してから、再度 `npm run done` を試みてください。');
+        process.exit(1);
+    }
+    
+    const stats = statSync(ssotFile);
+    const twelveHoursMs = 12 * 60 * 60 * 1000;
+    
+    if (Date.now() - stats.mtimeMs > twelveHoursMs) {
+        Log.error('FATAL: SSOT Scan Mandate violated (Scan is too old).');
+        console.error('[ERROR] 構造的強制：前回のスキャンから12時間以上経過しています。最新の構造を観測し直してください。');
+        console.error('[ACTION REQUIRED] 直ちに `npm run agent:scan --target=all` を実行してから、再度 `npm run done` を試みてください。');
+        process.exit(1);
+    }
+    
+    Log.success('SSOT Scan Confirmed.');
+}
+
 function main() {
     process.on('exit', () => { if (!completionFlag) incrementRetryCount('Aborted'); });
 
@@ -185,6 +209,7 @@ function main() {
     Log.info(`Closure Started (Tier: ${tier})...`);
 
     try {
+        verifySSOTScanMandate();
         verifySessionDesync();
         verifyConstitutionalIntegrity();
         verifyLegislativeInterlock();

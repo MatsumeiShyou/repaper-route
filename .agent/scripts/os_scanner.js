@@ -96,6 +96,15 @@ function main() {
     if (!['apps', 'db', 'all'].includes(target)) {
         console.log(`⚠️ Unknown target: ${target}. Use --target=apps, db, or all.`);
     }
+
+    // --- 証跡の物理的発行 ---
+    try {
+        const lockPath = path.join(process.cwd(), '.agent', '.ssot_scanned');
+        fs.writeFileSync(lockPath, Date.now().toString(), 'utf8');
+        console.log('\n[AGENT SCAN] ✅ SSOT Scan token generated successfully.');
+    } catch (e) {
+        console.error('\n[AGENT SCAN] ❌ Error generating scan token:', e.message);
+    }
 }
 
 main();
