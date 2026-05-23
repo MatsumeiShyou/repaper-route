@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { checkConstraints } from './ConstraintEngine';
 import { LogicVehicle, LogicJob } from '../types';
-import { StaffPermissions } from '../../os/auth/types';
+import { StaffPermissions } from '../../../os/auth/types';
 import { resolveVehicleSpec } from './VehicleSpecManifest';
 
 describe('ConstraintEngine V2 (Logic Deep Edition)', () => {

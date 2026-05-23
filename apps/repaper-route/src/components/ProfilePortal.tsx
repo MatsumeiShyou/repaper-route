@@ -80,10 +80,10 @@ export const ProfilePortal: React.FC = () => {
                             />
                         </div>
 
-                        {error && (
+                        {displayError && (
                             <div className="flex items-center gap-2 p-3 bg-rose-900/30 border border-rose-500/30 rounded-xl text-rose-400 text-xs animate-in fade-in">
                                 <AlertCircle size={14} className="shrink-0" />
-                                {error}
+                                {displayError}
                             </div>
                         )}
 

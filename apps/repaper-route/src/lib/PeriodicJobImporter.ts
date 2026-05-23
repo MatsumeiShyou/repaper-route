@@ -34,7 +34,7 @@ export const PeriodicJobImporter = {
         const { TemplateManager } = await import('../features/logic/core/TemplateManager');
         const nth = TemplateManager.getNthWeek(date);
 
-        return (data || []).filter(p => {
+        return (data || []).filter((p: MasterPoint) => {
             // 1. Day of Week Check (Handle both Object and Array structures)
             const collectionDays = p.collection_days as any;
             if (!collectionDays) return false; // [Fix] collection_days が null の場合は除外

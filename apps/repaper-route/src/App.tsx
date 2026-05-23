@@ -49,6 +49,28 @@ function SplashScreen() {
 }
 
 /**
+ * 未登録（市民ではない）場合のエラー画面
+ */
+function UnregisteredScreen() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
+            <div className="max-w-md w-full bg-slate-900 border border-slate-700 rounded-3xl p-10 text-center shadow-2xl">
+                <h2 className="text-2xl font-black text-white mb-4 tracking-tight">未登録のスタッフ</h2>
+                <p className="text-slate-400 text-sm leading-relaxed mb-8">
+                    スタッフ名簿に登録されていません。<br />管理者に申請してください。
+                </p>
+                <button 
+                    onClick={() => window.location.href = '/'}
+                    className="w-full h-12 bg-slate-800 hover:bg-slate-700 text-white text-xs font-black rounded-xl transition-all"
+                >
+                    ポータルへ戻る
+                </button>
+            </div>
+        </div>
+    )
+}
+
+/**
  * アプリケーションの認証・権限ガードレール（許可/拒絶）
  */
 function AppContent() {

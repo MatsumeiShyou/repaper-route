@@ -41,6 +41,17 @@ export class AuthAdapter {
   }
 
   /**
+   * localStorage に認証トークンが存在するかを同期的に確認する
+   */
+  public hasCachedSession(): boolean {
+    if (typeof window === 'undefined') return false;
+    // sb-[project-id]-auth-token 形式のキーを探す
+    return Object.keys(localStorage).some(key => 
+      key.startsWith('sb-') && key.endsWith('-auth-token')
+    );
+  }
+
+  /**
    * 現在のセッションから Staff 情報を解決する。
    * React 19 の use() で直接 Promise を渡せるように設計。
    */

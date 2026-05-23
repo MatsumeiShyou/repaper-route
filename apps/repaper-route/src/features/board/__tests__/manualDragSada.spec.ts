@@ -4,6 +4,12 @@ import { renderHook, act } from '@testing-library/react';
 import { useBoardDragDrop } from '../hooks/useBoardDragDrop';
 import { BoardJob } from '../../../types';
 
+vi.mock('../../../contexts/AuthProvider', () => ({
+    useAuth: () => ({
+        staff: { id: 'admin-1', name: 'Admin User' }
+    })
+}));
+
 describe('useBoardDragDrop Manual Job Offset Calculation (SADA)', () => {
     it('案件をドラッグした際、dropPreviewが相対座標を基に正確に計算・更新されること', () => {
         // Mock Container Ref (TimeGrid)
@@ -18,16 +24,18 @@ describe('useBoardDragDrop Manual Job Offset Calculation (SADA)', () => {
             y: 100,
             toJSON: () => { }
         };
-        const mockContainer = document.createElement('div');
-        mockContainer.getBoundingClientRect = vi.fn().mockReturnValue(mockContainerRect);
+        const mockContainer = {
+            getBoundingClientRect: vi.fn().mockReturnValue(mockContainerRect)
+        } as unknown as HTMLDivElement;
 
         const gridContainerRef = { current: mockContainer };
         // モックカラム（X:200でマッチ）
         const mockDriverColRect = {
             top: 100, left: 200, right: 380, bottom: 900, width: 180, height: 800, x: 200, y: 100, toJSON: () => { }
         };
-        const mockDriverCol = document.createElement('div');
-        mockDriverCol.getBoundingClientRect = vi.fn().mockReturnValue(mockDriverColRect);
+        const mockDriverCol = {
+            getBoundingClientRect: vi.fn().mockReturnValue(mockDriverColRect)
+        } as unknown as HTMLDivElement;
         const driverColRefs = { current: { 'driver-1': mockDriverCol } };
 
         const setJobs = vi.fn();
@@ -51,19 +59,18 @@ describe('useBoardDragDrop Manual Job Offset Calculation (SADA)', () => {
         const mockCurrentContainerWidth = { current: 1000 };
 
         const { result } = renderHook(() => useBoardDragDrop(
-            [mockJob],
-            [{ id: 'driver-1', name: 'Test Driver', currentVehicle: 'Test Car' } as any],
-            [],
-            driverColRefs as any,
-            gridContainerRef as any,
-            setJobs as any,
-            setSplits as any,
-            recordHistory as any,
-            mockCalculateLayoutAndTiming as any,
-            mockGetDriversFromCache as any,
-            mockIncrementPendingVersion as any,
-            mockIsLayoutUpdating as any,
-            mockCurrentContainerWidth as any
+            [], // jobs
+            [mockJob], // pendingJobs
+            [{ id: 'driver-1', name: 'Test Driver', currentVehicle: 'Test Car' } as any], // drivers
+            [], // splits
+            driverColRefs as any, // driverColRefs
+            gridContainerRef as any, // gridContainerRef
+            setJobs as any, // setJobs
+            setJobs as any, // setPendingJobs
+            setSplits as any, // _setSplits
+            recordHistory as any, // recordHistory
+            vi.fn(), // onInteractionChange
+            null // createProposal
         ));
 
         // カード自体の表示位置 (絶対座標) 
@@ -79,9 +86,11 @@ describe('useBoardDragDrop Manual Job Offset Calculation (SADA)', () => {
             y: 612,
             toJSON: () => { }
         };
-        const mockCardElement = document.createElement('div');
-        mockCardElement.setAttribute('data-job-id', 'manual-123');
-        mockCardElement.getBoundingClientRect = vi.fn().mockReturnValue(mockCardRect);
+        const mockCardElement: any = {
+            getAttribute: vi.fn().mockReturnValue('manual-123'),
+            getBoundingClientRect: vi.fn().mockReturnValue(mockCardRect),
+        };
+        mockCardElement.closest = vi.fn().mockReturnValue(mockCardElement);
 
         // シミュレーション1: ドラッグ開始（Down） - マウスは絶対Y=622 (カード上部から10pxの場所)
         const mockDownEvent = {

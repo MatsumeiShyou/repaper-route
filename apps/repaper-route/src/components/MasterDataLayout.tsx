@@ -1000,7 +1000,6 @@ function PointAccessSection({ pointId }: { pointId: string }) {
     const handleAdd = async () => {
         if (!newDriverId || !newVehicleId) return;
         setSaving(true);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase.from('point_access_permissions') as any).upsert(
             { point_id: pointId, driver_id: newDriverId, vehicle_id: newVehicleId, is_active: true },
             { onConflict: 'point_id,driver_id' }
@@ -1015,7 +1014,6 @@ function PointAccessSection({ pointId }: { pointId: string }) {
     };
 
     const handleDelete = async (id: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase.from('point_access_permissions') as any).update({ is_active: false }).eq('id', id);
         setPermissions(prev => prev.filter(p => p.id !== id));
     };

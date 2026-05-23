@@ -38,7 +38,7 @@ const runPurgeInternal = async () => {
                 if (db.name) {
                     await new Promise((resolve) => {
                         console.log(`[PURGE] Deleting DB: ${db.name}`);
-                        const req = indexedDB.deleteDatabase(db.name);
+                        const req = indexedDB.deleteDatabase(db.name!);
                         req.onsuccess = () => resolve(null);
                         req.onerror = () => resolve(null);
                         req.onblocked = () => resolve(null);

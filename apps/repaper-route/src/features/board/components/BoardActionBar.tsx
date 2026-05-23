@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, CheckCircle, Database, Undo2, Redo2, Save, AlertTriangle, Clipboard, Cloud } from 'lucide-react';
+import { Layers, CheckCircle, Database, Undo2, Redo2, AlertTriangle, Clipboard, Cloud } from 'lucide-react';
 import { DateDisplay } from './DateDisplay';
 import { BoardJob } from '../../../types';
 
@@ -18,7 +18,6 @@ interface BoardActionBarProps {
         summary: string;
         hasConfirmedChanges: boolean;
     };
-    setIsSaveModalOpen: (isOpen: boolean) => void;
     isSidebarOpen: boolean;
     setIsSidebarOpen: (isOpen: boolean) => void;
     pendingJobs: BoardJob[];
@@ -34,7 +33,6 @@ export const BoardActionBar: React.FC<BoardActionBarProps> = ({
     redo,
     handleConfirmAll,
     validation,
-    setIsSaveModalOpen,
     isSidebarOpen,
     setIsSidebarOpen,
     pendingJobs,

@@ -119,7 +119,7 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({ selectedDate, on
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (mode !== 'calendar') return;
 
-        let nextDate = new Date(focusedDate);
+        const nextDate = new Date(focusedDate);
         if (e.key === 'ArrowRight') nextDate.setDate(focusedDate.getDate() + 1);
         else if (e.key === 'ArrowLeft') nextDate.setDate(focusedDate.getDate() - 1);
         else if (e.key === 'ArrowUp') nextDate.setDate(focusedDate.getDate() - 7);

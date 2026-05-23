@@ -34,7 +34,10 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [staff, setStaff] = useState<Staff | null>(null);
     const [staffs, setStaffs] = useState<Staff[]>([]);
-    const [status, setStatus] = useState<AuthStatus>('INITIALIZING');
+    const [status, setStatus] = useState<AuthStatus>(() => {
+        // キャッシュ（トークン）がない場合は、サーバー応答を待たずに即座に非認証状態とする
+        return authAdapter.hasCachedSession() ? 'INITIALIZING' : 'UNAUTHENTICATED';
+    });
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [debugError, setDebugError] = useState<string>('');
     

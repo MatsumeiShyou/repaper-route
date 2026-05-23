@@ -116,7 +116,7 @@ export default function BoardCanvas() {
 
     // Exception Change State
     const [isExceptionModalOpen, setIsExceptionModalOpen] = useState(false);
-    const [exceptionTarget, setExceptionTarget] = useState<{ job: BoardJob, type: 'MOVE' | 'REASSIGN' | 'CANCEL', proposedState?: any } | null>(null);
+    const [exceptionTarget, setExceptionTarget] = useState<{ job: BoardJob, type: 'MOVE' | 'REASSIGN' | 'SWAP' | 'CANCEL', proposedState?: any } | null>(null);
 
     const selectedDriverForEdit = headerEditTargetId
         ? drivers.find(d => d.id === headerEditTargetId) || null
@@ -190,7 +190,7 @@ export default function BoardCanvas() {
         setIsExceptionModalOpen(true);
     };
 
-    const handleExceptionRequest = (jobId: string, type: 'MOVE' | 'REASSIGN' | 'CANCEL') => {
+    const handleExceptionRequest = (jobId: string, type: 'MOVE' | 'REASSIGN' | 'SWAP' | 'CANCEL') => {
         const job = jobs.find(j => j.id === jobId);
         if (!job) return;
         setExceptionTarget({ job, type });
@@ -210,7 +210,7 @@ export default function BoardCanvas() {
 
         setIsExceptionModalOpen(false);
         setExceptionTarget(null);
-        setSelectedJobId(jobId); // 編集を続けるために選択を維持
+        setSelectedJobId(selectedJobId); // 編集を続けるために選択を維持
         showNotification("案件の確定を解除し、編集可能にしました", "success");
     };
 
@@ -296,7 +296,6 @@ export default function BoardCanvas() {
                 redo={redo}
                 handleConfirmAll={handleConfirmAll}
                 validation={validation}
-                setIsSaveModalOpen={setIsSaveModalOpen}
                 isSidebarOpen={isSidebarOpen}
                 setIsSidebarOpen={setIsSidebarOpen}
                 pendingJobs={pendingJobs}
@@ -364,7 +363,6 @@ export default function BoardCanvas() {
                         pendingFilter={pendingFilter}
                         setPendingFilter={setPendingFilter}
                         selectedCell={selectedCell}
-                        selectedJobId={selectedJobId}
                         onAddJob={handleAssignPendingJob}
                         onClose={() => setIsSidebarOpen(false)}
                     />

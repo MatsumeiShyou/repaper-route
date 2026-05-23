@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, RotateCcw, Play, Pause } from 'lucide-react';
+import { History, RotateCcw } from 'lucide-react';
 import { BoardAction } from '../../../types';
 
 interface BoardTimelineProps {

@@ -3,7 +3,7 @@ import { checkConstraints } from '../../logic/core/ConstraintEngine';
 import { calculateScore } from '../../logic/score/ScoringEngine';
 import { LogicJob, LogicVehicle, PointAccessPermission } from '../../logic/types';
 import { resolveVehicleSpec } from '../../logic/core/VehicleSpecManifest';
-import { StaffPermissions } from '../../os/auth/types';
+import { StaffPermissions } from '../../../os/auth/types';
 import { timeToMinutes } from './timeUtils';
 
 interface CollisionCheckParams {
@@ -97,7 +97,7 @@ export const calculateCollision = ({
         const logicVehicle: LogicVehicle = {
             id: driver.id,
             name: driver.name,
-            capacityWeight: vehicleSpec.capacityWeight,
+            capacityWeight: vehicleSpec.capacityWeight || 0,
             startLocation: { lat: 35.44, lng: 139.36 }
         };
 

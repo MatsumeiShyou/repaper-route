@@ -8,7 +8,6 @@ interface PendingJobSidebarProps {
     pendingFilter: string;
     setPendingFilter: (filter: string) => void;
     selectedCell: { driverId: string, time: string } | null;
-    selectedJobId: string | null;
     onAddJob: (job: BoardJob) => void;
     onClose: () => void;
 }
@@ -18,7 +17,6 @@ export const PendingJobSidebar: React.FC<PendingJobSidebarProps> = ({
     pendingFilter,
     setPendingFilter,
     selectedCell,
-    selectedJobId,
     onAddJob,
     onClose
 }) => {

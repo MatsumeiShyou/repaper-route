@@ -7,7 +7,7 @@ import { isPastDayJST } from '../utils/dateUtils';
 import { useDataSync } from './useDataSync';
 import {
     BoardJob, BoardDriver, BoardSplit, BoardHistory, ExceptionReasonMaster,
-    BoardAction, BoardActionType
+    BoardAction
 } from '../../../types';
 import { Staff } from '../../../os/auth/types';
 
@@ -200,7 +200,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
             setIsManualSyncing(false);
         } catch (err) {
             console.error("Action sync error:", err);
-            showNotification("同期エラーが発生しました。オフラインで継続します。", "warning");
+            showNotification("同期エラーが発生しました。オフラインで継続します。", "error");
             setIsOffline(true);
             setIsManualSyncing(false);
         }
@@ -220,7 +220,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
             const isLockExpired = route?.last_activity_at &&
                 (Date.now() - new Date(route.last_activity_at as string).getTime()) > TIMEOUT_MS;
             if (!route?.edit_locked_by || isLockExpired || route.edit_locked_by === currentUserId) {
-                let updateData: any = {
+                const updateData: any = {
                     date: currentDateKey,
                     edit_locked_by: currentUserId,
                     edit_locked_at: currentTime,
@@ -362,7 +362,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                 promote_requested: promoteRequested, actor_id: currentUserId
             }]);
             if (exceptionError) throw exceptionError;
-            await nativeSupabaseFetch('rpc/rpc_execute_board_update', '', 'POST', {
+            const { error: updateError } = await nativeSupabaseFetch('rpc/rpc_execute_board_update', '', 'POST', {
                 p_date: currentDateKey,
                 p_new_state: {
                     ...newState,
@@ -376,7 +376,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                 p_user_id: currentUserId,
                 p_client_meta: { source: 'useBoardData' }
             });
-            if (error) throw error;
+            if (updateError) throw updateError;
 
             // Phase 13: Also record as Action for timeline tracking
             recordAction({
@@ -419,7 +419,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
         if (!remoteData || index < 0 || index > actions.length) return;
         
         // Start from base state (Remote data or Snapshot)
-        let newState: BoardState = JSON.parse(JSON.stringify(remoteData));
+        const newState: BoardState = JSON.parse(JSON.stringify(remoteData));
         
         // Apply actions up to the index
         const actionsToApply = actions.slice(0, index);
@@ -431,13 +431,14 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
                         j.id === payload.jobId ? { ...j, driverId: payload.toColumnId, startTime: payload.newTime || j.startTime } : j
                     );
                     break;
-                case 'UNASSIGN_JOB':
+                case 'UNASSIGN_JOB': {
                     const targetJob = newState.jobs.find(j => j.id === payload.jobId);
                     if (targetJob) {
                         newState.jobs = newState.jobs.filter(j => j.id !== payload.jobId);
                         newState.pendingJobs.push({ ...targetJob, driverId: undefined, startTime: undefined });
                     }
                     break;
+                }
                 case 'ADD_COLUMN':
                     if (payload.data) newState.drivers.push(payload.data);
                     break;
@@ -542,22 +543,7 @@ export const useBoardData = (user: Staff | null, currentDateKey: string, isInter
         });
     }, [editMode, recordAction]);
 
-    const moveJob = useCallback((jobId: string, toColumnId: string) => {
-        if (!editMode) return;
-        const job = state.jobs.find(j => j.id === jobId);
-        const fromColumnId = job?.driverId;
 
-        setState(prev => {
-            const updatedJobs = prev.jobs.map(j => 
-                j.id === jobId ? { ...j, driverId: toColumnId } : j
-            );
-            return { ...prev, jobs: updatedJobs };
-        });
-        recordAction({
-            action_type: 'MOVE_JOB',
-            payload: { jobId, fromColumnId, toColumnId }
-        });
-    }, [editMode, state.jobs, recordAction]);
 
     return {
         masterDrivers,

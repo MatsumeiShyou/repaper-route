@@ -13,7 +13,7 @@ interface InteractionContextType {
 
 const InteractionContext = createContext<InteractionContextType | undefined>(undefined);
 
-// eslint-disable-next-line react-refresh/only-export-components
+
 export const useInteraction = () => {
     const context = useContext(InteractionContext);
     if (!context) {

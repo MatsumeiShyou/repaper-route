@@ -29,7 +29,7 @@ const DEFAULT_SPEC: VehicleSpec = {
  * @param maxPayload DB (logistics_vehicle_attrs) 由来の積載量。存在すれば最優先。
  */
 export const resolveVehicleSpec = (
-  id: string,
+  _id: string,
   name?: string,
   callsign?: string,
   maxPayload?: number
