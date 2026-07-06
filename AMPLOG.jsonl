@@ -9,3 +9,7 @@
 {"timestamp":"2026-06-12T20:07:48.066Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":1,"task":"Governance Baseline Reset"}
 {"timestamp":"2026-06-13T09:04:19.890Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":1,"task":"Governance Baseline Reset"}
 {"timestamp":"2026-06-13T09:04:59.663Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":2,"task":"Governance Baseline Reset"}
+{"timestamp":"2026-06-19T19:41:37.966Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":1,"task":"Governance Baseline Reset"}
+{"timestamp":"2026-06-19T19:44:07.232Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":2,"task":"Governance Baseline Reset"}
+{"timestamp":"2026-07-06T19:35:28.661Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":3,"task":"Governance Baseline Reset"}
+{"timestamp":"2026-07-06T19:35:45.708Z","level":"WARN","event":"RETRY_INCREMENT","reason":"Aborted","count":4,"task":"Governance Baseline Reset"}

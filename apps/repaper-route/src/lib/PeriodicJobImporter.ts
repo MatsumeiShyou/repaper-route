@@ -30,9 +30,8 @@ export const PeriodicJobImporter = {
         const dayIdx = date.getDay();
         const dayKey = dayMap[dayIdx]; // e.g., 'mon'
         
-        // Import TemplateManager for Nth week logic consistency
-        const { TemplateManager } = await import('../features/logic/core/TemplateManager');
-        const nth = TemplateManager.getNthWeek(date);
+        // Calculate Nth week
+        const nth = Math.ceil(date.getDate() / 7);
 
         return (data || []).filter((p: MasterPoint) => {
             // 1. Day of Week Check (Handle both Object and Array structures)

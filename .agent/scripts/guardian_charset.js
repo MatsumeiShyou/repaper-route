@@ -16,12 +16,27 @@ const __dirname = path.dirname(__filename);
  * 1: NG (BOM detected, or invalid UTF-8 sequence, or Target File Not Found)
  */
 
-const TARGET_FILES = [
+const BASE_TARGET_FILES = [
     'AMPLOG.jsonl',
     'ANTIPATTERN_REGISTRY.jsonl',
     'AGENTS.md',
-    'DEBT_AND_FUTURE.md'
+    'DEBT_AND_FUTURE.md',
+    'SCHEMA_HISTORY.md'
 ];
+
+function getTargetFiles() {
+    let targets = [...BASE_TARGET_FILES];
+    const adrPath = path.resolve(__dirname, '../../governance/ADR');
+    if (fs.existsSync(adrPath)) {
+        const adrFiles = fs.readdirSync(adrPath)
+            .filter(f => f.endsWith('.md'))
+            .map(f => `governance/ADR/${f}`);
+        targets = targets.concat(adrFiles);
+    }
+    return targets;
+}
+
+const TARGET_FILES = getTargetFiles();
 
 function verifyCharset(filePath) {
     const fullPath = path.resolve(__dirname, '../../', filePath);

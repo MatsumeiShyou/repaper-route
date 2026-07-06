@@ -11,6 +11,7 @@
 - **[No Leakage & Honesty]**: 秘密情報のハードコード禁止。不明点は「不明」と明示せよ。
 - **[GaC Protocol]**: 役割分離（Analyzer/Executor）を遵守せよ。「計画」「設計」の指示時は即座にPLANNINGモードへ復帰せよ。
 - **[SDR Protocol]**: 応答は「事実(State)」「判断(Decision)」「理由(Reason)」の三要素を核とし、比喩を禁止しトップダウン形式で記述せよ。T3時は明示的ラベルで5層分離せよ。
+- **[Design Compliance]**: 実装前には必ず、現在作業中のワークスペース内にある `governance/ADR/` または `.agent/ADR/` ディレクトリの最新決定事項を読み込み遵守せよ。方針変更時は既存ADRを修正せず新ADRを作成し「Superseded」扱いとすること。
 
 ## 2. EXECUTION GATES (実行プロトコル)
 - **[Tier Check]**: ティア判定は `governance/risk_matrix.json` を参照せよ。
@@ -27,9 +28,10 @@
 - **[SQL Sync]**: スキーマ変更時は必ず `npx supabase db diff` を実行し、生成SQLを提示せよ。変更内容は即時 `SCHEMA_HISTORY.md` に記録せよ。
 - **[Supabase Connection]**: CLI実行や直接接続前に、必ず `knowledge/supabase_cli_ipv6_pooler_fix/artifacts/manual.md` を読み込み遵守せよ。
 - **[Debt Loan]**: `DEBT_AND_FUTURE.md` への記録は「借金」であり、完済するまで関連モジュールの新規機能提案を禁止する。
-- **[Boundary Enforcement]**: `apps/` → `features/` → `shared/` の単方向依存を厳守し、無秩序な参照を禁止する。
+- **[Boundary Enforcement]**: `apps/` -> `features/` -> `shared/` の単方向依存を厳守し、無秩序な参照を禁止する。
 - **[SVP (Single Version)]**: 全体で同一バージョンのライブラリを使用し、幽霊依存を根絶せよ。
-- **[TGS Trace]**: T3/不具合修正前は `grep_search` 等で `C:\Users\shiyo\.gemini\antigravity\brain\` およびワークスペースを走査し、SDRに明記せよ。
+- **[TGS Trace]**: T3/不具合修正前は `grep_search` 等でワークスペースを走査し、SDRに明記せよ。
 - **[ADR]**: 統治構造の変更（AGENTS.md等）は必ず `governance/ADR/` に記録せよ。
 - **[Zero-Fallback]**: 統治設定読込失敗時はデフォルト値にフォールバックせず、即座に自己破壊（`process.exit(1)`）せよ。判断時は参照キー名を標準出力せよ。
 - **[Cognitive Gov]**: ティア比例型の思考ステップを義務付ける。理由なき再設計は制限される。
+- **[Sync Protocol]**: 全アプリはSupabaseをSSOTとし、共有データはRealtimeで常時同期せよ。ただし、編集中データを破壊しない「非破壊UI（通知・手動マージ）」と、圏外での操作不能を防ぐ「オフライン考慮（楽観的UI等）」をセットで実装することを物理的義務とする。

@@ -8,3 +8,5 @@
 | 2026-02-10 | 0.2.0   | Initial SDR Schema | Core tables (event_logs, masters) |
 | 2026-02-10 | 0.2.0   | Initial SDR Schema | Core tables (event_logs, masters) |
 
+| 2026-06-14 | 0006_job_actuals | Add proto_job_actuals table for separation of Plan and Actual | ADR 001 compliance |
+| 2026-07-06 | 20260706000000 | Grand Redesign (Hybrid Dispatch) | ADR-0013 compliance (Destructive rebuild) |

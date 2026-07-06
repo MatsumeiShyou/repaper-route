@@ -992,7 +992,7 @@ function PointAccessSection({ pointId }: { pointId: string }) {
             setDrivers((data || []).map((d: any) => ({ id: d.id, name: d.name || d.id })))
         );
         // 車両一覧
-        supabase.from('vehicles').select('id, number, callsign').then(({ data }) =>
+        supabase.from('master_vehicles').select('id, number, callsign').then(({ data }) =>
             setVehicles(data || [])
         );
     }, [isOpen, pointId]);

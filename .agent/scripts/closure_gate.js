@@ -202,6 +202,20 @@ function verifySSOTScanMandate() {
     Log.success('SSOT Scan Confirmed.');
 }
 
+function verifyCharsetIntegrity() {
+    Log.info('Executing Charset Integrity Check (Sentinel 5.7)...');
+    try {
+        runCommand('node .agent/scripts/guardian_charset.js');
+        Log.success('Charset Integrity (BOM-less UTF-8) Verified.');
+    } catch (e) {
+        Log.error('CHARSET INTEGRITY VIOLATION DETECTED');
+        console.error('   ❌ 文字化け（Shift-JIS等の混入）または BOM が検出されました。');
+        console.error('   → 原因: PowerShellの `cat` `echo` 等による書き込み、またはAIによるエンコーディング推測ミス。');
+        console.error('   → 修正: 該当ファイルを純粋な UTF-8（BOMなし）で保存し直してください。');
+        process.exit(1);
+    }
+}
+
 function main() {
     process.on('exit', () => { if (!completionFlag) incrementRetryCount('Aborted'); });
 
@@ -217,6 +231,7 @@ function main() {
         verifyClosureStandard();
         verifyUIQuality();
         checkExpiredDebt();
+        verifyCharsetIntegrity();
     } catch (err) {
         clearSeal();
         Log.error('GOVERNANCE CHECK FAILED');

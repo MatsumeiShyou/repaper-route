@@ -22,5 +22,7 @@
   "Cognitive Gov": "Cognitive Governance。AIの思考回数や再設計を制限し、トークンの浪費と暴走を防ぐため。",
   "AMP": "Asset Modification Proposal（資産変更申請）。重要な変更前に承認を求めるプロトコル。",
   "GSEAL": "Gate Seal。すべてのチェックを通過した際に発行される物理的な完了証明ハッシュ。",
-  "CAVR": "Cause-and-effect Validation Route。変更の種類（UIかロジックか）に応じた適切な検証ルート。"
+  "CAVR": "Cause-and-effect Validation Route。変更の種類（UIかロジックか）に応じた適切な検証ルート。",
+  "Design Compliance": "過去の設計決定（ADR）を無視した独自実装によるアーキテクチャの破壊を防ぎ、一貫したシステム設計を強制するため。",
+  "Sync Protocol": "複数アプリ間でのデータ競合を防ぎつつ、現場（オフラインや入力中）の作業を妨害しない堅牢な同期体験を保証するため。"
 }

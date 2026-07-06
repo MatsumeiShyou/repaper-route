@@ -5,23 +5,22 @@
 * **Decider**: [AI Agent | User]
 
 ## Context and Problem Statement
-[Describe the situation and the problem you are solving.]
+[状況と解決すべき課題を記述]
 
 ## Decision Drivers
-* [Driver 1]
-* [Driver 2]
+* [判断の要因 1]
+* [判断の要因 2]
 
 ## Considered Options
-1. [Option 1]
-2. [Option 2]
+1. [選択肢 1]
+2. [選択肢 2]
 
 ## Decision Outcome
-Chosen option: "[Option X]", because [Justification].
+Chosen option: "[Option X]", because [選んだ理由・正当性].
 
 ### Consequences
-* **Positive**: [Benefit 1]
-* **Negative**: [Liability 1]
+* **Positive**: [メリット]
+* **Negative**: [デメリット・負債]
 
 ## Validation Plan
 * [How will we verify this decision stays effective?]
-

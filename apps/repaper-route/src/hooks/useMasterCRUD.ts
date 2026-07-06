@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase/client';
 import { nativeSupabaseFetch } from '../lib/supabase/nativeFetch';
 
 import { MasterSchema } from '../config/masterSchema';
-import { invalidateMasterCache } from '../features/board/hooks/useMasterData';
+const invalidateMasterCache = () => {};
 import { serializeMasterData } from '../utils/serialization';
 
 /**
