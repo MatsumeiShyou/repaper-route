@@ -10,7 +10,12 @@ export interface SortConfig {
  * 汎用ソート関数 (Universal Sort)
  * 数値、文字列（日本語）、真偽値を柔軟に扱う
  */
-export const universalSort = (a: any, b: any, key: string, direction: 'asc' | 'desc') => {
+export const universalSort = (
+    a: Record<string, unknown>, 
+    b: Record<string, unknown>, 
+    key: string, 
+    direction: 'asc' | 'desc'
+) => {
     const valA = a[key];
     const valB = b[key];
 
@@ -42,7 +47,7 @@ export const universalSort = (a: any, b: any, key: string, direction: 'asc' | 'd
 /**
  * 簡易的な日付妥当性チェック
  */
-function isValidDate(val: any): boolean {
+function isValidDate(val: unknown): val is string {
     if (typeof val !== 'string') return false;
     // ISO 8601 形式などの基本的なチェック
     const date = new Date(val);

@@ -3,12 +3,12 @@ import { MasterField } from '../types/master';
 /**
  * マスタデータの保存用形式への変換
  */
-export function serializeMasterData<T extends Record<string, any>>(
+export function serializeMasterData<T extends Record<string, unknown>>(
     formData: Partial<T>,
     fields: MasterField[],
     _rpcTableName: string
-): any {
-    const serialized: any = {};
+): Record<string, unknown> {
+    const serialized: Record<string, unknown> = {};
 
     fields.forEach(field => {
         const value = formData[field.name as keyof T];
@@ -68,7 +68,7 @@ export function serializeMasterData<T extends Record<string, any>>(
  * DB形式: { mon: true, tue: false, ... }
  * UI形式: ["Mon", "Tue", ...]
  */
-export function normalizeDays(days: any): string[] {
+export function normalizeDays(days: unknown): string[] {
     if (!days) return [];
 
     // DBからのオブジェクト形式 ({ mon: true, ... }) を配列形式に変換
@@ -78,16 +78,17 @@ export function normalizeDays(days: any): string[] {
             hol: 'Hol', oth: 'Oth'
         };
         const activeDays: string[] = [];
+        const daysObj = days as Record<string, unknown>;
 
         // 固定曜日
         Object.entries(dayMap).forEach(([dbKey, uiKey]) => {
-            if ((days as any)[dbKey] === true) {
+            if (daysObj[dbKey] === true) {
                 activeDays.push(uiKey);
             }
         });
 
         // 第N曜日 (Mon1, Mon2 等)
-        Object.entries(days).forEach(([key, value]) => {
+        Object.entries(daysObj).forEach(([key, value]) => {
             if (value === true && /^[a-z]{3}[1-5]$/.test(key)) {
                 // キーの頭文字を大文字にする (mon1 -> Mon1)
                 const uiKey = key.charAt(0).toUpperCase() + key.slice(1);
@@ -115,10 +116,10 @@ export function cleansePurgedFields<T>(data: T): T {
     ];
 
     if (Array.isArray(data)) {
-        return data.map(item => cleansePurgedFields(item)) as any;
+        return data.map(item => cleansePurgedFields(item)) as unknown as T;
     }
 
-    const cleansed = { ...data } as any;
+    const cleansed = { ...data } as Record<string, unknown>;
     Object.keys(cleansed).forEach(key => {
         if (purgedKeys.includes(key)) {
             delete cleansed[key];
@@ -127,5 +128,5 @@ export function cleansePurgedFields<T>(data: T): T {
         }
     });
 
-    return cleansed;
+    return cleansed as unknown as T;
 }

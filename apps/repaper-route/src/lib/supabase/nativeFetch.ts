@@ -2,11 +2,11 @@ import { supabase } from './client';
 
 export type NativeFetchMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
-export async function nativeSupabaseFetch<T = any>(
+export async function nativeSupabaseFetch<T = unknown>(
     table: string, 
     queryParams: string = 'select=*', 
     method: NativeFetchMethod = 'GET',
-    body?: any
+    body?: unknown
 ) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -81,8 +81,9 @@ export async function nativeSupabaseFetch<T = any>(
         const data = await res.json();
         console.log(`[nativeSupabaseFetch] <<< SUCCESS: ${table} Received ${Array.isArray(data) ? data.length : 'Object/Result'}`);
         return { data: data as T, error: null };
-    } catch (fetchErr: any) {
+    } catch (fetchErr: unknown) {
         console.error(`[nativeSupabaseFetch] <<< NETWORK ERROR on ${table}:`, fetchErr);
-        return { data: null, error: { message: fetchErr.message, status: 0 } };
+        const errorMessage = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+        return { data: null, error: { message: errorMessage, status: 0 } };
     }
 }

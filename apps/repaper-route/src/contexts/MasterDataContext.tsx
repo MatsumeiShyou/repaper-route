@@ -32,11 +32,11 @@ export const MasterDataProvider: React.FC<{ children: ReactNode }> = ({ children
         try {
             // supabase.from のデッドロックを避けるため、全て nativeSupabaseFetch で並列取得する
             const [dRes, vRes, cRes, iRes, cidRes] = await Promise.all([
-                nativeSupabaseFetch('drivers', 'select=*&order=display_order.asc'),
-                nativeSupabaseFetch('vehicles', 'select=*&order=id.asc'),
-                nativeSupabaseFetch('master_collection_points', 'select=*&order=id.asc'),
-                nativeSupabaseFetch('master_items', 'select=*&order=display_order.asc'),
-                nativeSupabaseFetch('customer_item_defaults', 'select=*')
+                nativeSupabaseFetch<any[]>('drivers', 'select=*&order=display_order.asc'),
+                nativeSupabaseFetch<MasterVehicle[]>('vehicles', 'select=*&order=id.asc'),
+                nativeSupabaseFetch<MasterCustomer[]>('master_collection_points', 'select=*&order=id.asc'),
+                nativeSupabaseFetch<MasterItem[]>('master_items', 'select=*&order=display_order.asc'),
+                nativeSupabaseFetch<CustomerItemDefault[]>('customer_item_defaults', 'select=*')
             ]);
 
             const processedDrivers = (dRes.data || []).map((driver: any) => ({

@@ -174,7 +174,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         if (schema.viewName !== schema.rpcTableName) {
             try {
                 setIsDeepFetching(true);
-                const { data: results, error: fetchErr } = await nativeSupabaseFetch(
+                const { data: results, error: fetchErr } = await nativeSupabaseFetch<any[]>(
                     schema.rpcTableName as string,
                     `select=*&${schema.primaryKey}=eq.${item[schema.primaryKey]}`
                 );

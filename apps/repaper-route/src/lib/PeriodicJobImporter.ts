@@ -14,7 +14,7 @@ export const PeriodicJobImporter = {
      * @returns 該当するマスタ案件の配列
      */
     fetchPointsByDate: async (date: Date): Promise<MasterPoint[]> => {
-        const { data, error } = await nativeSupabaseFetch(
+        const { data, error } = await nativeSupabaseFetch<MasterPoint[]>(
             'master_collection_points', 
             'select=*&is_active=eq.true&order=display_name.asc'
         );
@@ -35,7 +35,7 @@ export const PeriodicJobImporter = {
 
         return (data || []).filter((p: MasterPoint) => {
             // 1. Day of Week Check (Handle both Object and Array structures)
-            const collectionDays = p.collection_days as any;
+            const collectionDays = p.collection_days as unknown;
             if (!collectionDays) return false; // [Fix] collection_days が null の場合は除外
 
             let isDayMatch = false;
@@ -45,9 +45,10 @@ export const PeriodicJobImporter = {
                 isDayMatch = collectionDays.some(d => 
                     typeof d === 'string' && d.toLowerCase().startsWith(dayKey)
                 );
-            } else if (typeof collectionDays === 'object') {
+            } else if (typeof collectionDays === 'object' && collectionDays !== null) {
                 // Handle Object case: { mon: true, tue: false }
-                isDayMatch = !!collectionDays[dayKey];
+                const daysObj = collectionDays as Record<string, unknown>;
+                isDayMatch = !!daysObj[dayKey];
             }
 
             if (!isDayMatch) return false;
