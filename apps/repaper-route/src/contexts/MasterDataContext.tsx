@@ -3,7 +3,7 @@ import { nativeSupabaseFetch } from '../lib/supabase/nativeFetch';
 import { MasterVehicle, MasterCustomer, MasterItem, CustomerItemDefault } from '../types';
 
 interface MasterData {
-    drivers: any[];
+    drivers: unknown[];
     vehicles: MasterVehicle[];
     customers: MasterCustomer[];
     items: MasterItem[];
@@ -32,17 +32,17 @@ export const MasterDataProvider: React.FC<{ children: ReactNode }> = ({ children
         try {
             // supabase.from のデッドロックを避けるため、全て nativeSupabaseFetch で並列取得する
             const [dRes, vRes, cRes, iRes, cidRes] = await Promise.all([
-                nativeSupabaseFetch<any[]>('drivers', 'select=*&order=display_order.asc'),
+                nativeSupabaseFetch<Record<string, unknown>[]>('drivers', 'select=*&order=display_order.asc'),
                 nativeSupabaseFetch<MasterVehicle[]>('vehicles', 'select=*&order=id.asc'),
                 nativeSupabaseFetch<MasterCustomer[]>('master_collection_points', 'select=*&order=id.asc'),
                 nativeSupabaseFetch<MasterItem[]>('master_items', 'select=*&order=display_order.asc'),
                 nativeSupabaseFetch<CustomerItemDefault[]>('customer_item_defaults', 'select=*')
             ]);
 
-            const processedDrivers = (dRes.data || []).map((driver: any) => ({
+            const processedDrivers = (Array.isArray(dRes.data) ? dRes.data : []).map((driver: Record<string, unknown>) => ({
                 ...driver,
-                defaultCourse: driver.default_course || driver.defaultCourse,
-                defaultVehicle: driver.default_vehicle || driver.defaultVehicle
+                defaultCourse: (driver.default_course || driver.defaultCourse) as string | undefined,
+                defaultVehicle: (driver.default_vehicle || driver.defaultVehicle) as string | undefined
             }));
 
             setData({

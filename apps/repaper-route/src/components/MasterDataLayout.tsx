@@ -176,7 +176,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                 setIsDeepFetching(true);
                 const { data: results, error: fetchErr } = await nativeSupabaseFetch<any[]>(
                     schema.rpcTableName as string,
-                    `select=*&${schema.primaryKey}=eq.${item[schema.primaryKey]}`
+                    `select=*&${schema.primaryKey}=eq.${encodeURIComponent(item[schema.primaryKey])}`
                 );
                 
                 const detail = results?.[0];
@@ -659,7 +659,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
 
 
     // 品目マスタのデータを取得するためのフック（タグ選択用）
-    const { data: allItems } = useMasterCRUD(MASTER_SCHEMAS.items);
+    const { data: allItems } = useMasterCRUD<Record<string, any>>(MASTER_SCHEMAS.items);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -984,7 +984,7 @@ function PointAccessSection({ pointId }: { pointId: string }) {
         if (!isOpen) return;
         // 入場制限一覧の取得
         supabase.from('point_access_permissions')
-            .select('*, profile:staffs(id, name), vehicle:vehicles(id, callsign, number)')
+            .select('*')
             .eq('point_id', pointId).eq('is_active', true)
             .then(({ data }) => setPermissions(data || []));
         // スタッフ（旧ドライバー）一覧
@@ -1007,7 +1007,7 @@ function PointAccessSection({ pointId }: { pointId: string }) {
         setNewDriverId(''); setNewVehicleId('');
         // 再取得
         const { data } = await (supabase.from('point_access_permissions') as any)
-            .select('*, profile:staffs(id, name), vehicle:vehicles(id, callsign, number)')
+            .select('*')
             .eq('point_id', pointId).eq('is_active', true);
         setPermissions(data || []);
         setSaving(false);
@@ -1053,8 +1053,10 @@ function PointAccessSection({ pointId }: { pointId: string }) {
                     {permissions.length > 0 && (
                         <div className="space-y-2">
                             {permissions.map((p: any) => {
-                                const staffName = p.profile?.name || p.driver_id;
-                                const vehicleLabel = p.vehicle ? `${p.vehicle.number}（${p.vehicle.callsign || ''}）` : p.vehicle_id;
+                                const staff = drivers.find(d => d.id === p.driver_id);
+                                const vehicle = vehicles.find(v => v.id === p.vehicle_id);
+                                const staffName = staff?.name || p.driver_id;
+                                const vehicleLabel = vehicle ? `${vehicle.number}（${vehicle.callsign || ''}）` : p.vehicle_id;
                                 return (
                                     <div key={p.id} className="flex items-center justify-between gap-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg">
                                         <div className="text-sm">

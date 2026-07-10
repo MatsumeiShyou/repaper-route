@@ -23,8 +23,8 @@ The architecture relies on the following layers:
 ## Milestones
 | # | Name | Scope | Dependencies | Status | Conversation ID |
 |---|------|-------|-------------|--------|-----------------|
-| 1 | Lib & Utils Refactoring | Refactor 14 `any` types in `src/lib` and `src/utils` | none | PLANNED | |
-| 2 | OS, Contexts & Hooks Refactoring | Refactor 10 `any` types in `src/os`, `src/contexts`, and `src/hooks` | Milestone 1 | PLANNED | |
+| 1 | Lib & Utils Refactoring | Refactor 14 `any` types in `src/lib` and `src/utils` | none | IN_PROGRESS | 75e8eb4b-c362-4f2c-8faf-b0f7ff90d186 |
+| 2 | OS, Contexts & Hooks Refactoring | Refactor 10 `any` types in `src/os`, `src/contexts`, and `src/hooks` | Milestone 1 | IN_PROGRESS | |
 | 3 | Components Refactoring | Refactor 21 `any` types in `src/components/MasterDataLayout.tsx` | Milestone 2 | PLANNED | |
 | 4 | Features Refactoring | Refactor 2 `any` types in `src/features/board/hooks/useDataSync.ts` | Milestone 3 | PLANNED | |
 | 5 | E2E & Final Verification | Run E2E tests, ensure full build succeeds, verify no regressions | Milestone 4, E2E | PLANNED | |

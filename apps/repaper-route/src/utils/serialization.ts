@@ -16,12 +16,12 @@ export function serializeMasterData<T extends Record<string, unknown>>(
 
         // 型に応じた変換
         if (field.type === 'number') {
-            serialized[field.name] = value === '' ? null : Number(value);
+            serialized[field.name] = (value === '' || value === null) ? null : Number(value);
         } else if (value === '') {
             // 空文字はそのまま送り、DB側のデフォルト値やRPC内部の正規化ロジックに委ねる
             serialized[field.name] = '';
         } else if (field.type === 'switch' || field.type === 'boolean') {
-            serialized[field.name] = !!value;
+            serialized[field.name] = value === 'false' ? false : (value === 'true' ? true : !!value);
         } else if (field.type === 'days' || Array.isArray(value)) {
             // UI形式: ["Mon", "Wed"]
             // DB形式: { mon: true, tue: false, wed: true, ... }
@@ -89,7 +89,7 @@ export function normalizeDays(days: unknown): string[] {
 
         // 第N曜日 (Mon1, Mon2 等)
         Object.entries(daysObj).forEach(([key, value]) => {
-            if (value === true && /^[a-z]{3}[1-5]$/.test(key)) {
+            if (value === true && /^[a-z]{3}[1-5]$/i.test(key)) {
                 // キーの頭文字を大文字にする (mon1 -> Mon1)
                 const uiKey = key.charAt(0).toUpperCase() + key.slice(1);
                 activeDays.push(uiKey);
@@ -107,8 +107,14 @@ export function normalizeDays(days: unknown): string[] {
  * 送信前のデータから廃止された不純物フィールド（is_spot等）を再帰的に全削除する
  * [Ref: Sanctuary Governance Constitution Section B-4 F-SSOT]
  */
-export function cleansePurgedFields<T>(data: T): T {
+export function cleansePurgedFields<T>(data: T, visited = new WeakSet()): T {
     if (!data || typeof data !== 'object') return data;
+    if (data instanceof Date || data instanceof RegExp || data instanceof Map || data instanceof Set) return data;
+
+    if (visited.has(data)) {
+        return data;
+    }
+    visited.add(data);
 
     const purgedKeys = [
         'is_spot', 'is_spot_only', 'special_type', 
@@ -116,7 +122,7 @@ export function cleansePurgedFields<T>(data: T): T {
     ];
 
     if (Array.isArray(data)) {
-        return data.map(item => cleansePurgedFields(item)) as unknown as T;
+        return data.map(item => cleansePurgedFields(item, visited)) as unknown as T;
     }
 
     const cleansed = { ...data } as Record<string, unknown>;
@@ -124,7 +130,7 @@ export function cleansePurgedFields<T>(data: T): T {
         if (purgedKeys.includes(key)) {
             delete cleansed[key];
         } else if (typeof cleansed[key] === 'object') {
-            cleansed[key] = cleansePurgedFields(cleansed[key]);
+            cleansed[key] = cleansePurgedFields(cleansed[key], visited);
         }
     });
 

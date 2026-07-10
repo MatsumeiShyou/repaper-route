@@ -73,4 +73,42 @@ describe('universalSort', () => {
         expect(desc[2].val == null).toBe(true);
         expect(desc[3].val == null).toBe(true);
     });
+
+    it('should sort null/undefined elements to the end', () => {
+        const list = [
+            { val: 10 },
+            null,
+            { val: 2 },
+            undefined
+        ];
+        const asc = [...list].sort((a, b) => universalSort(a, b, 'val', 'asc'));
+        expect(asc[0]?.val).toBe(2);
+        expect(asc[1]?.val).toBe(10);
+        expect(asc[2]).toBeNull();
+        expect(asc[3]).toBeUndefined();
+    });
+
+    it('should handle NaN elements stably by sorting them to the end', () => {
+        const list = [
+            { val: 10 },
+            { val: NaN },
+            { val: 2 }
+        ];
+        const asc = [...list].sort((a, b) => universalSort(a, b, 'val', 'asc'));
+        expect(asc[0].val).toBe(2);
+        expect(asc[1].val).toBe(10);
+        expect(isNaN(asc[2].val as number)).toBe(true);
+    });
+
+    it('should sort Date objects correctly', () => {
+        const list = [
+            { date: new Date('2026-07-10') },
+            { date: new Date('2026-07-08') },
+            { date: new Date('2026-07-09') }
+        ];
+        const asc = [...list].sort((a, b) => universalSort(a, b, 'date', 'asc'));
+        expect(asc[0].date.getTime()).toBe(new Date('2026-07-08').getTime());
+        expect(asc[1].date.getTime()).toBe(new Date('2026-07-09').getTime());
+        expect(asc[2].date.getTime()).toBe(new Date('2026-07-10').getTime());
+    });
 });

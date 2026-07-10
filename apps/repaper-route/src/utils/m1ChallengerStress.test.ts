@@ -24,12 +24,10 @@ describe('Milestone 1 - Challenger Stress Tests', () => {
             expect(asc[4]).toEqual({});
         });
 
-        it('should throw TypeError if the sorted objects themselves are null/undefined', () => {
-            // Documenting behavior: passing null/undefined as elements inside the list is a critical risk
-            // if universalSort doesn't check for them first.
-            expect(() => {
-                universalSort(null as any, { val: 1 }, 'val', 'asc');
-            }).toThrow(TypeError);
+        it('should handle null/undefined sorted objects without throwing TypeError', () => {
+            // Checked that universalSort handles null/undefined elements safely
+            expect(universalSort(null as any, { val: 1 }, 'val', 'asc')).toBe(1);
+            expect(universalSort({ val: 1 }, null as any, 'val', 'asc')).toBe(-1);
         });
 
         it('should compare mixed types safely using localeCompare string fallback', () => {
@@ -86,7 +84,7 @@ describe('Milestone 1 - Challenger Stress Tests', () => {
     });
 
     describe('serializeMasterData Adversarial Conditions', () => {
-        it('should convert null value to 0 for number fields (potential vulnerability)', () => {
+        it('should convert null value to null for number fields', () => {
             const fields: MasterField[] = [
                 { name: 'num_val', label: 'Num', type: 'number' }
             ];
@@ -96,8 +94,7 @@ describe('Milestone 1 - Challenger Stress Tests', () => {
             };
 
             const result = serializeMasterData(formData, fields, 'test');
-            // Since Number(null) is 0, serializeMasterData serializes null as 0!
-            expect(result.num_val).toBe(0);
+            expect(result.num_val).toBeNull();
         });
 
         it('should convert "abc" to NaN for number fields', () => {
@@ -111,13 +108,13 @@ describe('Milestone 1 - Challenger Stress Tests', () => {
             expect(result.num_val).toBeNaN();
         });
 
-        it('should serialize switch/boolean fields using double-negation', () => {
+        it('should serialize switch/boolean fields parsing from string representation', () => {
             const fields: MasterField[] = [
                 { name: 'active', label: 'Active', type: 'switch' }
             ];
 
-            // String "false" is truthy in JS, so !!"false" is true.
-            expect(serializeMasterData({ active: 'false' }, fields, 'test').active).toBe(true);
+            expect(serializeMasterData({ active: 'false' }, fields, 'test').active).toBe(false);
+            expect(serializeMasterData({ active: 'true' }, fields, 'test').active).toBe(true);
             expect(serializeMasterData({ active: 0 }, fields, 'test').active).toBe(false);
             expect(serializeMasterData({ active: null }, fields, 'test').active).toBe(false);
         });
@@ -177,28 +174,24 @@ describe('Milestone 1 - Challenger Stress Tests', () => {
             expect(cleansePurgedFields(123)).toBe(123);
         });
 
-        it('should destroy Date, RegExp, Map, and Set objects (major vulnerability)', () => {
+        it('should preserve Date, RegExp, Map, and Set objects instead of destroying them', () => {
             const date = new Date('2026-07-10');
             const regex = /abc/;
             const map = new Map();
             const set = new Set();
 
-            // Because these are typeof 'object' and not arrays,
-            // cleansePurgedFields attempts to clone them using { ...data },
-            // which strips all properties and methods from these built-in types.
-            expect(cleansePurgedFields(date)).toEqual({});
-            expect(cleansePurgedFields(regex)).toEqual({});
-            expect(cleansePurgedFields(map)).toEqual({});
-            expect(cleansePurgedFields(set)).toEqual({});
+            expect(cleansePurgedFields(date)).toBe(date);
+            expect(cleansePurgedFields(regex)).toBe(regex);
+            expect(cleansePurgedFields(map)).toBe(map);
+            expect(cleansePurgedFields(set)).toBe(set);
         });
 
-        it('should throw RangeError on cyclic references (denial of service risk)', () => {
+        it('should handle cyclic references without throwing RangeError', () => {
             const obj: any = {};
             obj.self = obj;
 
-            expect(() => {
-                cleansePurgedFields(obj);
-            }).toThrow(RangeError);
+            const result = cleansePurgedFields(obj);
+            expect(result.self).toBe(obj);
         });
     });
 });

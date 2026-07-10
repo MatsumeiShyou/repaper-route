@@ -18,7 +18,7 @@ export default defineConfig({
     projects: [
         {
             name: 'vlm',
-            testDir: './tests/vlm',
+            testDir: './apps/repaper-route/tests/vlm',
             use: {
                 ...devices['Desktop Chrome'],
                 baseURL: 'http://localhost:5173',
@@ -27,7 +27,7 @@ export default defineConfig({
         },
         {
             name: 'e2e-smoke',
-            testDir: './tests/e2e',
+            testDir: './apps/repaper-route/tests/e2e',
             use: {
                 ...devices['Desktop Chrome'],
                 baseURL: process.env.STAGING_URL || 'https://repaper-route.pages.dev',

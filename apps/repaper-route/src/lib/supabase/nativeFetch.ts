@@ -15,7 +15,20 @@ export async function nativeSupabaseFetch<T = unknown>(
     // キー形式: sb-[project-id]-auth-token
     let token = '';
     try {
-        const storageKeys = Object.keys(localStorage);
+        let storageKeys: string[] = [];
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k !== null) {
+                    storageKeys.push(k);
+                }
+            }
+        } catch (e) {
+            // iteration failed
+        }
+        if (storageKeys.length === 0) {
+            storageKeys = Object.keys(localStorage);
+        }
         const authKey = storageKeys.find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
         if (authKey) {
             const raw = localStorage.getItem(authKey);

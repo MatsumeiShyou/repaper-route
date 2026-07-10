@@ -11,11 +11,16 @@ export interface SortConfig {
  * 数値、文字列（日本語）、真偽値を柔軟に扱う
  */
 export const universalSort = (
-    a: Record<string, unknown>, 
-    b: Record<string, unknown>, 
+    a: Record<string, unknown> | null | undefined, 
+    b: Record<string, unknown> | null | undefined, 
     key: string, 
     direction: 'asc' | 'desc'
 ) => {
+    // 要素自体の null/undefined チェック
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+
     const valA = a[key];
     const valB = b[key];
 
@@ -24,6 +29,13 @@ export const universalSort = (
     // 片方が null/undefined の場合は、昇順・降順に関わらず常に末尾に表示する（利便性のため）
     if (valA == null) return 1;
     if (valB == null) return -1;
+
+    // NaN 要素の安定ハンドリング（末尾にソート）
+    const isANaN = typeof valA === 'number' && isNaN(valA);
+    const isBNaN = typeof valB === 'number' && isNaN(valB);
+    if (isANaN && isBNaN) return 0;
+    if (isANaN) return 1;
+    if (isBNaN) return -1;
 
     let comparison = 0;
 
@@ -47,7 +59,8 @@ export const universalSort = (
 /**
  * 簡易的な日付妥当性チェック
  */
-function isValidDate(val: unknown): val is string {
+function isValidDate(val: unknown): val is string | Date {
+    if (val instanceof Date) return !isNaN(val.getTime());
     if (typeof val !== 'string') return false;
     // ISO 8601 形式などの基本的なチェック
     const date = new Date(val);

@@ -79,26 +79,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             
             setStaff(s);
             setStatus(s ? 'AUTHENTICATED' : 'UNAUTHENTICATED');
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[AuthProvider] Auth resolution failed:', err);
             setStaff(null);
             
-            const isAbort = err?.name === 'AbortError' || err?.message?.includes('aborted');
-            const isTimeout = err?.message === 'TIMEOUT_DB_FETCH' || err?.message?.includes('TIMEOUT');
-            const isNotFound = err?.name === 'StaffNotFoundError' || err?.code === 'FORBIDDEN';
+            const errorObj = err instanceof Error ? err : new Error(String(err));
+            const errName = errorObj.name;
+            const errMessage = errorObj.message;
+            const errCode = (err && typeof err === 'object' && 'code' in err) ? (err as Record<string, unknown>).code : undefined;
+            
+            const isAbort = errName === 'AbortError' || errMessage.includes('aborted');
+            const isTimeout = errMessage === 'TIMEOUT_DB_FETCH' || errMessage.includes('TIMEOUT');
+            const isNotFound = errName === 'StaffNotFoundError' || errCode === 'FORBIDDEN';
 
             if (isTimeout) {
                 console.error('[AuthProvider] CRITICAL: DB Fetch Timeout. Forcing radical logout.');
-                setDebugError(`TIMEOUT: ${err.message}`);
+                setDebugError(`TIMEOUT: ${errMessage}`);
                 setStatus('UNAUTHENTICATED');
                 supabase.auth.signOut().finally(() => authAdapter.clearCache());
             } else if (isAbort) {
                 setStatus('UNAUTHENTICATED');
             } else if (isNotFound) {
-                setDebugError(`NOT FOUND: ${err.message}`);
+                setDebugError(`NOT FOUND: ${errMessage}`);
                 setStatus('NOT_REGISTERED');
             } else {
-                setDebugError(`ERROR: ${err.message || String(err)}`);
+                setDebugError(`ERROR: ${errMessage}`);
                 setStatus('UNAUTHENTICATED');
             }
         } finally {

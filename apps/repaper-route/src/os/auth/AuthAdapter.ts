@@ -131,7 +131,7 @@ export class AuthAdapter {
           return { data: null, error: err };
       });
         
-      const timeoutPromise = new Promise<any>((_, reject) => {
+      const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('TIMEOUT_DB_FETCH')), 15000);
       });
       

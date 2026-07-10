@@ -42,13 +42,15 @@ export const PeriodicJobImporter = {
 
             if (Array.isArray(collectionDays)) {
                 // Handle Array case: ["Mon", "Tue"] or ["mon", "tue"]
-                isDayMatch = collectionDays.some(d => 
-                    typeof d === 'string' && d.toLowerCase().startsWith(dayKey)
-                );
+                isDayMatch = collectionDays.some(d => {
+                    if (typeof d !== 'string') return false;
+                    const lower = d.toLowerCase();
+                    return lower === dayKey || lower === `${dayKey}${nth}`;
+                });
             } else if (typeof collectionDays === 'object' && collectionDays !== null) {
                 // Handle Object case: { mon: true, tue: false }
                 const daysObj = collectionDays as Record<string, unknown>;
-                isDayMatch = !!daysObj[dayKey];
+                isDayMatch = !!daysObj[dayKey] || !!daysObj[`${dayKey}${nth}`];
             }
 
             if (!isDayMatch) return false;

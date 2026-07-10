@@ -1,4 +1,4 @@
-# BRIEFING — 2026-07-10T08:35:00+09:00
+# BRIEFING — 2026-07-10T08:45:00+09:00
 
 ## Mission
 Review the code changes implemented by worker_m1_implementation for Milestone 1 (Lib & Utils Refactoring), verifying correctness, type safety, robustness, compliance with AGENTS.md, and test outcomes.
@@ -20,7 +20,7 @@ Review the code changes implemented by worker_m1_implementation for Milestone 1 
 
 ## Current Parent
 - Conversation ID: 2f164ee6-1a6a-4582-8dd4-03480cd60cc9 / 2c3de8cf-2fa3-4e4a-9289-859c4412f858
-- Updated: 2026-07-10T08:35:00+09:00
+- Updated: 2026-07-10T08:45:00+09:00
 
 ## Review Scope
 - **Files to review**:
@@ -34,17 +34,23 @@ Review the code changes implemented by worker_m1_implementation for Milestone 1 
 - **Review criteria**: correctness, type safety, robustness, compliance with AGENTS.md, test passing.
 
 ## Review Checklist
-- **Items reviewed**: None yet
-- **Verdict**: PENDING
-- **Unverified claims**: Implementation code is functional and correct.
+- **Items reviewed**: All 6 files specified in the review scope.
+- **Verdict**: REQUEST_CHANGES
+- **Unverified claims**: Database schema compliance is unverified at runtime (only verified using static analysis and mocks).
 
 ## Attack Surface
-- **Hypotheses tested**: None yet
-- **Vulnerabilities found**: None yet
-- **Untested angles**: Code logic, edge cases, error handling, performance.
+- **Hypotheses tested**:
+  - Day Key matching in PeriodicJobImporter for Nth week day pattern (mon1). (Result: FAILED - object format ignores it, array format matches it incorrectly on all weeks)
+  - Non-plain objects (Date, RegExp) passed to cleansePurgedFields. (Result: FAILED - gets destroyed to empty objects `{}`)
+  - Direct localstorage token refresh bypass. (Result: MEDIUM RISK - can cause 401 on expired tokens)
+- **Vulnerabilities found**: 2 Major logic correctness and robustness issues.
+- **Untested angles**: Runtime PWA synchronizations and full CRUD end-to-end integration.
 
 ## Key Decisions Made
-- Initiated review task.
+- Performed complete review.
+- Issued REQUEST_CHANGES verdict due to the discovered correctness issues.
+- Prepared `review_report.md` and `handoff.md`.
 
 ## Artifact Index
 - `C:\Users\shiyo\開発中APP\RePaper Route\.agents\worker_m1_reviewer_1\BRIEFING.md` — Working memory and task constraints.
+- `C:\Users\shiyo\開発中APP\RePaper Route\.agents\worker_m1_reviewer_1\review_report.md` — Code review report.

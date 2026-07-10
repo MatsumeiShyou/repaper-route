@@ -10,7 +10,7 @@ import { serializeMasterData } from '../utils/serialization';
  * 汎用マスタCRUDフック (TypeScript版)
  * SDR（State/Decision/Reason）プロトコルに基づくデータ更新を行う
  */
-export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchema) {
+export function useMasterCRUD<T extends Record<string, unknown>>(schema: MasterSchema) {
     const [data, setData] = useState<T[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
@@ -49,7 +49,7 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
             // 物理保存用のシリアライズ
             const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName as string);
 
-            const { error: err } = await (supabase as any)
+            const { error: err } = await (supabase as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string; details?: string; hint?: string; code?: string } | null }> })
                 .rpc('rpc_execute_master_update', {
                     p_table_name: schema.rpcTableName,
                     p_id: String(formData[schema.primaryKey as keyof T] || ''),
@@ -80,7 +80,7 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
 
             const serialized = serializeMasterData(updatableData, schema.fields, schema.rpcTableName as string);
 
-            const { error: err } = await (supabase as any)
+            const { error: err } = await (supabase as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string; details?: string; hint?: string; code?: string } | null }> })
                 .rpc('rpc_execute_master_update', {
                     p_table_name: schema.rpcTableName,
                     p_id: String(idValue),
@@ -101,7 +101,7 @@ export function useMasterCRUD<T extends Record<string, any>>(schema: MasterSchem
 
     const deleteItem = async (idValue: string | number) => {
         try {
-            const { error: err } = await (supabase as any)
+            const { error: err } = await (supabase as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string; details?: string; hint?: string; code?: string } | null }> })
                 .rpc('rpc_execute_master_update', {
                     p_table_name: schema.rpcTableName,
                     p_id: String(idValue),

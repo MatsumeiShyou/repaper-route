@@ -1,4 +1,4 @@
-# BRIEFING — 2026-07-10T08:32:30+09:00
+# BRIEFING — 2026-07-10T08:45:00+09:00
 
 ## Mission
 Independently review the code changes implemented by worker_m1_implementation for Milestone 1 (Lib & Utils Refactoring).
@@ -21,7 +21,7 @@ Independently review the code changes implemented by worker_m1_implementation fo
 
 ## Current Parent
 - Conversation ID: 2c3de8cf-2fa3-4e4a-9289-859c4412f858 (Subagent caller: 2f164ee6-1a6a-4582-8dd4-03480cd60cc9)
-- Updated: 2026-07-10T08:32:30+09:00
+- Updated: 2026-07-10T08:45:00+09:00
 
 ## Review Scope
 - **Files to review**:
@@ -35,18 +35,25 @@ Independently review the code changes implemented by worker_m1_implementation fo
 - **Review criteria**: Correctness, type safety, robustness, compliance with AGENTS.md
 
 ## Key Decisions Made
-- [TBD]
+- Issued a REQUEST_CHANGES verdict due to a critical runtime Postgrest join bug in `MasterDataLayout.tsx`'s `PointAccessSection`.
 
 ## Artifact Index
 - C:\Users\shiyo\開発中APP\RePaper Route\.agents\worker_m1_reviewer_2\ORIGINAL_REQUEST.md — Original request description
 - C:\Users\shiyo\開発中APP\RePaper Route\.agents\worker_m1_reviewer_2\progress.md — Liveness heartbeat progress log
+- C:\Users\shiyo\開発中APP\RePaper Route\.agents\worker_m1_reviewer_2\review_report.md — Detailed code review report
+- C:\Users\shiyo\開発中APP\RePaper Route\.agents\worker_m1_reviewer_2\challenge_report.md — Adversarial challenge report
 
 ## Review Checklist
-- **Items reviewed**: none
-- **Verdict**: pending
-- **Unverified claims**: none
+- **Items reviewed**: all 6 files in scope
+- **Verdict**: REQUEST_CHANGES
+- **Unverified claims**: Database-level foreign keys for `point_access_permissions` table (verified static schema in `types/supabase.ts`, showing no vehicle foreign key and profiles as driver target).
 
 ## Attack Surface
-- **Hypotheses tested**: none
-- **Vulnerabilities found**: none
-- **Untested angles**: all code paths in the six target files
+- **Hypotheses tested**: 
+  - Postgrest join syntax for view/table matching: FAILED (missing foreign keys)
+  - Date object cloning in cleansePurgedFields: FAILED (causes empty objects)
+  - Date object checking in sortUtils: FAILED (falls back to string compare)
+- **Vulnerabilities found**: 
+  - Postgrest join runtime failure
+  - Date object corruption during serialization
+- **Untested angles**: none

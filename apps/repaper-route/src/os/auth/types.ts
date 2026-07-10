@@ -5,7 +5,7 @@ export type StaffRow = {
   id: string;
   name: string;
   role: string | null;
-  allowed_apps: any; // jsonb
+  allowed_apps: unknown; // jsonb
   can_edit_board: boolean | null;
   device_mode: string | null;
   vehicle_info: string | null;
@@ -51,7 +51,7 @@ export interface StaffPermissions {
 export interface AuthError {
   code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NETWORK_ERROR' | 'UNKNOWN';
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 /** 認証基盤の基底エラー */

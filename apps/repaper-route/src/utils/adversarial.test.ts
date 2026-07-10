@@ -76,10 +76,9 @@ describe('Adversarial & Stress Tests', () => {
             expect(() => serializeMasterData({}, null as any, 'test_table')).toThrow();
         });
 
-        it('should convert null value of number field to 0 (potential regression/behavior observation)', () => {
+        it('should convert null value of number field to null', () => {
             const result = serializeMasterData({ id: null as any }, fields, 'test_table');
-            // Since null is not undefined, it goes to Number(null) which is 0!
-            expect(result.id).toBe(0);
+            expect(result.id).toBeNull();
         });
 
         it('should convert undefined value to nothing (skip field)', () => {
@@ -162,17 +161,17 @@ describe('Adversarial & Stress Tests', () => {
             expect(cleansePurgedFields(false)).toBe(false);
         });
 
-        it('should throw RangeError (Stack Overflow) on circular reference objects', () => {
+        it('should handle circular reference objects without throwing RangeError', () => {
             const circular: any = {};
             circular.self = circular;
-            expect(() => cleansePurgedFields(circular)).toThrow(RangeError);
+            const result = cleansePurgedFields(circular);
+            expect(result.self).toBe(circular);
         });
 
-        it('should corrupt Date and RegExp objects by converting them to empty plain objects (known behavior)', () => {
+        it('should preserve Date and RegExp objects instead of converting them to empty plain objects', () => {
             const date = new Date('2026-07-10');
             const result = cleansePurgedFields(date);
-            // Since Date is an object, cleansePurgedFields does { ...date } which results in empty object
-            expect(result).toEqual({});
+            expect(result).toBe(date);
         });
 
         it('should handle null properties inside nested objects correctly', () => {
