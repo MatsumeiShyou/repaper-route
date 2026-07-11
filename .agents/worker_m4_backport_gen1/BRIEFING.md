@@ -28,21 +28,26 @@ Backport hook changes for race-condition and data corruption protection, fix unu
 - **Code layout**: apps/repaper-route/src/
 
 ## Key Decisions Made
-- [TBD]
+- Added race-condition protection via `activeDateRef` check after each supabase fetch call in `useDataSync.ts`.
+- Mapped and wrapped `coursesData` in try-catch to discard corrupt database rows just like jobs.
+- Renamed and adapted the corrupt database payload test case to verify the new self-healing behavior in `useDataSync.test.tsx`.
+- Safely handled test case's intermediate mock resolvers so they do not crash when early-return race-condition protection gets triggered.
 
 ## Artifact Index
 - C:\Users\shiyo\開発中APP\RePaper Route\.agents\worker_m4_backport_gen1\progress.md — Progress tracking
 - C:\Users\shiyo\開発中APP\RePaper Route\.agents\worker_m4_backport_gen1\handoff.md — Final handoff report
 
 ## Change Tracker
-- **Files modified**: None yet
-- **Build status**: Untested
-- **Pending issues**: Implement changes and run type-checks
+- **Files modified**:
+  - `apps/repaper-route/src/features/board/hooks/useDataSync.ts` — Implemented race-condition activeDateRef checks and robust mappings.
+  - `apps/repaper-route/src/features/board/hooks/useDataSync.test.tsx` — Adjusted test case for self-healing and resolved unused variable warnings.
+- **Build status**: Pass
+- **Pending issues**: None
 
 ## Quality Status
-- **Build/test result**: Untested
-- **Lint status**: Untested
-- **Tests added/modified**: None yet
+- **Build/test result**: Pass (95 tests passed, 0 errors)
+- **Lint status**: Pass (0 errors, 82 warnings - all expected warnings in tests/mock code)
+- **Tests added/modified**: Adapted `should crash or fail to load data when corrupt database payload contains null elements in jobs`
 
 ## Loaded Skills
 - None

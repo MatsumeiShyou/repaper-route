@@ -4,10 +4,26 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { useDataSync } from './useDataSync';
 import { supabase } from '../../../lib/supabase/client';
 
+interface SupabaseQueryMock {
+    select: () => SupabaseQueryMock;
+    eq: (col: string, val: string) => SupabaseQueryMock;
+    order: () => SupabaseQueryMock;
+    then: (
+        onfulfilled: (value: { data: unknown[] | null; error: Record<string, unknown> | null }) => unknown
+    ) => Promise<unknown>;
+}
+
+type MockResponse = {
+    data: Record<string, unknown>[] | null;
+    error: Record<string, unknown> | null;
+};
+
+type MockResolver = (value: MockResponse) => void;
+
 // We dynamically control mock responses for each table query
-let mockCoursesResult: { data: any[] | null; error: any | null } = { data: [], error: null };
-let mockAssignmentsResult: { data: any[] | null; error: any | null } = { data: [], error: null };
-let mockJobsResult: { data: any[] | null; error: any | null } = { data: [], error: null };
+let mockCoursesResult: { data: Record<string, unknown>[] | null; error: Record<string, unknown> | null } = { data: [], error: null };
+let mockAssignmentsResult: { data: Record<string, unknown>[] | null; error: Record<string, unknown> | null } = { data: [], error: null };
+let mockJobsResult: { data: (Record<string, unknown> | null)[] | null; error: Record<string, unknown> | null } = { data: [], error: null };
 
 // Delay functions to simulate network latency
 let coursesDelayMs = 0;
@@ -33,12 +49,12 @@ describe('useDataSync Empirical Verification & Stress Tests', () => {
         jobsDelayMs = 0;
 
         vi.mocked(supabase.from).mockImplementation((tableName: string) => {
-            const query: any = {
+            const query: SupabaseQueryMock = {
                 select: vi.fn().mockReturnThis(),
                 eq: vi.fn().mockReturnThis(),
                 order: vi.fn().mockReturnThis(),
-                then: vi.fn().mockImplementation(async (onfulfilled: any) => {
-                    let result: any = { data: [], error: null };
+                then: vi.fn().mockImplementation(async (onfulfilled: (value: { data: unknown[] | null; error: Record<string, unknown> | null }) => unknown) => {
+                    let result: { data: unknown[] | null; error: Record<string, unknown> | null } = { data: [], error: null };
                     let delay = 0;
 
                     if (tableName === 'courses') {
@@ -53,13 +69,13 @@ describe('useDataSync Empirical Verification & Stress Tests', () => {
                     }
 
                     if (delay > 0) {
-                        await new Promise(resolve => setTimeout(resolve, delay));
+                        await new Promise<void>(resolve => setTimeout(resolve, delay));
                     }
 
                     return Promise.resolve(result).then(onfulfilled);
                 })
             };
-            return query;
+            return query as unknown as ReturnType<typeof supabase.from>;
         });
     });
 
@@ -122,47 +138,47 @@ describe('useDataSync Empirical Verification & Stress Tests', () => {
     });
 
     it('should trigger race condition when dateKey changes rapidly without cleanup', async () => {
-        let coursesResolver11: any;
-        let assignmentsResolver11: any;
-        let jobsResolver11: any;
+        let coursesResolver11!: MockResolver;
+        let assignmentsResolver11!: MockResolver;
+        let jobsResolver11!: MockResolver;
 
-        let coursesResolver12: any;
-        let assignmentsResolver12: any;
-        let jobsResolver12: any;
+        let coursesResolver12!: MockResolver;
+        let assignmentsResolver12!: MockResolver;
+        let jobsResolver12!: MockResolver;
 
         let coursesCount = 0;
 
         vi.mocked(supabase.from).mockImplementation((tableName: string) => {
             let currentDateKey = '';
-            const query: any = {
+            const query: SupabaseQueryMock = {
                 select: vi.fn().mockReturnThis(),
                 eq: vi.fn().mockImplementation((_col: string, val: string) => {
                     currentDateKey = val;
                     return query;
                 }),
                 order: vi.fn().mockReturnThis(),
-                then: vi.fn().mockImplementation(async (onfulfilled: any) => {
-                    let promise: Promise<any>;
+                then: vi.fn().mockImplementation(async (onfulfilled: (value: { data: unknown[] | null; error: Record<string, unknown> | null }) => unknown) => {
+                    let promise: Promise<MockResponse>;
 
                     if (tableName === 'courses') {
                         coursesCount++;
                         if (coursesCount === 1) {
-                            promise = new Promise(resolve => { coursesResolver11 = resolve; });
+                            promise = new Promise<MockResponse>(resolve => { coursesResolver11 = resolve; });
                         } else {
-                            promise = new Promise(resolve => { coursesResolver12 = resolve; });
+                            promise = new Promise<MockResponse>(resolve => { coursesResolver12 = resolve; });
                         }
                     } else {
                         if (currentDateKey === '2026-07-11') {
                             if (tableName === 'course_assignments') {
-                                promise = new Promise(resolve => { assignmentsResolver11 = resolve; });
+                                promise = new Promise<MockResponse>(resolve => { assignmentsResolver11 = resolve; });
                             } else {
-                                promise = new Promise(resolve => { jobsResolver11 = resolve; });
+                                promise = new Promise<MockResponse>(resolve => { jobsResolver11 = resolve; });
                             }
                         } else {
                             if (tableName === 'course_assignments') {
-                                promise = new Promise(resolve => { assignmentsResolver12 = resolve; });
+                                promise = new Promise<MockResponse>(resolve => { assignmentsResolver12 = resolve; });
                             } else {
-                                promise = new Promise(resolve => { jobsResolver12 = resolve; });
+                                promise = new Promise<MockResponse>(resolve => { jobsResolver12 = resolve; });
                             }
                         }
                     }
@@ -171,7 +187,7 @@ describe('useDataSync Empirical Verification & Stress Tests', () => {
                     return Promise.resolve(res).then(onfulfilled);
                 })
             };
-            return query;
+            return query as unknown as ReturnType<typeof supabase.from>;
         });
 
         // 1. Initial render with date = '2026-07-11'
