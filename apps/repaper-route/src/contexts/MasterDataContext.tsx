@@ -47,10 +47,10 @@ export const MasterDataProvider: React.FC<{ children: ReactNode }> = ({ children
 
             setData({
                 drivers: processedDrivers,
-                vehicles: (vRes.data || []) as unknown as MasterVehicle[],
-                customers: (cRes.data || []) as MasterCustomer[],
-                items: (iRes.data || []) as MasterItem[],
-                customerItemDefaults: (cidRes.data || []) as unknown as CustomerItemDefault[]
+                vehicles: (Array.isArray(vRes.data) ? vRes.data : []) as MasterVehicle[],
+                customers: (Array.isArray(cRes.data) ? cRes.data : []) as MasterCustomer[],
+                items: (Array.isArray(iRes.data) ? iRes.data : []) as MasterItem[],
+                customerItemDefaults: (Array.isArray(cidRes.data) ? cidRes.data : []) as CustomerItemDefault[]
             });
         } catch (error) {
             console.error('Master data fetch error:', error);

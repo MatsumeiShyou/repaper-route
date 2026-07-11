@@ -6,6 +6,28 @@ import { MasterSchema } from '../config/masterSchema';
 const invalidateMasterCache = () => {};
 import { serializeMasterData } from '../utils/serialization';
 
+function isPostgrestError(err: unknown): err is { message: string; details?: string; hint?: string; code?: string } {
+    return (
+        typeof err === 'object' &&
+        err !== null &&
+        'message' in err &&
+        typeof (err as Record<string, unknown>).message === 'string'
+    );
+}
+
+function normalizeError(err: unknown): Error {
+    if (err instanceof Error) {
+        return err;
+    }
+    if (isPostgrestError(err)) {
+        const detailStr = [err.code, err.hint, err.details].filter(Boolean).join(' | ');
+        const message = err.message + (detailStr ? ` (${detailStr})` : '');
+        return new Error(message);
+    }
+    return new Error(String(err));
+}
+
+
 /**
  * 汎用マスタCRUDフック (TypeScript版)
  * SDR（State/Decision/Reason）プロトコルに基づくデータ更新を行う
@@ -26,7 +48,7 @@ export function useMasterCRUD<T extends Record<string, unknown>>(schema: MasterS
             if (err) throw err;
             setData((res as unknown as T[]) || []);
         } catch (err) {
-            setError(err instanceof Error ? err : new Error(String(err)));
+            setError(normalizeError(err));
             console.error('Master Data Fetch Error:', err);
         } finally {
             setLoading(false);
@@ -63,7 +85,7 @@ export function useMasterCRUD<T extends Record<string, unknown>>(schema: MasterS
             invalidateMasterCache();
             await refresh();
         } catch (err) {
-            setError(err instanceof Error ? err : new Error(String(err)));
+            setError(normalizeError(err));
             throw err;
         }
     };
@@ -94,7 +116,7 @@ export function useMasterCRUD<T extends Record<string, unknown>>(schema: MasterS
             invalidateMasterCache();
             await refresh();
         } catch (err) {
-            setError(err instanceof Error ? err : new Error(String(err)));
+            setError(normalizeError(err));
             throw err;
         }
     };
@@ -115,7 +137,7 @@ export function useMasterCRUD<T extends Record<string, unknown>>(schema: MasterS
             invalidateMasterCache();
             await refresh();
         } catch (err) {
-            setError(err instanceof Error ? err : new Error(String(err)));
+            setError(normalizeError(err));
             throw err;
         }
     };

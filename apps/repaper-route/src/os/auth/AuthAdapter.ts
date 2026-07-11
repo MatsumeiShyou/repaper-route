@@ -131,11 +131,20 @@ export class AuthAdapter {
           return { data: null, error: err };
       });
         
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('TIMEOUT_DB_FETCH')), 15000);
+        timeoutId = setTimeout(() => reject(new Error('TIMEOUT_DB_FETCH')), 15000);
       });
       
-      const { data: staff, error } = await Promise.race([queryPromise, timeoutPromise]);
+      let raceResult;
+      try {
+        raceResult = await Promise.race([queryPromise, timeoutPromise]);
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
+      const { data: staff, error } = raceResult;
 
       if (error || !staff) {
         console.warn('[AuthAdapter] Staff record not found by auth_uid. Error:', error);

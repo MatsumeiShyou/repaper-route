@@ -22,6 +22,7 @@ import { Modal } from './Modal';
 import { MasterSchema, MasterColumn, MASTER_SCHEMAS } from '../config/masterSchema';
 import { serializeMasterData, normalizeDays } from '../utils/serialization';
 import { SortConfig, universalSort } from '../utils/sortUtils';
+import { MasterVehicle, MasterItem, MasterField } from '../types';
 
 interface MasterDataLayoutProps {
     schema: MasterSchema;
@@ -29,7 +30,7 @@ interface MasterDataLayoutProps {
 
 
 export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) => {
-    // 汎用レイアウトなので Record<string, any> として扱う
+    // 汎用レイアウトなので Record<string, unknown> として扱う
     const {
         data,
         loading,
@@ -37,12 +38,12 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         createItem,
         updateItem,
         deleteItem
-    } = useMasterCRUD<Record<string, any>>(schema);
+    } = useMasterCRUD<Record<string, unknown>>(schema);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInitial, setSelectedInitial] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<Record<string, any> | null>(null);
+    const [editingItem, setEditingItem] = useState<Record<string, unknown> | null>(null);
 
     // 列の表示順管理
     const storageKey = `master_col_order_${schema.rpcTableName}`;
@@ -117,12 +118,12 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
         });
     };
 
-    const matchesInitial = (item: Record<string, any>) => {
+    const matchesInitial = (item: Record<string, unknown>) => {
         if (!selectedInitial) return true;
         
         // フリガナを最優先、なければ主要な名称フィールド
         const nameField = schema.searchFields[0] || 'name';
-        const target = String(item.furigana || item[nameField] || '').toUpperCase();
+        const target = String(item['furigana'] || item[nameField] || '').toUpperCase();
         if (!target) return selectedInitial === '他';
         
         const firstChar = target.charAt(0);
@@ -169,14 +170,14 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
 
     const [isDeepFetching, setIsDeepFetching] = useState(false);
 
-    const handleEdit = async (item: Record<string, any>) => {
+    const handleEdit = async (item: Record<string, unknown>) => {
         // [T3 Fix] Viewには不足カラムがあるため、修正時はテーブル本体から最新をDeep Fetchする
         if (schema.viewName !== schema.rpcTableName) {
             try {
                 setIsDeepFetching(true);
-                const { data: results, error: fetchErr } = await nativeSupabaseFetch<any[]>(
+                const { data: results, error: fetchErr } = await nativeSupabaseFetch<Record<string, unknown>[]>(
                     schema.rpcTableName as string,
-                    `select=*&${schema.primaryKey}=eq.${encodeURIComponent(item[schema.primaryKey])}`
+                    `select=*&${schema.primaryKey}=eq.${encodeURIComponent(String(item[schema.primaryKey]))}`
                 );
                 
                 const detail = results?.[0];
@@ -201,7 +202,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
 
     const [isSaving, setIsSaving] = useState(false);
 
-    const handleSave = async (formData: Record<string, any>) => {
+    const handleSave = async (formData: Record<string, unknown>) => {
         try {
             setIsSaving(true);
             const serialized = serializeMasterData(formData, schema.fields, schema.rpcTableName as string);
@@ -211,11 +212,12 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                 await createItem(serialized);
             }
             setIsModalOpen(false);
-        } catch (err: any) {
+        } catch (err) {
             console.error('Master Save Error:', err);
             // 診断強化: エラーオブジェクトの詳細を抽出
-            const errorMsg = err.message || '不明なエラー';
-            const diagnosticInfo = [err.code, err.hint, err.details].filter(Boolean).join(' | ');
+            const errorObj = err as { message?: string; code?: string; hint?: string; details?: string };
+            const errorMsg = errorObj.message || '不明なエラー';
+            const diagnosticInfo = [errorObj.code, errorObj.hint, errorObj.details].filter(Boolean).join(' | ');
             alert(`保存に失敗しました: ${errorMsg}${diagnosticInfo ? `\n(診断情報: ${diagnosticInfo})` : ''}`);
         } finally {
             setIsSaving(false);
@@ -395,7 +397,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {sortedData.map((item, rowIdx) => (
                                     <tr
-                                        key={item[schema.primaryKey]}
+                                        key={item[schema.primaryKey] as string}
                                         className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer animate-in fade-in slide-in-from-bottom-1"
                                         style={{ animationDelay: `${Math.min(rowIdx * 30, 300)}ms` }}
                                         onClick={() => handleEdit(item)}
@@ -432,11 +434,11 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
                     </div>
                 ) : (
                     <MasterForm
-                        key={editingItem ? editingItem[schema.primaryKey] : 'new'}
+                        key={editingItem ? editingItem[schema.primaryKey] as string : 'new'}
                         schema={schema}
                         initialData={editingItem}
                         onSave={handleSave}
-                        onDelete={editingItem ? () => handleDelete(editingItem[schema.primaryKey]) : undefined}
+                        onDelete={editingItem ? () => handleDelete(editingItem[schema.primaryKey] as string) : undefined}
                         onCancel={() => setIsModalOpen(false)}
                         isSaving={isSaving}
                     />
@@ -447,7 +449,7 @@ export const MasterDataLayout: React.FC<MasterDataLayoutProps> = ({ schema }) =>
 };
 
 
-function renderCell(item: Record<string, any>, col: MasterColumn) {
+function renderCell(item: Record<string, unknown>, col: MasterColumn) {
     const value = item[col.key];
 
     // Status Dot Display
@@ -502,34 +504,34 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
             <div className="flex flex-col py-1">
                 <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-800 dark:text-slate-200 leading-tight">
-                        {value || '-'}
+                        {value !== undefined && value !== null ? String(value) : '-'}
                     </span>
                     <div className="flex gap-0.5">
-                        {item.site_contact_phone && (
-                            <div className="w-5 h-5 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" title={item.site_contact_phone}>
+                        {!!item['site_contact_phone'] && (
+                            <div className="w-5 h-5 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" title={item['site_contact_phone'] as string}>
                                 <Phone size={10} className="stroke-[3]" />
                             </div>
                         )}
-                        {item.vehicle_restriction_type && item.vehicle_restriction_type !== 'NONE' && (
+                        {!!item['vehicle_restriction_type'] && item['vehicle_restriction_type'] !== 'NONE' && (
                             <div className="w-5 h-5 flex items-center justify-center rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400" title="車両制限あり">
                                 <Lock size={10} className="stroke-[3]" />
                             </div>
                         )}
-                        {item.internal_note && (
-                            <div className="w-5 h-5 flex items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" title={item.internal_note}>
+                        {!!item['internal_note'] && (
+                            <div className="w-5 h-5 flex items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" title={item['internal_note'] as string}>
                                 <FileText size={10} className="stroke-[2.5]" />
                             </div>
                         )}
                     </div>
                 </div>
-                {col.subLabelKey && item[col.subLabelKey] && (
+                {col.subLabelKey && !!item[col.subLabelKey] && (
                     <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 leading-none font-medium truncate max-w-[200px]">
-                        {item[col.subLabelKey]}
+                        {item[col.subLabelKey] as string}
                     </span>
                 )}
-                {col.thirdLabelKey && item[col.thirdLabelKey] && (
+                {col.thirdLabelKey && !!item[col.thirdLabelKey] && (
                     <span className="text-[10px] text-emerald-600/80 dark:text-emerald-500/80 mt-1 leading-none font-mono truncate max-w-[250px]">
-                        {item[col.thirdLabelKey]}
+                        {item[col.thirdLabelKey] as string}
                     </span>
                 )}
             </div>
@@ -631,20 +633,20 @@ function renderCell(item: Record<string, any>, col: MasterColumn) {
 
     return (
         <span className="text-slate-600 dark:text-slate-400">
-            {col.optionLabels?.[String(value)] || value || '-'}
+            {col.optionLabels?.[String(value)] || (value !== undefined && value !== null ? String(value) : '-')}
         </span>
     );
 }
 
 function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving }: {
     schema: MasterSchema,
-    initialData: Record<string, any> | null,
-    onSave: (data: Record<string, any>) => Promise<void>,
+    initialData: Record<string, unknown> | null,
+    onSave: (data: Record<string, unknown>) => Promise<void>,
     onDelete?: () => Promise<void>,
     onCancel: () => void,
     isSaving: boolean
 }) {
-    const [formData, setFormData] = useState<Record<string, any>>(() => {
+    const [formData, setFormData] = useState<Record<string, unknown>>(() => {
         const initial = { ...(initialData || {}) };
         schema.fields.forEach(f => {
             if (f.type === 'days') {
@@ -659,7 +661,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
 
 
     // 品目マスタのデータを取得するためのフック（タグ選択用）
-    const { data: allItems } = useMasterCRUD<Record<string, any>>(MASTER_SCHEMAS.items);
+    const { data: allItems } = useMasterCRUD<MasterItem & Record<string, unknown>>(MASTER_SCHEMAS.items);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -724,13 +726,13 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
                         ) : field.type === 'select' && field.lookup ? (
                             <LookupSelect
                                 field={field}
-                                value={formData[field.name] || ''}
+                                value={(formData[field.name] as string) || ''}
                                 onChange={(val) => setFormData({ ...formData, [field.name]: val })}
                             />
                         ) : field.type === 'select' ? (
                             <select
                                 className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                                value={formData[field.name] || ''}
+                                value={(formData[field.name] as string) || ''}
                                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                                 required={field.required}
                                 disabled={field.updatable === false && !!initialData}
@@ -749,7 +751,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
                                     <div className="flex flex-wrap gap-1.5">
                                         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => {
                                             const labels: Record<string, string> = { 'Mon': '月', 'Tue': '火', 'Wed': '水', 'Thu': '木', 'Fri': '金', 'Sat': '土', 'Sun': '日' };
-                                            const currentDays = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                                            const currentDays = Array.isArray(formData[field.name]) ? (formData[field.name] as string[]) : [];
                                             const isSelected = currentDays.includes(d);
 
                                             return (
@@ -778,7 +780,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
                                     <div className="flex flex-wrap gap-2">
                                         {['Hol', 'Oth'].map(d => {
                                             const labels: Record<string, string> = { 'Hol': '祝日稼働', 'Oth': '不定期・その他' };
-                                            const currentDays = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                                            const currentDays = Array.isArray(formData[field.name]) ? (formData[field.name] as string[]) : [];
                                             const isSelected = currentDays.includes(d);
                                             const activeClass = d === 'Hol' ? 'bg-rose-100 text-rose-700 border-rose-300' : 'bg-purple-100 text-purple-700 border-purple-300';
 
@@ -834,7 +836,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
                                             aria-label="変則周期を追加"
                                             onClick={() => {
                                                 const token = `${customDay}${customWeek}`;
-                                                const currentDays = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                                                const currentDays = Array.isArray(formData[field.name]) ? (formData[field.name] as string[]) : [];
                                                 if (!currentDays.includes(token)) {
                                                     setFormData({ ...formData, [field.name]: [...currentDays, token] });
                                                 }
@@ -846,7 +848,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
                                         {/* Display selected special tokens */}
-                                        {(Array.isArray(formData[field.name]) ? formData[field.name] : []).filter((d: string) => /^[A-Z][a-z]{2}[1-5]$/.test(d)).map((d: string) => {
+                                        {((Array.isArray(formData[field.name]) ? formData[field.name] : []) as string[]).filter((d: string) => /^[A-Z][a-z]{2}[1-5]$/.test(d)).map((d: string) => {
                                             const dayLabels: Record<string, string> = { 'Mon': '月', 'Tue': '火', 'Wed': '水', 'Thu': '木', 'Fri': '金', 'Sat': '土', 'Sun': '日' };
                                             const day = d.substring(0, 3);
                                             const week = d.substring(3);
@@ -856,7 +858,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
                                                     <button
                                                         type="button"
                                                         onClick={() => {
-                                                            const currentDays = Array.isArray(formData[field.name]) ? formData[field.name] : [];
+                                                            const currentDays = Array.isArray(formData[field.name]) ? (formData[field.name] as string[]) : [];
                                                             setFormData({ ...formData, [field.name]: currentDays.filter((day: string) => day !== d) });
                                                         }}
                                                         className="hover:text-indigo-400 bg-indigo-200/50 dark:bg-indigo-800/50 rounded-full p-0.5"
@@ -889,7 +891,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
                             <input
                                 type={field.type}
                                 className="w-full px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                                value={formData[field.name] || ''}
+                                value={(formData[field.name] as string | number) || ''}
                                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                                 required={field.required}
                                 placeholder={field.placeholder}
@@ -902,7 +904,7 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
 
             {/* 入場制限セクション（回収先マスタ・編集時のみ） */}
             {schema.rpcTableName === 'master_collection_points' && initialData && (
-                <PointAccessSection pointId={initialData.id} />
+                <PointAccessSection pointId={initialData['id'] as string} />
             )}
 
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
@@ -942,12 +944,13 @@ function MasterForm({ schema, initialData, onSave, onDelete, onCancel, isSaving 
 }
 
 function LookupSelect({ field, value, onChange }: {
-    field: any, // MasterField from schema
+    field: MasterField, // MasterField from schema
     value: string,
     onChange: (val: string) => void
 }) {
+    if (!field.lookup) return null;
     const lookupSchema = MASTER_SCHEMAS[field.lookup.schemaKey];
-    const { data: options, loading } = useMasterCRUD(lookupSchema);
+    const { data: options, loading } = useMasterCRUD<Record<string, unknown>>(lookupSchema);
 
     return (
         <select
@@ -958,11 +961,15 @@ function LookupSelect({ field, value, onChange }: {
             disabled={loading}
         >
             <option value="">{loading ? '読み込み中...' : '選択してください'}</option>
-            {options.map((opt: any) => (
-                <option key={opt[field.lookup.valueKey]} value={opt[field.lookup.valueKey]}>
-                    {opt[field.lookup.labelKey]}
-                </option>
-            ))}
+            {options.map((opt: Record<string, unknown>) => {
+                const val = String(opt[field.lookup!.valueKey] || '');
+                const label = String(opt[field.lookup!.labelKey] || '');
+                return (
+                    <option key={val} value={val}>
+                        {label}
+                    </option>
+                );
+            })}
         </select>
     );
 }
@@ -971,11 +978,24 @@ function LookupSelect({ field, value, onChange }: {
 // 入場制限セクション（PointAccessSection）
 // 回収先マスタ編集モーダル内に表示。デフォルト折りたたみ（制約なし）。
 // ─────────────────────────────────────────────────────────────────────────────
+interface PointAccessPermission {
+    id: string;
+    point_id: string;
+    driver_id: string;
+    vehicle_id: string;
+    is_active: boolean | null;
+}
+
+interface DriverOption {
+    id: string;
+    name: string;
+}
+
 function PointAccessSection({ pointId }: { pointId: string }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [permissions, setPermissions] = useState<any[]>([]);
-    const [drivers, setDrivers] = useState<any[]>([]);
-    const [vehicles, setVehicles] = useState<any[]>([]);
+    const [permissions, setPermissions] = useState<PointAccessPermission[]>([]);
+    const [drivers, setDrivers] = useState<DriverOption[]>([]);
+    const [vehicles, setVehicles] = useState<MasterVehicle[]>([]);
     const [newDriverId, setNewDriverId] = useState('');
     const [newVehicleId, setNewVehicleId] = useState('');
     const [saving, setSaving] = useState(false);
@@ -989,24 +1009,24 @@ function PointAccessSection({ pointId }: { pointId: string }) {
             .then(({ data }) => setPermissions(data || []));
         // スタッフ（旧ドライバー）一覧
         supabase.from('staffs').select('id, name').then(({ data }) =>
-            setDrivers((data || []).map((d: any) => ({ id: d.id, name: d.name || d.id })))
+            setDrivers((data || []).map(d => ({ id: d.id, name: d.name || d.id })))
         );
         // 車両一覧
         supabase.from('master_vehicles').select('id, number, callsign').then(({ data }) =>
-            setVehicles(data || [])
+            setVehicles((data || []) as MasterVehicle[])
         );
     }, [isOpen, pointId]);
 
     const handleAdd = async () => {
         if (!newDriverId || !newVehicleId) return;
         setSaving(true);
-        await (supabase.from('point_access_permissions') as any).upsert(
+        await supabase.from('point_access_permissions').upsert(
             { point_id: pointId, driver_id: newDriverId, vehicle_id: newVehicleId, is_active: true },
             { onConflict: 'point_id,driver_id' }
         );
         setNewDriverId(''); setNewVehicleId('');
         // 再取得
-        const { data } = await (supabase.from('point_access_permissions') as any)
+        const { data } = await supabase.from('point_access_permissions')
             .select('*')
             .eq('point_id', pointId).eq('is_active', true);
         setPermissions(data || []);
@@ -1014,7 +1034,7 @@ function PointAccessSection({ pointId }: { pointId: string }) {
     };
 
     const handleDelete = async (id: string) => {
-        await (supabase.from('point_access_permissions') as any).update({ is_active: false }).eq('id', id);
+        await supabase.from('point_access_permissions').update({ is_active: false }).eq('id', id);
         setPermissions(prev => prev.filter(p => p.id !== id));
     };
 
@@ -1052,7 +1072,7 @@ function PointAccessSection({ pointId }: { pointId: string }) {
                     {/* 既存ルール一覧 */}
                     {permissions.length > 0 && (
                         <div className="space-y-2">
-                            {permissions.map((p: any) => {
+                            {permissions.map((p: PointAccessPermission) => {
                                 const staff = drivers.find(d => d.id === p.driver_id);
                                 const vehicle = vehicles.find(v => v.id === p.vehicle_id);
                                 const staffName = staff?.name || p.driver_id;
