@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MasterDataLayout } from './MasterDataLayout';
 import useMasterCRUD from '../hooks/useMasterCRUD';
@@ -65,7 +64,8 @@ describe('MasterDataLayout Japanese Syllabary Filter regex', () => {
             error: null,
             createItem: vi.fn(),
             updateItem: vi.fn(),
-            deleteItem: vi.fn()
+            deleteItem: vi.fn(),
+            refresh: vi.fn()
         });
     });
 
