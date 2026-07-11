@@ -30,7 +30,7 @@ export default defineConfig({
             testDir: './apps/repaper-route/tests/e2e',
             use: {
                 ...devices['Desktop Chrome'],
-                baseURL: process.env.STAGING_URL || 'https://repaper-route.pages.dev',
+                baseURL: process.env.STAGING_URL || 'http://localhost:4173/repaper-route/',
             },
         },
     ],
