@@ -8,8 +8,8 @@ export const DeviceSettings: React.FC = () => {
     const options: { id: DeviceMode; label: string; icon: React.ReactNode; desc: string }[] = [
         { id: 'auto', label: '自動判定 (推奨)', icon: <Settings size={20} />, desc: '画面サイズから最適なモードを選択' },
         { id: 'pc', label: 'PCモード', icon: <Monitor size={20} />, desc: 'ダブルクリック有効 / マウス操作優先' },
-        { id: 'tablet', label: 'タブレットモード', icon: <Tablet size={20} />, desc: '大きなタッチ対象 / 2タップ操作' },
-        { id: 'mobile', label: 'スマホモード', icon: <Smartphone size={20} />, desc: '画面幅最適化 / 2タップ操作' }
+        { id: 'tablet', label: 'タブレットモード', icon: <Tablet size={20} />, desc: '大きなタッチ対象 / 2タッチ操作' },
+        { id: 'mobile', label: 'スマホモード', icon: <Smartphone size={20} />, desc: '画面幅最適化 / 2タッチ操作' }
     ];
 
     // 表示用のモード名マッピング

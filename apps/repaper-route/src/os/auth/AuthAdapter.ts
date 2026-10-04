@@ -27,7 +27,7 @@ export class AuthAdapter {
       if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
         this.clearCache().catch(e => console.error('[AuthAdapter] Error clearing cache on auth event:', e));
       } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        // サインイン時・リロード時は古いキャッシュ（Promise）を破棄し、最新を取得できる状態にする
+        // サインイン時やリロード時は古いキャッシュや Promise を破棄し、最新を取得できる状態にする
         this.currentStaff = null;
       }
     });
@@ -38,17 +38,6 @@ export class AuthAdapter {
       AuthAdapter.instance = new AuthAdapter();
     }
     return AuthAdapter.instance;
-  }
-
-  /**
-   * localStorage に認証トークンが存在するかを同期的に確認する
-   */
-  public hasCachedSession(): boolean {
-    if (typeof window === 'undefined') return false;
-    // sb-[project-id]-auth-token 形式のキーを探す
-    return Object.keys(localStorage).some(key => 
-      key.startsWith('sb-') && key.endsWith('-auth-token')
-    );
   }
 
   /**
@@ -69,7 +58,7 @@ export class AuthAdapter {
   /**
    * onAuthStateChange コールバックから呼ばれる専用メソッド。
    * 既に取得済みの Session を受け取り、getSession() の再呼び出しを回避する。
-   * これにより Supabase クライアント内部のロック競合（デッドロック）を物理的に排除する。
+   * これにより Supabase クライアント内部のロード競合（ダブルロード）を物理的に排除する。
    */
   public resolveStaffFromSession(session: import('@supabase/supabase-js').Session): Promise<Staff | null> {
     // セッション付き解決では常に新鮮な Promise を生成する（キャッシュを使わない）
@@ -84,7 +73,7 @@ export class AuthAdapter {
    * staffs テーブル (OS 規格) から Staff 情報を取得・検証する。
    * ネットワークエラー時は IndexedDB キャッシュからの復旧を試みる。
    * 
-   * @param preFetchedSession onAuthStateChange から渡されたセッション（デッドロック回避用）
+   * @param preFetchedSession onAuthStateChange から渡されたセッション（ダブルロード回避用）
    */
   private async fetchStaff(preFetchedSession?: import('@supabase/supabase-js').Session): Promise<Staff | null> {
     try {
@@ -105,49 +94,15 @@ export class AuthAdapter {
         throw new NotAuthenticatedError();
       }
 
-      console.log('[AuthAdapter] >>> Native fetch(staffs) EXECUTE START');
-      
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const url = `${supabaseUrl}/rest/v1/staffs?id=eq.${session.user.id}&select=*`;
-      
-      const queryPromise = fetch(url, {
-          method: 'GET',
-          headers: {
-              'apikey': anonKey,
-              'Authorization': `Bearer ${session.access_token}`,
-              // single() 相当（1件のみ取得しオブジェクトとして返す）
-              'Accept': 'application/vnd.pgrst.object+json'
-          }
-      }).then(async (res) => {
-          if (!res.ok) {
-              const text = await res.text();
-              throw new Error(`DB Fetch failed: ${res.status} ${text}`);
-          }
-          const data = await res.json();
-          console.log('[AuthAdapter] <<< Native fetch(staffs) EXECUTE END', data);
-          return { data, error: null };
-      }).catch(err => {
-          return { data: null, error: err };
-      });
-        
-      let timeoutId: ReturnType<typeof setTimeout> | undefined;
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('TIMEOUT_DB_FETCH')), 15000);
-      });
-      
-      let raceResult;
-      try {
-        raceResult = await Promise.race([queryPromise, timeoutPromise]);
-      } finally {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-      }
-      const { data: staff, error } = raceResult;
+      // staffs テーブルからスタッフ情報を取得
+      const { data: staff, error } = await supabase
+        .from('staffs')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
 
       if (error || !staff) {
-        console.warn('[AuthAdapter] Staff record not found by auth_uid. Error:', error);
+        console.warn('[AuthAdapter] Staff record not found or inaccessible, attempting cache recovery:', error);
         const cached = await this.recoverFromCache(session.user.id);
         if (cached) return cached;
         throw new StaffNotFoundError();
@@ -161,11 +116,9 @@ export class AuthAdapter {
       
       const role = (rawStaff.role || 'staff') as StaffRole;
 
-      // 権限検証: allowed_apps に管理者用またはドライバー用の権限が含まれているか
-      const hasPermission = apps.includes('repaper-route') || apps.includes('repaper-route-admin') || apps.includes('repaper-route-driver');
-      
-      if (!hasPermission) {
-        console.error(`[AuthAdapter] Forbidden: No permission for repaper-route modules. Found:`, apps);
+      // 権限検証: allowed_apps にこのアプリが含まれているか
+      if (!apps.includes(DXOS_APP_ID)) {
+        console.error(`[AuthAdapter] Forbidden: No permission for ${DXOS_APP_ID}`);
         throw new AppAccessDeniedError(DXOS_APP_ID);
       }
 
@@ -177,11 +130,10 @@ export class AuthAdapter {
         last_synced_at: new Date().toISOString(),
         device_mode: rawStaff.device_mode || undefined,
         vehicle_info: rawStaff.vehicle_info || undefined,
-        permissions: this.derivePermissions(role, {
-          can_edit_board: rawStaff.can_edit_board ?? undefined
-        })
+        permissions: this.derivePermissions(role)
       };
 
+      // 正常に取得できたらキャッシュを更新 (Fire-and-forget)
       authStore.saveStaff(resolvedStaff).catch(e => console.error('[AuthAdapter] Cache save failed:', e));
 
       return resolvedStaff;
@@ -196,36 +148,21 @@ export class AuthAdapter {
     }
   }
 
-   /**
-    * ロールから物理権限を導出する。 (F-SSOT 準拠)
-    * @param role スタッフのロール
-    * @param overrides DB上の個別フラグによる上書き（SSOT）
-    */
-  private derivePermissions(role: StaffRole, overrides?: Partial<StaffPermissions>): StaffPermissions {
-    let base: StaffPermissions;
+  /**
+   * ロールから物理権限を導出する。(F-SSOT 準拠)
+   */
+  private derivePermissions(role: StaffRole): StaffPermissions {
     switch (role) {
       case 'admin':
-        base = { can_edit_board: true, can_manage_master: true, can_edit_past_records: true };
-        break;
+        return { can_edit_board: true, can_manage_master: true, can_edit_past_records: true };
       case 'manager':
-        base = { can_edit_board: true, can_manage_master: true, can_edit_past_records: false };
-        break;
+        return { can_edit_board: true, can_manage_master: true, can_edit_past_records: false };
       case 'staff':
-        base = { can_edit_board: true, can_manage_master: false, can_edit_past_records: false };
-        break;
+        return { can_edit_board: true, can_manage_master: false, can_edit_past_records: false };
       case 'driver':
       default:
-        base = { can_edit_board: false, can_manage_master: false, can_edit_past_records: false };
-        break;
+        return { can_edit_board: false, can_manage_master: false, can_edit_past_records: false };
     }
-
-    // DB上のフラグを SSOT として優先適用
-    return {
-      ...base,
-      ...Object.fromEntries(
-        Object.entries(overrides || {}).filter(([_, v]) => v !== undefined)
-      )
-    } as StaffPermissions;
   }
 
   /**
@@ -259,7 +196,7 @@ export class AuthAdapter {
   }
 
   /**
-   * staffs テーブルから全市民情報を取得し、権限を導出する。
+   * staffs テーブルから全スタッフ情報を取得し、権限を導出する。
    * 取得後は IDB キャッシュを一括更新する。
    */
   public async fetchAllStaffs(): Promise<Staff[]> {
@@ -288,9 +225,7 @@ export class AuthAdapter {
           last_synced_at: new Date().toISOString(),
           device_mode: s.device_mode || undefined,
           vehicle_info: s.vehicle_info || undefined,
-          permissions: this.derivePermissions(role, {
-            can_edit_board: s.can_edit_board ?? undefined
-          })
+          permissions: this.derivePermissions(role)
         };
       });
 

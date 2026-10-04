@@ -10,7 +10,7 @@ const pointSchema: MasterSchema = {
     rpcTableName: 'master_collection_points',
     viewName: 'view_master_points',
     primaryKey: 'id',
-    title: '拠点マスタ管理',
+    title: '拠点マスター管理',
     description: '回収拠点および顧客情報の管理を行います。',
     label: 'Points (Master)',
     fields: [
@@ -34,7 +34,7 @@ const vehicleSchema: MasterSchema = {
     rpcTableName: 'master_vehicles',
     viewName: 'vehicles',
     primaryKey: 'id',
-    title: '車両マスタ管理',
+    title: '車両マスター管理',
     description: '稼働車両およびスペックの管理を行います。',
     label: 'Vehicles (Master)',
     fields: [
@@ -56,8 +56,8 @@ const itemSchema: MasterSchema = {
     rpcTableName: 'master_items',
     viewName: 'master_items',
     primaryKey: 'id',
-    title: '品目マスタ管理',
-    description: '回収品目および単位の管理を行います。',
+    title: '品目マスター管理',
+    description: '回収品目および単位を管理を行います。',
     label: 'Items (Master)',
     fields: [
         { name: 'name', label: 'Item Name', type: 'text', required: true, updatable: true },
@@ -67,7 +67,7 @@ const itemSchema: MasterSchema = {
     columns: [
         { key: 'name', label: '品目名', type: 'text', sortable: true },
         { key: 'unit', label: '単位', type: 'badge', sortable: true },
-        { key: 'display_order', label: '順位', type: 'text', sortable: true }
+        { key: 'display_order', label: '表示順', type: 'text', sortable: true }
     ],
     searchFields: ['name']
 };
@@ -78,7 +78,7 @@ const driverSchema: MasterSchema = {
     viewName: 'staffs',
     primaryKey: 'id',
     title: 'スタッフ名簿管理',
-    description: 'ドライバーおよび管理者、OSユーザーの管理を行います。',
+    description: 'ドライバーおよび管理者を含む OS ユーザーの管理を行います。',
     label: 'Drivers (Master)',
     fields: [
         { name: 'name', label: 'Driver Name', type: 'text', required: true, updatable: false },

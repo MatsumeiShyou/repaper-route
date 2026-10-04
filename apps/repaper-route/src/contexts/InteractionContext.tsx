@@ -13,7 +13,7 @@ interface InteractionContextType {
 
 const InteractionContext = createContext<InteractionContextType | undefined>(undefined);
 
-
+// eslint-disable-next-line react-refresh/only-export-components
 export const useInteraction = () => {
     const context = useContext(InteractionContext);
     if (!context) {
@@ -52,7 +52,7 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({ childr
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // 実際の有効なモード（F-SSOT: 状態ではなく memo による導出）
+    // 実際の有効なモード (v3 - SSOT: 状態ではなく memo による導出)
     const activeMode = useMemo<ActiveDeviceMode>(() => {
         if (deviceMode !== 'auto') return deviceMode;
 
@@ -67,7 +67,7 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({ childr
         localStorage.setItem('sanctuary_device_mode', deviceMode);
     }, [deviceMode]);
 
-    // クラウドから初期値をフェッチ
+    // クラウドから同期値をフェッチ
     useEffect(() => {
         if (!currentUser || !staff?.device_mode) return;
         

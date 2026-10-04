@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    LayoutDashboard, Truck, Users, Settings,
+    LayoutDashboard, Truck, Users, Settings, Database,
     MapPin, Box, Shield, Activity, LogOut
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
@@ -11,46 +11,41 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
-    const { staff, logout } = useAuth();
-
-    // 物理権限に基づく表示制御 (F-SSOT)
-    const canManageMaster = staff?.permissions?.can_manage_master ?? false;
+    const { currentUser, logout } = useAuth();
 
     const menuGroups = [
         {
-            title: "業務メニュー",
+            title: "OPERATIONS",
             items: [
                 { id: 'dashboard', label: 'ダッシュボード', icon: LayoutDashboard },
                 { id: 'board', label: '配車盤', icon: Truck, highlight: true },
             ]
         },
-        ...(canManageMaster ? [
-            {
-                title: "マスタ管理",
-                items: [
-                    { id: 'master_drivers', label: 'ドライバー', icon: Users },
-                    { id: 'master_vehicles', label: '車両', icon: Truck },
-                    { id: 'master_points', label: '回収先', icon: MapPin },
-                    { id: 'master_items', label: '品目', icon: Box },
-                ]
-            },
-            {
-                title: "システム設定",
-                items: [
-                    { id: 'sdr', label: 'SDR監査ログ', icon: Activity },
-                    { id: 'users', label: 'ユーザー管理', icon: Shield },
-                    { id: 'settings', label: '設定', icon: Settings },
-                ]
-            }
-        ] : [])
+        {
+            title: "MASTERS",
+            items: [
+                { id: 'master_drivers', label: 'ドライバー', icon: Users },
+                { id: 'master_vehicles', label: '車両', icon: Truck },
+                { id: 'master_points', label: '回収先', icon: MapPin },
+                { id: 'master_items', label: '品目', icon: Box },
+            ]
+        },
+        {
+            title: "SYSTEM",
+            items: [
+                { id: 'sdr', label: 'SDR監査ログ', icon: Activity },
+                { id: 'users', label: 'ユーザー管理', icon: Shield },
+                { id: 'settings', label: '設定', icon: Settings },
+            ]
+        }
     ];
 
     return (
         <aside className="w-[260px] flex flex-col h-full bg-slate-900 text-slate-300 border-r border-slate-800 z-50">
             {/* Logo Area */}
             <div
-                className="h-20 flex items-center px-6 border-b border-slate-800 bg-slate-950/50 cursor-pointer hover:bg-slate-900 transition-colors"
-                onClick={() => onViewChange('board')}
+                className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950/50 cursor-pointer hover:bg-slate-900 transition-colors"
+                onClick={() => onViewChange('menu')}
             >
                 <div className="mr-3">
                     <img
@@ -58,14 +53,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
                         alt="Logo"
                         className="h-8 w-auto invert opacity-80"
                         onError={(e) => {
+                            // Fallback if logo not found
                             (e.target as HTMLImageElement).style.display = 'none';
                         }}
                     />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-black tracking-tighter text-white leading-none">
-                        <span className="text-emerald-600">R</span>epaper <span className="text-emerald-600">R</span>oute
-                    </h1>
+                    <h1 className="text-sm font-black tracking-tighter text-white leading-none">SANCTUARY</h1>
+                    <span className="text-[8px] font-mono tracking-[0.3em] text-slate-500 uppercase">Route Command</span>
                 </div>
             </div>
 
@@ -112,15 +107,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) =>
                 ))}
             </nav>
 
-            {/* ユーザープロフィール（簡易表示） */}
+            {/* User Profile Mini */}
             <div className="p-4 border-t border-slate-800 bg-slate-950/20">
                 <div className="flex items-center gap-3 px-2">
                     <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-blue-400 shadow-inner">
-                        {staff?.name?.substring(0, 1) || 'U'}
+                        {currentUser?.name?.substring(0, 1) || 'U'}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black truncate text-slate-200 uppercase tracking-tight">{staff?.name || '不明'}</p>
-                        <p className="text-[8px] text-slate-500 uppercase tracking-widest font-mono font-bold leading-none mt-0.5">{staff?.role || 'ゲスト'}</p>
+                        <p className="text-[10px] font-black truncate text-slate-200 uppercase tracking-tight">{currentUser?.name || 'Unknown'}</p>
+                        <p className="text-[8px] text-slate-500 uppercase tracking-widest font-mono font-bold leading-none mt-0.5">{currentUser?.role || 'GUEST'}</p>
                     </div>
                     <button
                         onClick={() => logout()}

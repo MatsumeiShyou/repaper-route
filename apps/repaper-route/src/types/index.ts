@@ -1,5 +1,5 @@
 /**
- * Core Application Domain Types (Unified & Extended)
+ * Core Application Domain Types (Unified & Extended for useBoardData)
  */
 
 export type UserRole = 'admin' | 'driver';
@@ -13,7 +13,21 @@ export interface Profile {
     updated_at: string;
 }
 
-export * from './master';
+// Supabase 'jobs' table record (Legacy/Sync form)
+export interface SupabaseJob {
+    id: string;
+    job_title: string;
+    bucket_type: string | null;
+    duration_minutes: number | null;
+    area: string | null;
+    customer_name: string | null;
+    required_vehicle: string | null;
+    start_time: string | null;
+    note: string | null;
+    special_notes: string | null;
+    driver_id: string | null;
+    updated_at: string;
+}
 
 // Unified Board Job
 export interface BoardJob {
@@ -27,33 +41,42 @@ export interface BoardJob {
     isSpot: boolean;
     timeConstraint?: string;
     taskType: 'collection' | 'special';
-    courseId?: string; // Reference to course
-    startTime?: string;
-    visitSlot?: string;
-    warningMessage?: string;
-    item_category?: string;
+    driverId?: string;
+    startTime?: string; // Legacy/Internal compatibility for rendering
+    
+    // Semantic fields for Template & Scoring
     location_id?: string;
-    address?: string;
-    creation_reason?: string;
-    status: 'planned' | 'confirmed';
-    is_admin_forced?: boolean;
-    is_skipped?: boolean;
-    actual_time?: string;
-    weight_kg?: number;
+    item_category?: string;
+    visitSlot?: string;
 }
 
-export interface BoardCourse {
+export interface BoardDriver {
     id: string;
     name: string;
-    displayColor: string;
-    displayOrder: number;
-    staffId?: string | null;
-    vehicleId?: string | null;
+    driverName: string;
+    currentVehicle: string;
+    course: string;
+    color: string;
+    vehicleCallsign?: string; // Added for display parity with JS
 }
 
-export interface BoardState {
-    courses: BoardCourse[];
+export interface BoardSplit {
+    id: string;
+    jobId: string;
+    startTime: string;
+    endTime: string;
+}
+
+export interface BoardHistoryEntry {
     jobs: BoardJob[];
+    pendingJobs: BoardJob[];
+    splits: BoardSplit[];
+    drivers: BoardDriver[];
+}
+
+export interface BoardHistory {
+    past: BoardHistoryEntry[];
+    future: BoardHistoryEntry[];
 }
 
 export interface AppUser {
@@ -67,9 +90,6 @@ export interface AppUser {
 // Master Data Types
 export interface MasterVehicle {
     id: string;
-    number: string;
-    callsign?: string;
-    max_payload?: number;
     name?: string;
 }
 
@@ -77,16 +97,7 @@ export interface MasterCustomer {
     id: string;
     location_id: string;
     name: string;
-    display_name?: string;
-    furigana?: string;
-    address?: string;
     area?: string;
-    latitude?: number;
-    longitude?: number;
-    company_phone?: string;
-    manager_phone?: string;
-    recurrence_pattern?: string;
-    time_constraint?: string;
 }
 
 export interface MasterItem {

@@ -47,13 +47,12 @@ export class ErrorBoundary extends Component<Props, State> {
                     <div className="max-w-md w-full bg-white rounded-xl shadow-2xl border border-red-100 overflow-hidden">
                         <div className="bg-red-600 px-6 py-4 flex items-center gap-3 text-white">
                             <AlertOctagon size={24} />
-                            <h2 className="text-lg font-bold">システムエラーが発生しました</h2>
+                            <h2 className="text-lg font-bold">シスチE��エラーが発生しました</h2>
                         </div>
 
                         <div className="p-6">
                             <p className="text-slate-600 mb-6 text-sm leading-relaxed">
-                                アプリケーションの実行中に予期せぬエラーが発生しました。
-                                {this.state.error?.message && (
+                                アプリケーションの実行中に予期せぬエラーが発生しました、E                                {this.state.error?.message && (
                                     <span className="block mt-2 font-mono text-red-500 bg-red-50 p-2 rounded text-xs break-all">
                                         Detail: {this.state.error.message}
                                     </span>
@@ -66,15 +65,14 @@ export class ErrorBoundary extends Component<Props, State> {
                                     className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-lg transition-all flex items-center justify-center gap-2 shadow-md"
                                 >
                                     <RefreshCcw size={18} />
-                                    ページを再読み込み
+                                    ペ�Eジを�E読み込み
                                 </button>
                                 <button
                                     onClick={this.handleGoHome}
                                     className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-2.5 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
                                 >
                                     <Home size={18} />
-                                    トップに戻る
-                                </button>
+                                    トップに戻めE                                </button>
                             </div>
 
                             {process.env.NODE_ENV === 'development' && this.state.errorInfo && (

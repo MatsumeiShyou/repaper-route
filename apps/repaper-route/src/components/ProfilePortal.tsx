@@ -1,23 +1,12 @@
 import React, { useState } from 'react';
 import { Shield, Loader2, LogIn, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
-import { useAuth } from '../contexts/AuthProvider';
 
 export const ProfilePortal: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { status } = useAuth();
-
-    React.useEffect(() => {
-        // AuthProvider側で権限エラー等により未認証状態に戻された場合、ローディングを解除する
-        if (status === 'UNAUTHENTICATED' || status === 'NOT_REGISTERED') {
-            setIsLoading(false);
-        }
-    }, [status]);
-
-    const displayError = error || (status === 'NOT_REGISTERED' ? 'スタッフ名簿に登録されていません。管理者に申請してください。' : null);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,7 +19,7 @@ export const ProfilePortal: React.FC = () => {
             setError('メールアドレスまたはパスワードが正しくありません。');
             setIsLoading(false);
         }
-        // 成功時は AuthProvider の onAuthStateChange が SIGNED_IN を検知し自動遷移
+        // 成功時は AuthProvider の onAuthStateChange で SIGNED_IN を検知して自動的に移動
     };
 
     return (
@@ -80,10 +69,10 @@ export const ProfilePortal: React.FC = () => {
                             />
                         </div>
 
-                        {displayError && (
+                        {error && (
                             <div className="flex items-center gap-2 p-3 bg-rose-900/30 border border-rose-500/30 rounded-xl text-rose-400 text-xs animate-in fade-in">
                                 <AlertCircle size={14} className="shrink-0" />
-                                {displayError}
+                                {error}
                             </div>
                         )}
 

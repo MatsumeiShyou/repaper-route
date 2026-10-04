@@ -5,15 +5,15 @@
  */
 
 /**
- * 日本標準時 (JST) の現在日付オブジェクトを取得する
- * 内部MSは現地時間だが、表示・計算用に今日の日付を保つ
+ * 日本標準時 (JST) の現在日付オブジェクトを取得する。
+ * 内部 MS は現地時間だが、表示・計算用に今日の日付を保つ。
  */
 export const getJSTNow = (): Date => {
-    return new Date(); // 日本国内利用を前提とし、標準のDateを使用（必要に応じIntlで補正）
+    return new Date(); // 日本国内利用を前提とし、標準の Date を使用。必要に応じ Intl で補正。
 };
 
 /**
- * Dateオブジェクトを YYYY-MM-DD 形式の文字列に変換する (JST基準)
+ * Dateオブジェクトを YYYY-MM-DD 形式の文字列に変換する (JST基準)。
  */
 export const formatDateKey = (date: Date): string => {
     const y = date.getFullYear();
@@ -23,7 +23,7 @@ export const formatDateKey = (date: Date): string => {
 };
 
 /**
- * 2つの日付が同じ日か判定する (時間切り捨て)
+ * 2つの日付が同じ日か判定する (時間切り捨て)。
  */
 export const isSameDayJST = (d1: Date, d2: Date): boolean => {
     return d1.getFullYear() === d2.getFullYear() &&
@@ -32,8 +32,8 @@ export const isSameDayJST = (d1: Date, d2: Date): boolean => {
 };
 
 /**
- * 対象日が今日より過去か判定する (JST基準・日付単位)
- * Intlを使用することで環境（ブラウザ/OS）のタイムゾーン設定に依存せず
+ * 対象日が今日より過去か判定する (JST基準の日付単位)。
+ * Intlを使用することで環境（ブラウザ/OS）のタイムゾーン設定に依存せず、
  * 日本時間（Asia/Tokyo）として比較を行う。
  */
 export const isPastDayJST = (date: Date): boolean => {
@@ -51,7 +51,7 @@ export const isPastDayJST = (date: Date): boolean => {
 };
 
 /**
- * 「第N番目の〇曜日」という文字列を生成する
+ * 「第N番目の、〇曜日」という文字列を生成する。
  * 例: 2026-03-08 は「第2日曜日」
  */
 export const getNthWeekdayString = (date: Date): string => {
@@ -59,15 +59,15 @@ export const getNthWeekdayString = (date: Date): string => {
     const dayOfWeek = date.getDay();
     const dayName = dayNames[dayOfWeek];
 
-    // 第Nの計算: (その月の何日目か - 1) / 7 + 1 の切り捨て
+    // 第Nの計算: (その月の日付 - 1) / 7 + 1 の切り捨て
     const nth = Math.floor((date.getDate() - 1) / 7) + 1;
 
     return `第${nth}${dayName}曜日`;
 };
 
 /**
- * 指定された形式で日付文字列を生成する
- * 例: 2026年 03月 08日 第2日曜日
+ * 指定された形式で日付文字列を生成する。
+ * 例: 2026年 03月08日 第2日曜日
  */
 export const formatFullDateWithNthDay = (date: Date): string => {
     const y = date.getFullYear();
@@ -75,8 +75,9 @@ export const formatFullDateWithNthDay = (date: Date): string => {
     const d = String(date.getDate()).padStart(2, '0');
     const nthDay = getNthWeekdayString(date);
 
-    return `${y}年 ${m}月 ${d}日 ${nthDay}`;
+    return `${y}年 ${m}月${d}日 ${nthDay}`;
 };
+
 /**
  * 配車盤表示用の時刻フォーマット変換
  * @param timeSlot 'HH:mm' 形式の文字列 (例: '06:00', '15:30')
@@ -94,6 +95,6 @@ export const formatTimeForDisplay = (timeSlot: string): string => {
     }
 
     // 15/30/45 分の場合は、時を省略して ':MM' 形式で返す
-    // ※インデントは CSS (TimeGrid.tsx) で制御するため、ここではスペースを含めない
+    // ※インライン CSS (TimeGrid.tsx) で制御するため、ここではスペースを含めない
     return `:${minuteStr}`;
 };

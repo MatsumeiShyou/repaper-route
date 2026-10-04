@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { nativeSupabaseFetch } from '../lib/supabase/nativeFetch';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '../lib/supabase/client';
 import { MasterVehicle, MasterCustomer, MasterItem, CustomerItemDefault } from '../types';
 
 interface MasterData {
-    drivers: unknown[];
+    drivers: any[];
     vehicles: MasterVehicle[];
     customers: MasterCustomer[];
     items: MasterItem[];
@@ -30,27 +30,30 @@ export const MasterDataProvider: React.FC<{ children: ReactNode }> = ({ children
     const fetchAll = async () => {
         setIsLoading(true);
         try {
-            // supabase.from のデッドロックを避けるため、全て nativeSupabaseFetch で並列取得する
-            const [dRes, vRes, cRes, iRes, cidRes] = await Promise.all([
-                nativeSupabaseFetch<Record<string, unknown>[]>('drivers', 'select=*&order=display_order.asc'),
-                nativeSupabaseFetch<MasterVehicle[]>('vehicles', 'select=*&order=id.asc'),
-                nativeSupabaseFetch<MasterCustomer[]>('master_collection_points', 'select=*&order=id.asc'),
-                nativeSupabaseFetch<MasterItem[]>('master_items', 'select=*&order=display_order.asc'),
-                nativeSupabaseFetch<CustomerItemDefault[]>('customer_item_defaults', 'select=*')
+            const [d, v, c, i, cid] = await Promise.all([
+                supabase.from('drivers').select('*').order('display_order', { ascending: true }),
+                supabase.from('vehicles').select('*').order('id'),
+                supabase.from('view_master_points').select('*').order('id'),
+                supabase.from('master_items').select('*').order('display_order'),
+                supabase.from('customer_item_defaults').select('*')
             ]);
 
-            const processedDrivers = (Array.isArray(dRes.data) ? dRes.data : []).map((driver: Record<string, unknown>) => ({
+            const processedDrivers = (d.data || []).map((driver: any) => ({
                 ...driver,
-                defaultCourse: (driver.default_course || driver.defaultCourse) as string | undefined,
-                defaultVehicle: (driver.default_vehicle || driver.defaultVehicle) as string | undefined
+                defaultCourse: driver.default_course || driver.defaultCourse,
+                defaultVehicle: driver.default_vehicle || driver.defaultVehicle
+            }));
+
+            const processedCustomers: MasterCustomer[] = (c.data || []).map((point: any) => ({
+                ...point,
             }));
 
             setData({
                 drivers: processedDrivers,
-                vehicles: (Array.isArray(vRes.data) ? vRes.data : []) as MasterVehicle[],
-                customers: (Array.isArray(cRes.data) ? cRes.data : []) as MasterCustomer[],
-                items: (Array.isArray(iRes.data) ? iRes.data : []) as MasterItem[],
-                customerItemDefaults: (Array.isArray(cidRes.data) ? cidRes.data : []) as CustomerItemDefault[]
+                vehicles: (v.data || []) as unknown as MasterVehicle[],
+                customers: processedCustomers,
+                items: (i.data || []) as MasterItem[],
+                customerItemDefaults: (cid.data || []) as unknown as CustomerItemDefault[]
             });
         } catch (error) {
             console.error('Master data fetch error:', error);
@@ -60,20 +63,11 @@ export const MasterDataProvider: React.FC<{ children: ReactNode }> = ({ children
     };
 
     useEffect(() => {
-        // マウント時に一度取得。トークンがまだない場合でも、
-        // 公開マスタが取得できる可能性があるため実行するが、
-        // 失敗しても isLoading を false にしてハングを防止する。
         fetchAll();
     }, []);
 
-    const contextValue = useMemo(() => ({
-        ...data,
-        isLoading,
-        refresh: fetchAll
-    }), [data, isLoading]);
-
     return (
-        <MasterDataContext.Provider value={contextValue}>
+        <MasterDataContext.Provider value={{ ...data, isLoading, refresh: fetchAll }}>
             {children}
         </MasterDataContext.Provider>
     );

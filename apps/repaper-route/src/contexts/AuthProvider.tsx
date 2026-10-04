@@ -34,117 +34,101 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [staff, setStaff] = useState<Staff | null>(null);
     const [staffs, setStaffs] = useState<Staff[]>([]);
-    const [status, setStatus] = useState<AuthStatus>(() => {
-        // キャッシュ（トークン）がない場合は、サーバー応答を待たずに即座に非認証状態とする
-        return authAdapter.hasCachedSession() ? 'INITIALIZING' : 'UNAUTHENTICATED';
-    });
+    const [status, setStatus] = useState<AuthStatus>('INITIALIZING');
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-    const [debugError, setDebugError] = useState<string>('');
     
     // React 19 use() 用の Promise を保持
     const [staffPromise, setStaffPromise] = useState<Promise<Staff | null> | null>(null);
 
-    // [MUTEX] 認証解決プロセスの二重起動（競合による AbortError）を防止
-    const isResolving = React.useRef(false);
-
     /**
      * 認証解決のヘルパー関数
+     * onAuthStateChange のコールバックから呼ばれる。競合状態を排除し、
+     * session を直接受け取ることで、getSession() の再呼び出しによる重複ロードを回避。
      */
     const resolveAndSetStaff = async (session: Session | null) => {
-        if (isResolving.current) {
-            console.log('[AuthProvider] Auth resolution already in progress. Skipping duplicate call.');
-            return;
-        }
-        isResolving.current = true;
-
         if (!session?.user) {
-            console.log('[AuthProvider] No session user, setting UNAUTHENTICATED');
             setStaff(null);
             setStatus('UNAUTHENTICATED');
-            isResolving.current = false;
             return;
         }
 
         try {
-            console.log('[AuthProvider] Resolving staff for UID:', session.user.id);
-            // [FAIL-SAFE] タイムアウトを設定
-            const timeoutPromise = new Promise<never>((_, reject) => {
-                setTimeout(() => reject(new Error('Auth resolution TIMEOUT')), 15500);
-            });
-
             const promise = authAdapter.resolveStaffFromSession(session);
             setStaffPromise(promise);
-            
-            const s = await Promise.race([promise, timeoutPromise]);
-            
+            const s = await promise;
             setStaff(s);
             setStatus(s ? 'AUTHENTICATED' : 'UNAUTHENTICATED');
-        } catch (err: unknown) {
-            console.error('[AuthProvider] Auth resolution failed:', err);
+        } catch (err: any) {
+            console.error('[AuthProvider] Auth resolution failed with error:', err);
             setStaff(null);
             
-            const errorObj = err instanceof Error ? err : new Error(String(err));
-            const errName = errorObj.name;
-            const errMessage = errorObj.message;
-            const errCode = (err && typeof err === 'object' && 'code' in err) ? (err as Record<string, unknown>).code : undefined;
-            
-            const isAbort = errName === 'AbortError' || errMessage.includes('aborted');
-            const isTimeout = errMessage === 'TIMEOUT_DB_FETCH' || errMessage.includes('TIMEOUT');
-            const isNotFound = errName === 'StaffNotFoundError' || errCode === 'FORBIDDEN';
-
-            if (isTimeout) {
-                console.error('[AuthProvider] CRITICAL: DB Fetch Timeout. Forcing radical logout.');
-                setDebugError(`TIMEOUT: ${errMessage}`);
+            // AbortError の場合はエラー画面に移行させずリトライ可能にするか、未認証にする
+            if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
+                console.warn('[AuthProvider] Fetch aborted, attempting cache sync setup...');
                 setStatus('UNAUTHENTICATED');
-                supabase.auth.signOut().finally(() => authAdapter.clearCache());
-            } else if (isAbort) {
-                setStatus('UNAUTHENTICATED');
-            } else if (isNotFound) {
-                setDebugError(`NOT FOUND: ${errMessage}`);
-                setStatus('NOT_REGISTERED');
+            } else if (err.code === 'FORBIDDEN') {
+                setStatus('LOCKED');
             } else {
-                setDebugError(`ERROR: ${errMessage}`);
                 setStatus('UNAUTHENTICATED');
             }
-        } finally {
-            isResolving.current = false;
         }
     };
 
     useEffect(() => {
-        let isCancelled = false;
-        
-        // 1. スタッフリストの取得
-        const fetchList = async () => {
+        // 初期化およびスタッフリストを取得
+        const init = async () => {
             try {
                 const list = await authAdapter.fetchAllStaffs();
-                if (!isCancelled) setStaffs(list);
+                setStaffs(list);
             } catch (e) {
                 console.error('[AuthProvider] Failed to fetch staffs list:', e);
             }
         };
+        init();
+    }, []);
 
-        // 認証状態の変化（および初期化）を監視
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log(`[AuthProvider] Auth Event: ${event}`);
-            if (isCancelled) return;
+    useEffect(() => {
+        // [React 18 StrictMode + Supabase v2 対策]
+        // INITIAL_SESSION イベントは初回の onAuthStateChange 登録時にしか発火しないため。
+        // 直後の unsubscribe によって消失し、再マウント時に発火せずハングする問題がある。
+        // これを防ぐため、明示的に初期セッションを取得する。
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            console.log('[AuthProvider] Initial session fetch result:', { session: session ? 'exists' : 'null', error });
+            if (error) {
+                console.error('[AuthProvider] getSession error:', error);
+                setStatus('UNAUTHENTICATED');
+                return;
+            }
             
-            if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+            resolveAndSetStaff(session).then(() => {
+                if (session) {
+                    authAdapter.fetchAllStaffs().then(setStaffs).catch(e => console.error('[AuthProvider] fetchAllStaffs error:', e));
+                }
+            });
+        }).catch(err => {
+            console.error('[AuthProvider] getSession promise rejected:', err);
+            setStatus('UNAUTHENTICATED');
+        });
+
+        // onAuthStateChange は「その後の変更」のみを監視する
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`[AuthProvider] Auth Event: ${event}, session: ${session ? 'exists' : 'null'}`);
+            
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
                 await resolveAndSetStaff(session);
-                await fetchList();
+                try {
+                    const list = await authAdapter.fetchAllStaffs();
+                    setStaffs(list);
+                } catch (e) {
+                    console.error('[AuthProvider] Failed to fetch staffs list:', e);
+                }
             } else if (event === 'SIGNED_OUT') {
                 setStaff(null);
                 setStaffs([]);
                 setStatus('UNAUTHENTICATED');
-                // サインアウト時のクリーンアップ
-
             }
         });
-
-        return () => {
-            isCancelled = true;
-            subscription.unsubscribe();
-        };
+        return () => subscription.unsubscribe();
     }, []);
 
     const logout = async () => {
@@ -160,18 +144,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return (
         <AuthContext.Provider value={{ 
             staff, 
-            currentUser: staff,
+            currentUser: staff, // Backward compatibility
             staffs, 
             status, 
             staffPromise,
             isLoading: status === 'INITIALIZING',
             logout 
         }}>
-            {debugError && (
-                <div style={{ position: 'fixed', top: 0, left: 0, background: 'red', color: 'white', padding: 8, zIndex: 9999, fontSize: 12 }}>
-                    DEBUG ERROR: {debugError}
-                </div>
-            )}
             {children}
 
             <Modal
@@ -199,8 +178,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     <p className="text-sm text-slate-300">
                         システムからログアウトしますか？<br />
                         <span className="text-[10px] text-slate-500 mt-2 block">
-                            ※オフラインキャッシュは破棄されます
-                        </span>
+                            ※オフラインキャッシュE��ュは破棄し��れまい                        </span>
                     </p>
                 </div>
             </Modal>

@@ -1,9 +1,10 @@
-import React from 'react'
+﻿import React from 'react'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthProvider, useAuth } from './contexts/AuthProvider'
 import { InteractionProvider } from './contexts/InteractionContext'
 import { MasterDataProvider } from './contexts/MasterDataContext'
-import { ShieldAlert, Database, RefreshCcw, Truck } from 'lucide-react'
+import { ProfilePortal } from './components/ProfilePortal'
+import { ShieldAlert, Database, RefreshCcw } from 'lucide-react'
 import { AdminLayout } from './components/AdminLayout'
 import BoardCanvas from './features/board/BoardCanvas'
 import MasterDriverList from './features/admin/MasterDriverList.tsx'
@@ -49,30 +50,7 @@ function SplashScreen() {
 }
 
 /**
- * 未登録（市民ではない）場合のエラー画面
- */
-function UnregisteredScreen() {
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
-            <div className="max-w-md w-full bg-slate-900 border border-slate-700 rounded-3xl p-10 text-center shadow-2xl">
-                <h2 className="text-2xl font-black text-white mb-4 tracking-tight">未登録のスタッフ</h2>
-                <p className="text-slate-400 text-sm leading-relaxed mb-8">
-                    スタッフ名簿に登録されていません。<br />管理者に申請してください。
-                </p>
-                <button 
-                    onClick={() => window.location.href = '/'}
-                    className="w-full h-12 bg-slate-800 hover:bg-slate-700 text-white text-xs font-black rounded-xl transition-all"
-                >
-                    ポータルへ戻る
-                </button>
-            </div>
-        </div>
-    )
-}
-
-/**
- * アプリケーションの認証・権限ガードレール（許可/拒絶）
- */
+ * アプリケーションの認証・権限ガードレール�E�許可/拒絶�E�E */
 function AppContent() {
     const { staff, status } = useAuth()
     const [activeView, setActiveView] = React.useState('board')
@@ -97,22 +75,12 @@ function AppContent() {
         return <SplashScreen />
     }
 
-    // 2. 未登録（市民ではない）
-    if (status === 'NOT_REGISTERED') {
-        return <UnregisteredScreen />
-    }
-
-    // 3. 未認証（OSのポータルへリダイレクト）
+    // 2. 未ログイン
     if (status === 'UNAUTHENTICATED' || !staff) {
-        // [Micro-Frontend] 未認証の場合は、アプリ固有のログイン画面を出さず親OSへ強制帰還
-        if (typeof window !== 'undefined') {
-            // [Fix] Relative path '/' causes loop on same port (5174). Force return to Portal (5173).
-            window.location.href = window.location.origin.replace('5174', '5173')
-        }
-        return null; // リダイレクト完了まで何も描画しない
+        return <ProfilePortal />
     }
 
-    // 4. 権限不足（LOCKED）
+    // 3. Locked
     if (status === 'LOCKED') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
@@ -122,66 +90,37 @@ function AppContent() {
                     </div>
                     <h2 className="text-2xl font-black text-white mb-4 tracking-tight">アクセス拒絶</h2>
                     <p className="text-slate-400 text-sm leading-relaxed mb-8">
-                        スタッフ名簿には登録されていますが、<br />
-                        このシステムへのアクセス権限がありません。<br />
+                        スタックE��名簿には登録されていE��ますが、<br />
+                        こ�EシステムE��へのアクセス権限がありません。<br />
                         <span className="text-rose-400/80 font-bold block mt-4 px-3 py-1 bg-rose-900/20 rounded-lg inline-block text-[10px] tracking-widest uppercase">
                             App ID: repaper-route
                         </span>
                     </p>
                     <button 
-                        onClick={() => window.location.href = '/'}
+                        onClick={() => window.location.reload()}
                         className="w-full h-12 bg-slate-800 hover:bg-slate-700 text-white text-xs font-black rounded-xl transition-all"
                     >
-                        ポータルへ戻る
+                        再読み込み
                     </button>
                 </div>
             </div>
         )
     }
 
-    // 5. 許可済み（AUTHENTICATED）
+    // 4. Authenticated
     const canAccessView = (view: string) => {
-        if (!staff) return false;
         const p = staff.permissions;
-        const role = staff.role;
-
-        // 管理者・マネージャーは全画面OK
-        if (p.can_manage_master || role === 'admin' || role === 'manager') return true;
-
-        // ドライバーの場合：master_ で始まる画面は一律拒絶
-        if (role === 'driver' && view.startsWith('master_')) return false;
-
-        // デフォルト：board は全員OK
-        if (view === 'board') return true;
-
-        // それ以外（個別設定などがあればここに追加）
+        if (p.can_manage_master) return true; // Manager/Admin
+        if (view === 'board') return true;    // All staff can see board
         return false;
     };
 
     const renderView = () => {
-        // 現在の権限で許可されていないビューが指定された場合は 'board' へフォールバック
-        const isAllowed = canAccessView(activeView);
-        const targetView = isAllowed ? activeView : 'board';
-
-        if (!isAllowed && activeView !== 'board') {
-            console.warn(`[App] Access denied for view: ${activeView}. Falling back to board.`);
-        }
+        const targetView = canAccessView(activeView) ? activeView : 'board';
 
         switch (targetView) {
             case 'board':
                 return <BoardCanvas />;
-            case 'driver_mode':
-                // 将来的にドライバー専用のシンプル画面を作る場合はここに追加
-                return (
-                    <div className="h-full flex flex-col items-center justify-center bg-slate-100 text-slate-500 p-10 text-center">
-                        <Truck size={64} className="mb-6 opacity-20 text-emerald-600" />
-                        <h2 className="text-xl font-black text-slate-800 mb-2">ドライバー専用モード</h2>
-                        <p className="text-sm opacity-60">
-                            現在、ドライバー向け専用画面を準備中です。<br />
-                            左側のメニューから「配車ボード」を確認できます。
-                        </p>
-                    </div>
-                );
             case 'master_drivers':
                 return <MasterDriverList />;
             case 'master_vehicles':

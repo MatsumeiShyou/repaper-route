@@ -1,17 +1,6 @@
+import { Database } from '../../types/database.types';
 
-
-/** staffs テーブルの物理構造定義（論理的に固定） */
-export type StaffRow = {
-  id: string;
-  name: string;
-  role: string | null;
-  allowed_apps: unknown; // jsonb
-  can_edit_board: boolean | null;
-  device_mode: string | null;
-  vehicle_info: string | null;
-  created_at?: string;
-  updated_at?: string;
-};
+export type StaffRow = Database['public']['Tables']['staffs']['Row'];
 export type StaffRole = 'admin' | 'driver' | 'staff' | 'manager';
 
 /** 本アプリケーションの DXOS 識別子 */
@@ -25,7 +14,7 @@ export interface Staff {
   /** OS レベルの権限ロール */
   role: StaffRole;
   /** 
-   * アプリケーションごとのアクセス権限 
+   * アプリケーションごとのアクセス権限
    * 例: ['repaper-route', 'inventory-os'] 
    */
   allowed_apps: string[];
@@ -40,7 +29,7 @@ export interface Staff {
 }
 
 export interface StaffPermissions {
-  /** 配車ボードの編集権限（ドラッグ＆ドロップ、ステータス変更等） */
+  /** 配車ボードの編集権限（ドラッグアンドドロップ、ステータス変更等） */
   can_edit_board: boolean;
   /** マスタデータの編集権限 */
   can_manage_master: boolean;
@@ -51,7 +40,7 @@ export interface StaffPermissions {
 export interface AuthError {
   code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NETWORK_ERROR' | 'UNKNOWN';
   message: string;
-  details?: unknown;
+  details?: any;
 }
 
 /** 認証基盤の基底エラー */
@@ -86,4 +75,4 @@ export class AppAccessDeniedError extends AuthBaseError {
 /**
  * 統合 OS における認証状態の列挙
  */
-export type AuthStatus = 'INITIALIZING' | 'UNAUTHENTICATED' | 'AUTHENTICATED' | 'LOCKED' | 'NOT_REGISTERED';
+export type AuthStatus = 'INITIALIZING' | 'UNAUTHENTICATED' | 'AUTHENTICATED' | 'LOCKED';

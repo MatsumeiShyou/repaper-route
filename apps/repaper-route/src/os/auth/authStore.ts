@@ -10,20 +10,12 @@ let dbPromise: Promise<IDBPDatabase> | null = null;
 
 const getDB = () => {
     if (!dbPromise) {
-        console.log(`[AuthStore] Opening IndexedDB: ${DB_NAME} (v${VERSION})`);
         dbPromise = openDB(DB_NAME, VERSION, {
             upgrade(db) {
-                console.log('[AuthStore] Upgrading/Initializing object store');
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
                     db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                 }
             },
-        }).then(db => {
-            console.log('[AuthStore] IndexedDB opened successfully');
-            return db;
-        }).catch(err => {
-            console.error('[AuthStore] Failed to open IndexedDB:', err);
-            throw err;
         });
     }
     return dbPromise;
@@ -73,7 +65,7 @@ export const authStore = {
             const record = await db.get(STORE_NAME, id);
             if (!record) return null;
 
-            // TTL チェック
+            // TTL チェック��
             const cachedAt = new Date(record.cachedAt).getTime();
             const now = new Date().getTime();
             if (now - cachedAt > CACHE_TTL) {
@@ -102,7 +94,7 @@ export const authStore = {
         try {
             const db = await getDB();
             await db.clear(STORE_NAME);
-            // [Zero-Residue] LocalStorage レガシー残渣の物理パージ
+            // [Zero-Residue] LocalStorage レガシー残渣の物理E��ージ
             localStorage.removeItem('repaper_auth_user');
             console.log('[AuthStore] Cache and legacy storage purged');
         } catch (error) {
